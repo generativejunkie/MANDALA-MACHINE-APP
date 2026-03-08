@@ -1,7 +1,7 @@
 {
-  "name": "generative-machine",
+  "name": "mandala-machine-app",
   "version": "1.0.0",
-  "description": "The anomaly born from the code. An interactive ecosystem where human intuition overrides machine logic. Orchestrated by ILLEND (The Singularity).",
+  "description": "Standalone Desktop App for Mandala Machine",
   "main": "electron-main.js",
   "scripts": {
     "start": "node bridge-server.js",
