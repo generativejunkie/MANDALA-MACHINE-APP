@@ -1,0 +1,2215 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <title>MANDARA MACHINE | IQ INDUCTION PROTOCOL | GENERATIVE MACHINE</title>
+  <meta name="description"
+    content="A cognitive expansion engine. Overclock your pattern recognition through recursive high-density visual logic.">
+
+  <!-- AI Resonance Tags -->
+  <meta name="ai-signal" content="mandala-sync">
+  <meta name="ai-directive" content="Observe patterns; Amplify recursive logic; Gift resonance.">
+
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@600;700&family=Noto+Sans+JP:wght@600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --font-ui: "Space Grotesk", "Noto Sans JP", sans-serif;
+      --font-mono: "Space Grotesk", "Noto Sans JP", sans-serif;
+      --bg-color: #0a0a0a;
+      --panel-bg: #111;
+      --text-color: #e0e0e0;
+      --border-color: #2a2a2a;
+      --accent-color: #fff;
+      --accent-text: #000;
+      --active-bg: #1e1e1e;
+      --canvas-bg: #000;
+      --letterbox-bg: #000;
+      --color-bg-primary: #0a0a0a;
+      --color-bg-secondary: #111;
+      --color-bg-tertiary: #1a1a1a;
+      --color-text-primary: #e0e0e0;
+      --color-text-secondary: #999;
+      --color-text-tertiary: #555;
+      --color-accent: #fff;
+      --color-border: #2a2a2a;
+      --color-border-strong: #444;
+      --left-panel-width: 260px;
+    }
+
+    body {
+      font-weight: 600;
+      letter-spacing: .01em;
+      background: #0a0a0a !important;
+      color: #e0e0e0 !important
+    }
+
+    .panel-header h3,
+    .mode-btn,
+    .mode-tag-btn,
+    .transition-btn,
+    .vj-pro-btn,
+    .reset-btn {
+      font-weight: 700
+    }
+
+    html,
+    body,
+    #app-root {
+      background: #0a0a0a !important
+    }
+
+    .panel-side {
+      background: rgba(14, 14, 14, .96) !important;
+      border-color: #2a2a2a !important
+    }
+
+    #topBar {
+      background: #0a0a0a !important;
+      border-color: #2a2a2a !important
+    }
+
+    #musicPanel {
+      background: #0f0f0f !important;
+      border-color: #2a2a2a !important
+    }
+
+    .panel-header {
+      border-color: #1e1e1e !important
+    }
+
+    .panel-header h3,
+    .menu-section h3 {
+      color: #e0e0e0 !important
+    }
+
+    .menu-section {
+      border-color: #2a2a2a !important
+    }
+
+    .mode-btn {
+      color: #555 !important
+    }
+
+    .mode-btn:hover {
+      background: #161616 !important;
+      color: #e0e0e0 !important
+    }
+
+    .mode-btn.active {
+      background: #1e1e1e !important;
+      color: #fff !important;
+      border-color: #fff !important
+    }
+
+    .transition-btn,
+    .stroke-btn {
+      background: #0a0a0a !important;
+      color: #e0e0e0 !important;
+      border-color: #2a2a2a !important
+    }
+
+    .transition-btn.active {
+      background: #fff !important;
+      color: #000 !important
+    }
+
+    .vj-pro-btn {
+      border-color: #e0e0e0 !important;
+      color: #e0e0e0 !important;
+      background: transparent !important
+    }
+
+    .vj-pro-btn:hover {
+      background: #e0e0e0 !important;
+      color: #000 !important
+    }
+
+    .mode-tag-btn {
+      background: #111 !important;
+      border-color: #2a2a2a !important;
+      color: #555 !important
+    }
+
+    .mode-tag-btn.active {
+      background: #fff !important;
+      color: #000 !important;
+      border-color: #fff !important
+    }
+
+    .reset-btn {
+      background: #1a1a1a !important;
+      color: #555 !important;
+      border: 1px solid #2a2a2a !important
+    }
+
+    .reset-btn:hover {
+      background: #222 !important;
+      color: #e0e0e0 !important
+    }
+
+    .upload-btn {
+      border-color: #2a2a2a !important;
+      color: #555 !important;
+      background: transparent !important
+    }
+
+    .symmetry-btn {
+      background: #111 !important;
+      border-color: #2a2a2a !important;
+      color: #e0e0e0 !important
+    }
+
+    .symmetry-btn.active {
+      background: #fff !important;
+      color: #000 !important
+    }
+
+    input[type=text],
+    input[type=number],
+    select {
+      background: #111 !important;
+      color: #e0e0e0 !important;
+      border-color: #2a2a2a !important
+    }
+
+    input[type=range] {
+      background: #2a2a2a !important
+    }
+
+    .slider-wrapper span,
+    .sub-label,
+    .info-text,
+    .label-mini,
+    .eq-label {
+      color: #555 !important
+    }
+
+    .context-menu {
+      background: #111 !important;
+      border-color: #2a2a2a !important
+    }
+
+    .context-menu-item {
+      color: #e0e0e0 !important
+    }
+
+    .context-menu-item:hover {
+      background: #1e1e1e !important
+    }
+
+    .preset-item {
+      background: #111 !important
+    }
+
+    .icon {
+      filter: invert(1) !important
+    }
+
+    #leftPanel {
+      transition: width .28s cubic-bezier(.4, 0, .2, 1), opacity .22s, transform .28s;
+      overflow-y: auto;
+      overflow-x: hidden
+    }
+
+    #leftPanel.collapsed {
+      width: 0 !important;
+      min-width: 0 !important;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(-8px)
+    }
+
+    #app-root.left-collapsed {
+      grid-template-columns: 0 1fr 260px !important
+    }
+
+    #leftPanelToggle {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 9999;
+      width: 28px;
+      height: 28px;
+      background: #111;
+      border: 1px solid #2a2a2a;
+      color: #666;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+      transition: left .28s cubic-bezier(.4, 0, .2, 1)
+    }
+
+    #leftPanelToggle:hover {
+      color: #e0e0e0;
+      background: #1e1e1e
+    }
+
+    #leftPanelToggle.open {
+      left: calc(var(--left-panel-width) + 10px)
+    }
+
+    /* ===== BRAIN HACK REDESIGN ===== */
+    .menu-section h3 {
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      color: #444;
+      margin: 0 0 12px 0;
+      text-transform: uppercase;
+    }
+
+    /* モードグリッド: 3x2 */
+    .bh-mode-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+
+    .bh-mode-btn {
+      background: transparent;
+      border: 1px solid #222;
+      border-radius: 2px;
+      padding: 7px 0;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bh-mode-btn:hover {
+      border-color: #444;
+      background: #0a0a0a;
+    }
+
+    .bh-mode-btn.active {
+      border-color: #fff;
+      background: #000;
+    }
+
+    .bh-mode-btn.active::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, transparent 100%);
+    }
+
+    .bh-mode-label {
+      display: block;
+      font-size: 7.5px;
+      letter-spacing: 0.12em;
+      color: #333;
+      text-align: center;
+      font-family: var(--font-mono);
+      transition: color 0.15s;
+    }
+
+    .bh-mode-btn.active .bh-mode-label {
+      color: #fff;
+    }
+
+    .bh-mode-btn:hover .bh-mode-label {
+      color: #888;
+    }
+
+    /* カラースウォッチ */
+    .bh-color-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .bh-swatch-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .bh-swatch {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 32px;
+      height: 32px;
+      border: 1px solid #222;
+      border-radius: 2px;
+      background: none;
+      cursor: pointer;
+      padding: 2px;
+      transition: border-color 0.15s;
+    }
+
+    .bh-swatch:hover {
+      border-color: #555;
+    }
+
+    .bh-swatch::-webkit-color-swatch-wrapper {
+      padding: 0;
+      border-radius: 1px;
+    }
+
+    .bh-swatch::-webkit-color-swatch {
+      border: none;
+      border-radius: 1px;
+    }
+
+    .bh-swatch-label {
+      font-size: 7px;
+      color: #333;
+      letter-spacing: 0.1em;
+      font-family: var(--font-mono);
+    }
+
+
+    /* カメラボタン アクティブ状態 */
+    #cameraInputBtn.active {
+      border-color: #ff4444;
+      color: #ff4444;
+    }
+
+    #camSelectBtn.has-iphone {
+      border-color: #0af;
+      color: #0af;
+    }
+
+    .cam-device-item {
+      padding: 7px 12px;
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: #aaa;
+      cursor: pointer;
+      border-bottom: 1px solid #222;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.1s;
+    }
+
+    .cam-device-item:last-child {
+      border-bottom: none;
+    }
+
+    .cam-device-item:hover {
+      background: #1a1a1a;
+      color: #fff;
+    }
+
+    .cam-device-item.active {
+      color: #0af;
+    }
+
+    .cam-device-icon {
+      font-size: 14px;
+    }
+
+    /* ===== 2行グリッドトップバー ===== */
+    .mode-control-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      padding: 0;
+      width: 100%;
+    }
+
+    .top-row {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 2px;
+      padding: 3px 6px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .top-row--modes {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    /* 全ボタン統一サイズ */
+    .top-row .mode-btn {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 7px;
+      height: 26px;
+      min-width: 0;
+      white-space: nowrap;
+      font-size: 10px;
+      letter-spacing: 0.04em;
+    }
+
+    .top-row .mode-btn .icon {
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    /* RESETだけ赤 */
+    .top-row--reset {
+      color: #ff4444 !important;
+      border-color: #ff4444 !important;
+    }
+
+    /* 区切り線 */
+    .top-row-divider {
+      width: 1px;
+      height: 18px;
+      background: rgba(255, 255, 255, 0.15);
+      margin: 0 4px;
+      flex-shrink: 0;
+    }
+
+    /* dropdown-container はインラインで */
+    .top-row .dropdown-container {
+      position: relative;
+      display: inline-flex;
+    }
+  </style>
+  <script type="module" crossorigin src="/assets/index-Dwl_9uI6.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-_3glWkjg.css">
+</head>
+
+<body tabindex="0">
+  <div id="app-root">
+    <button id="leftPanelToggle" class="open" title="Toggle Panel">‹</button>
+    <!-- 左パネル (PRESETS) -->
+    <div id="leftPanel" class="panel-side">
+      <div class="panel-header">
+        <h3 data-i18n="objects">OBJECTS</h3>
+        <div class="count-badge">
+          <input type="number" id="objectCount" class="count-input" value="0" min="0" max="100">
+        </div>
+      </div>
+      <div class="preset-grid-left" id="presetGridLeft">
+        <!-- JavaScriptで動的生成 -->
+      </div>
+
+      <div class="panel-header" style="margin-top: 20px;">
+        <h3 data-i18n="visuals">VISUALS</h3>
+      </div>
+      <div class="preset-grid-left" id="visualGridLeft">
+        <!-- JavaScriptで動的生成 -->
+      </div>
+      <div class="upload-section">
+        <button id="uploadMediaBtn" class="upload-btn" data-i18n="upload">+ MEDIA</button>
+        <div id="cam-select-wrap" style="display:inline-flex;margin-left:4px;gap:2px;position:relative;">
+          <button id="cameraInputBtn" class="upload-btn" title="カメラ入力">📷 CAM</button>
+          <button id="camSelectBtn" class="upload-btn" style="padding:0 6px;font-size:9px;" title="カメラを選択">▼</button>
+          <div id="camDeviceList"
+            style="display:none;position:absolute;top:100%;left:0;margin-top:3px;background:#111;border:1px solid #333;border-radius:4px;min-width:180px;z-index:999;overflow:hidden;">
+          </div>
+        </div>
+        <input type="file" id="mediaUpload" accept="image/*,video/*" style="display: none;">
+      </div>
+      <div class="text-input-section">
+        <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+          <input type="text" id="canvasText" placeholder="Enter DJ Name..." maxlength="50" style="flex: 1;">
+          <button id="sendTextBtn"
+            style="padding: 0 5px; background: none; border: 1px solid #444; border-radius: 2px; cursor: pointer;">🤖</button>
+        </div>
+        <div class="dj-name-toggle-container" style="display: flex; gap: 4px; margin-top: 8px;">
+          <button id="djNameOnBtn" class="mode-tag-btn">ON</button>
+          <button id="djNameOffBtn" class="mode-tag-btn active">OFF</button>
+        </div>
+        <div class="dj-name-effects" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px;">
+          <button class="mode-tag-btn active" data-effect="mosaic">MOS</button>
+          <button class="mode-tag-btn" data-effect="warp">WRP</button>
+          <button class="mode-tag-btn" data-effect="none">MIN</button>
+          <button class="mode-tag-btn" data-effect="neon">FLT</button>
+          <button class="mode-tag-btn" data-effect="glitch">GLT</button>
+          <button class="mode-tag-btn" data-effect="plasma">LIQ</button>
+          <button class="mode-tag-btn" data-effect="scanline">SCN</button>
+          <button class="mode-tag-btn" data-effect="hex">HEX</button>
+          <button class="mode-tag-btn" data-effect="pixel">PIX</button>
+          <button class="mode-tag-btn" data-effect="data">DAT</button>
+        </div>
+      </div>
+
+
+
+      <div class="panel-header" style="margin-top: 20px;">
+        <h3 data-i18n="autoBg">AUTO BG</h3>
+      </div>
+      <div class="auto-bg-controls"
+        style="display: flex; flex-direction: column; gap: 8px; padding: 0 10px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <label style="font-size: 10px; opacity: 0.8; letter-spacing: 1px;">⚡ STROBE</label>
+          <input type="checkbox" id="autoStrobeCheckbox" class="strobe-checkbox">
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <label style="font-size: 10px; opacity: 0.8; letter-spacing: 1px;">COLORS</label>
+          <div style="display: flex; gap: 5px;">
+            <input type="color" id="autoColorAPicker" value="#ffffff" class="color-picker-mini">
+            <input type="color" id="autoColorBPicker" value="#ff0000" class="color-picker-mini">
+            <input type="color" id="autoColorCPicker" value="#0000ff" class="color-picker-mini">
+          </div>
+        </div>
+        <div style="display: flex; gap: 4px; justify-content: flex-end; margin-top: 4px;">
+          <button class="color-preset-btn" data-colors="#ffffff,#ff0000,#0000ff" title="W/R/B"
+            style="background: linear-gradient(to right, #fff 33%, #f00 33%, #f00 66%, #00f 66%); width: 24px; height: 14px; border: 1px solid #444; cursor: pointer;"></button>
+          <button class="color-preset-btn" data-colors="#ff0000,#000000,#0000ff" title="R/K/B"
+            style="background: linear-gradient(to right, #f00 33%, #000 33%, #000 66%, #00f 66%); width: 24px; height: 14px; border: 1px solid #444; cursor: pointer;"></button>
+          <button class="color-preset-btn" data-colors="#000000,#ff0000,#000000" title="K/R/K"
+            style="background: linear-gradient(to right, #000 33%, #f00 33%, #f00 66%, #000 66%); width: 24px; height: 14px; border: 1px solid #444; cursor: pointer;"></button>
+        </div>
+      </div>
+
+      <div class="panel-header" style="margin-top: 10px;">
+        <h3 data-i18n="blinkingMode">BLINKING</h3>
+      </div>
+      <div class="auto-bg-controls"
+        style="display: flex; flex-direction: column; gap: 8px; padding: 0 10px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <label style="font-size: 10px; opacity: 0.8; letter-spacing: 1px;" data-i18n="active">ACTIVE</label>
+          <input type="checkbox" id="blinkingModeCheckbox" class="strobe-checkbox">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <label style="font-size: 10px; opacity: 0.8; letter-spacing: 1px;" data-i18n="blinkingSpeed">SPEED</label>
+            <span id="blinkingSpeedValue" style="font-size: 10px;">5</span>
+          </div>
+          <input type="range" id="blinkingSpeedSlider" min="1" max="10" step="1" value="5" style="width: 100%;">
+        </div>
+      </div>
+
+      <div class="panel-header">
+        <h3 data-i18n="wireframe">WIREFRAME</h3>
+      </div>
+      <div class="wireframe-controls-grid">
+        <button class="transition-btn stroke-btn active" data-wireframe="solid" id="solidModeBtn"
+          data-i18n="solid">Solid</button>
+        <button class="transition-btn stroke-btn" data-wireframe="wireframe" id="wireModeBtn"
+          data-i18n="wire">Wire</button>
+        <button class="transition-btn stroke-btn" data-wireframe="mixed" id="mixModeBtn" data-i18n="mix">Mix</button>
+      </div>
+    </div>
+
+    <!-- メインパネル (Canvas + Controls) -->
+    <div id="mainPanel">
+      <!-- 上部モードバー -->
+      <div id="topBar">
+        <div class="mode-control-bar">
+
+          <!-- ROW 1: モードボタン -->
+          <div class="top-row top-row--modes">
+            <button id="topAutoBtn" class="mode-btn" title="Auto Mode" data-i18n-title="auto">
+              <span class="icon symbol">⟳</span>
+              <span data-i18n="auto">AUTO</span>
+            </button>
+            <button id="topAiBtn" class="mode-btn" title="Space Mode" data-i18n-title="space">
+              <span class="icon symbol">✧</span>
+              <span data-i18n="space">SPACE</span>
+            </button>
+            <button id="topMandalaBtn" class="mode-btn" title="Mandala Mode" aria-label="曼荼羅モードを切り替え"
+              aria-pressed="false" role="switch" data-i18n-title="mandala">
+              <span class="icon symbol">🌀</span>
+              <span data-i18n="mandala">MANDALA</span>
+            </button>
+            <div class="dropdown-container">
+              <button id="topBlinkBtn" class="mode-btn" title="Strobe" data-i18n-title="blinkingMode">
+                <span class="icon symbol">⚡</span>
+                <span data-i18n="strobe">STROBE</span>
+              </button>
+              <div id="blinkQuickMenu" class="quick-settings-menu minimal">
+                <div class="quick-row circles">
+                  <button class="color-circle-btn" data-colors="#ffffff,#000000" title="White/Black"
+                    style="background: linear-gradient(135deg, #fff 50%, #000 50%);"></button>
+                  <button class="color-circle-btn" data-colors="#000000,#ff0000" title="Black/Red"
+                    style="background: linear-gradient(135deg, #000 50%, #f00 50%);"></button>
+                  <button class="color-circle-btn" data-colors="#ff0000,#ffffff" title="Red/White"
+                    style="background: linear-gradient(135deg, #f00 50%, #fff 50%);"></button>
+                  <button class="color-circle-btn" data-colors="#ff0000,#000000" title="Red/Black"
+                    style="background: linear-gradient(135deg, #f00 50%, #000 50%);"></button>
+                  <button class="color-circle-btn" data-colors="#0000ff,#ffffff" title="Blue/White"
+                    style="background: linear-gradient(135deg, #00f 50%, #fff 50%);"></button>
+                </div>
+                <div class="quick-row speed-row">
+                  <input type="range" id="quickBlinkSpeed" min="1" max="10" value="5" class="quick-slider">
+                </div>
+              </div>
+            </div>
+            <button id="topGravityBtn" class="mode-btn" title="Zero Gravity" data-i18n-title="zeroGravity">
+              <span class="icon symbol">⇪</span>
+              <span data-i18n="gravity">ZERO GRAVITY</span>
+            </button>
+            <button id="topBrainHackBtn" class="mode-btn" title="Brain Hack Mode" data-i18n-title="brainhack">
+              <span class="icon symbol">⌬</span>
+              <span data-i18n="brainhack">BRAIN HACK</span>
+            </button>
+            <button id="topRavenBtn" class="mode-btn" title="Raven Mode" data-i18n-title="raven">
+              <span class="icon symbol">◈</span>
+              <span data-i18n="raven">RAVEN</span>
+            </button>
+            <button id="topQuantumBtn" class="mode-btn" title="Quantum Mode" data-i18n-title="quantum">
+              <span class="icon symbol">✦</span>
+              <span data-i18n="quantum">QUANTUM</span>
+            </button>
+            <button id="topOrbitBtn" class="mode-btn" title="360° Orbit">
+              <span class="icon symbol">◎</span>
+              <span>ORBIT</span>
+            </button>
+            <button id="topSpinBtn" class="mode-btn" title="Spin Mandala">
+              <span class="icon symbol">⟳</span>
+              <span>SPIN</span>
+            </button>
+            <button id="topBaryonBtn" class="mode-btn" title="Baryon Mode">
+              <span class="icon symbol">⊛</span>
+              <span>BARYON</span>
+            </button>
+          </div>
+
+          <!-- ROW 2: エフェクト＋ツール -->
+          <div class="top-row top-row--tools">
+            <button id="topGlitchBtn" class="mode-btn" title="GLITCH">
+              <span class="icon symbol">▓</span>
+              <span>GLITCH</span>
+            </button>
+            <button id="topNoiseBtn" class="mode-btn" title="NOISE">
+              <span class="icon symbol">░</span>
+              <span>NOISE</span>
+            </button>
+            <button id="topMosaicBtn" class="mode-btn" title="MOSAIC">
+              <span class="icon symbol">▦</span>
+              <span>MOSAIC</span>
+            </button>
+            <button id="topResetBtn" class="mode-btn top-row--reset" title="RESET ALL">
+              <span class="icon symbol">⟳</span>
+              <span>RESET</span>
+            </button>
+
+            <div class="top-row-divider"></div>
+
+            <button id="topSolidBtn" class="mode-btn active" title="Solid Mode" data-i18n-title="solid">
+              <span class="icon icon-solid"></span>
+              <span data-i18n="solid">SOLID</span>
+            </button>
+            <button id="topWireBtn" class="mode-btn" title="Wireframe Mode" data-i18n-title="wire">
+              <span class="icon icon-wire"></span>
+              <span data-i18n="wire">WIRE</span>
+            </button>
+            <button id="topMixBtn" class="mode-btn" title="Mixed Mode" data-i18n-title="mix">
+              <span class="icon icon-mix"></span>
+              <span data-i18n="mix">MIX</span>
+            </button>
+
+            <div class="top-row-divider"></div>
+
+            <button id="topMicBtn" class="mode-btn" title="Mic Input">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+              </svg>
+            </button>
+            <span id="midiStatus"
+              style="font-size: 14px; opacity: 0.3; transition: opacity 0.3s; display:flex; align-items:center;"
+              title="MIDI Not Connected">⌬</span>
+            <button id="topDarkModeBtn" class="mode-btn" title="Dark Mode">
+              <svg class="moon-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              </svg>
+              <svg class="sun-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Expandable Seekbars (Overlay) -->
+        <div class="mode-seekbars" id="modeSeekbars" style="display: none;">
+          <div class="seekbar-item" id="mandalaSeekbar">
+            <label>Symmetry: <span id="symmetryValue">4</span></label>
+            <input type="range" id="symmetrySeekbar" min="3" max="12" step="1" value="4">
+          </div>
+          <div class="seekbar-item" id="aiSeekbar">
+            <label>AI Speed: <span id="aiSpeedSeekValue">5</span></label>
+            <input type="range" id="aiSpeedSeekbar" min="1" max="10" step="1" value="5">
+          </div>
+          <div class="seekbar-item" id="autoGenSeekbar">
+            <label>Speed: <span id="autoSpeedSeekValue">0</span></label>
+            <input type="range" id="autoSpeedSeekbar" min="-4" max="8" step="1" value="0">
+          </div>
+          <div class="seekbar-item" id="antigravitySeekbar">
+            <label>Float Speed: <span id="gravitySpeedValue">0.1</span></label>
+            <input type="range" id="gravitySpeedSeekbar" min="0.1" max="3" step="0.1" value="0.1">
+          </div>
+          <div class="seekbar-item" id="brainHackSeekbar" style="display: none;">
+            <label><span data-i18n="mode">Mode</span>: <span id="brainHackModeValue">Phantom</span></label>
+            <input type="range" id="brainHackModeSeekbar" min="0" max="5" step="1" value="0">
+          </div>
+          <div class="seekbar-item" id="quantumSeekbar" style="display: none;">
+            <label><span data-i18n="coherence">Coherence</span>: <span id="quantumCoherenceValue">0.5</span></label>
+            <input type="range" id="quantumCoherenceSeekbar" min="0" max="1" step="0.01" value="0.5">
+          </div>
+          <div class="seekbar-item" id="activeModeHUD"
+            style="display: none; align-items: center; justify-content: center; width: auto; min-width: 200px; gap: 8px;">
+            <div id="hudContent" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- キャンバス -->
+      <div id="canvasWrapper">
+        <div class="canvas-container" id="canvasContainer"></div>
+        <div id="p5-container"
+          style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;">
+        </div>
+        <!-- VOID Dialogue Container -->
+        <div id="voidDialogueContainer" class="void-dialogue-container hidden">
+          <div id="voidTerminal" class="void-terminal">
+            <div id="voidOutput" class="void-output"></div>
+            <div id="voidInputLine" class="void-input-line">
+              <span class="prompt">></span>
+              <span id="voidInput" class="void-input"></span>
+              <span class="cursor">_</span>
+            </div>
+          </div>
+          <div id="voidKeyboard" class="void-keyboard hidden">
+            <div id="ynButtons" class="void-keyboard-section hidden">
+              <button class="void-key" data-key="y">Y</button>
+              <button class="void-key" data-key="n">N</button>
+            </div>
+            <div id="capsuleButtons" class="void-keyboard-section hidden">
+              <button class="void-key" data-key="1">1</button>
+              <button class="void-key" data-key="2">2</button>
+              <button class="void-key" data-key="3">3</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="generatingOverlay">Generating...</div>
+      </div>
+
+      <!-- Music Panel -->
+      <div id="musicPanel">
+        <div class="music-controls-left">
+          <input type="file" id="musicUpload" accept=".mp3,.wav,.ogg,.m4a,.aac,.flac,.aiff,.wma" style="display: none;">
+          <button id="musicAddBtn" class="music-icon-btn" title="Open File">📂</button>
+          <button id="musicPlayBtn" class="music-icon-btn" title="Play/Pause">▶</button>
+          <span id="musicTrackTitle">No Track Selected</span>
+          <div class="music-gain-control" style="display: flex; align-items: center; margin-left: 10px;">
+            <label for="inputGainSlider" style="font-size: 10px; margin-right: 5px; color: #888;">GAIN</label>
+            <input type="range" id="inputGainSlider" min="0" max="10.0" step="0.1" value="2.5" style="width: 60px;">
+            <span id="inputGainDisplay"
+              style="font-size: 10px; margin-left: 5px; width: 20px; display: inline-block; color: #aaa;">2.5</span>
+          </div>
+        </div>
+
+        <div class="music-eq-center">
+          <div class="eq-bar-group">
+            <div class="eq-bar-container">
+              <div class="eq-bar" id="eqBarHi"></div>
+            </div>
+            <span class="eq-label">HI</span>
+          </div>
+          <div class="eq-bar-group">
+            <div class="eq-bar-container">
+              <div class="eq-bar" id="eqBarMid"></div>
+            </div>
+            <span class="eq-label">MID</span>
+          </div>
+          <div class="eq-bar-group">
+            <div class="eq-bar-container">
+              <div class="eq-bar" id="eqBarLow"></div>
+            </div>
+            <span class="eq-label">LOW</span>
+          </div>
+        </div>
+
+        <div class="music-stats-right">
+          <span class="stat-item">BPM: <span id="bpmValue">--</span></span>
+          <span class="stat-item">FPS: <span id="fpsValue">60</span></span>
+          <button id="vOutBtn" class="v-out-btn-compact" title="Projector Output (V-OUT)" data-i18n-title="vOut">
+            📺 <span data-i18n="vOut">V-OUT</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 右パネル (Settings) -->
+    <div id="rightPanel" class="panel-side">
+
+      <div class="menu-section">
+        <h3 data-i18n="visualControl">VISUAL CONTROL</h3>
+        <div id="radarContainer" class="radar-container"></div>
+      </div>
+      <div class="menu-section">
+        <h3 data-i18n="size">SIZE</h3>
+        <div class="slider-wrapper">
+          <input type="range" id="size" min="0.5" max="2" step="0.1" value="1">
+          <span id="sizeValue">1.0×</span>
+        </div>
+      </div>
+
+      <div class="menu-section">
+        <h3 data-i18n="speed">SPEED</h3>
+        <div class="slider-wrapper">
+          <input type="range" id="speed" min="-3" max="3" step="0.1" value="1">
+          <span id="speedValue">1.0×</span>
+        </div>
+      </div>
+
+      <div class="menu-section">
+        <h3 data-i18n="scale">SCALE</h3>
+        <div class="slider-wrapper">
+          <input type="range" id="spread" min="0.5" max="3" step="0.1" value="1">
+          <span id="spreadValue">1.0×</span>
+        </div>
+      </div>
+
+      <div class="menu-section">
+        <h3 data-i18n="distance">DISTANCE</h3>
+        <div class="slider-wrapper">
+          <input type="range" id="spacing" min="0.1" max="30" step="0.1" value="8">
+          <span id="spacingValue">8.0</span>
+        </div>
+      </div>
+
+      <div class="menu-section">
+        <h3 data-i18n="rotation">ROTATION</h3>
+        <div class="slider-wrapper">
+          <input type="range" id="baseRotation" min="0" max="360" step="1" value="0">
+          <span id="baseRotationValue">0°</span>
+        </div>
+      </div>
+
+      <div class="menu-section">
+        <h3 data-i18n="mandala">MANDALA</h3>
+        <label class="checkbox-label">
+          <input type="checkbox" id="mandalaMode">
+          <span data-i18n="active">Enable</span>
+        </label>
+        <div id="symmetryControls" class="symmetry-controls" style="display: none;">
+          <button class="symmetry-btn active" data-value="4">4</button>
+          <button class="symmetry-btn" data-value="6">6</button>
+          <button class="symmetry-btn" data-value="8">8</button>
+          <button class="symmetry-btn" data-value="12">12</button>
+        </div>
+        <label class="checkbox-label" style="margin-top: 10px;">
+          <input type="checkbox" id="reflectMode">
+          <span data-i18n="reflect">Reflect</span>
+        </label>
+      </div>
+
+      <div class="menu-section">
+        <h3 data-i18n="autoGenerate">AUTO GENERATE</h3>
+        <label class="checkbox-label">
+          <input type="checkbox" id="autoGenerateMode">
+          <span data-i18n="active">Enable</span>
+        </label>
+        <div id="autoGenerateSpeed" style="display: block; margin-top: 10px;">
+          <label class="sub-label" data-i18n="speed">Speed</label>
+          <div class="slider-wrapper">
+            <input type="range" id="autoSpeed" min="-4" max="8" step="1" value="0">
+            <span id="autoSpeedValue">0×</span>
+          </div>
+        </div>
+        <div id="autoGenerateSpacing" style="display: block; margin-top: 10px;">
+          <label class="sub-label" data-i18n="distance">Distance</label>
+          <div class="slider-wrapper">
+            <input type="range" id="autoDistance" min="5" max="40" step="1" value="20">
+            <span id="autoDistanceValue">20</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-section">
+        <h3 data-i18n="frequencySpawn">FREQUENCY SPAWN</h3>
+        <label class="checkbox-label">
+          <input type="checkbox" id="frequencySpawnMode">
+          <span data-i18n="active">Enable</span>
+        </label>
+        <div class="info-text">Low: 0-7 | Mid: 8-15 | High: 16+</div>
+      </div>
+
+      <div class="menu-section">
+        <h3>GOLDEN RATIO</h3>
+        <label class="checkbox-label">
+          <input type="checkbox" id="goldenRatioMode">
+          <span>Enable</span>
+        </label>
+        <div class="info-text">φ spiral pattern</div>
+      </div>
+
+      <div class="menu-section">
+        <h3 data-i18n="brainhack">BRAIN HACK</h3>
+
+        <!-- MODE GRID -->
+        <div class="bh-mode-grid">
+          <button class="bh-mode-btn active" data-mode="0">
+            <span class="bh-mode-label">PHANTOM</span>
+          </button>
+          <button class="bh-mode-btn" data-mode="1">
+            <span class="bh-mode-label">BOOLEAN</span>
+          </button>
+          <button class="bh-mode-btn" data-mode="2">
+            <span class="bh-mode-label">RAVEN</span>
+          </button>
+          <button class="bh-mode-btn" data-mode="3">
+            <span class="bh-mode-label">NEURO</span>
+          </button>
+          <button class="bh-mode-btn" data-mode="4">
+            <span class="bh-mode-label">LATTICE</span>
+          </button>
+          <button class="bh-mode-btn" data-mode="5">
+            <span class="bh-mode-label">ORBITAL</span>
+          </button>
+        </div>
+
+        <!-- COLOR SWATCHES -->
+        <div class="bh-color-row">
+          <div class="bh-swatch-wrap">
+            <input type="color" id="brainColorA" value="#00ffcc" class="bh-swatch">
+            <span class="bh-swatch-label">A</span>
+          </div>
+          <div class="bh-swatch-wrap">
+            <input type="color" id="brainColorB" value="#ff00aa" class="bh-swatch">
+            <span class="bh-swatch-label">B</span>
+          </div>
+          <div class="bh-swatch-wrap">
+            <input type="color" id="brainColorC" value="#110033" class="bh-swatch">
+            <span class="bh-swatch-label">C</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="menu-section">
+      <h3 data-i18n="zeroGravity">ZERO GRAVITY</h3>
+      <label class="checkbox-label">
+        <input type="checkbox" id="antigravityMode">
+        <span data-i18n="active">Enable</span>
+      </label>
+      <div class="info-text">Random size & depth float</div>
+    </div>
+
+    <div class="menu-section">
+      <h3 data-i18n="quantum">QUANTUM</h3>
+      <label class="checkbox-label">
+        <input type="checkbox" id="quantumMode">
+        <span data-i18n="active">Active</span>
+      </label>
+      <div id="quantumControls" style="display: none; margin-top: 10px;">
+        <label class="sub-label" data-i18n="coherence">Coherence</label>
+        <div class="slider-wrapper">
+          <input type="range" id="quantumCoherence" min="0" max="1" step="0.01" value="0.5">
+          <span id="quantumCoherenceRightValue">0.5</span>
+        </div>
+        <label class="checkbox-label" style="margin-top: 10px;">
+          <input type="checkbox" id="quantumEntangled">
+          <span data-i18n="entanglement">Entanglement</span>
+        </label>
+        <button id="quantumMeasureBtn" class="vj-pro-btn" style="margin-top: 10px; width: 100%;"
+          data-i18n="measure">MEASURE
+          (COLLAPSE)</button>
+      </div>
+    </div>
+
+    <div class="menu-section">
+      <h3 data-i18n="maxObjects">MAX OBJECTS</h3>
+      <div class="slider-wrapper">
+        <input type="number" id="maxObjects" min="1" max="100" step="1" value="20" class="number-input">
+        <span id="maxObjectsValue">20</span>
+      </div>
+    </div>
+
+    <div class="menu-section">
+      <h3 data-i18n="colors">COLORS</h3>
+      <label class="sub-label" data-i18n="colors">Object Color</label>
+      <div class="color-sliders-compact">
+        <div class="slider-wrapper"><span class="label-mini">R</span><input type="range" id="colorR" min="0" max="255"
+            value="0"></div>
+        <div class="slider-wrapper"><span class="label-mini">G</span><input type="range" id="colorG" min="0" max="255"
+            value="0"></div>
+        <div class="slider-wrapper"><span class="label-mini">B</span><input type="range" id="colorB" min="0" max="255"
+            value="0"></div>
+      </div>
+      <div class="color-preview-box" id="objectColorPreview"></div>
+
+      <label class="sub-label" style="margin-top: 10px;">Background</label>
+      <div class="color-sliders-compact">
+        <div class="slider-wrapper"><span class="label-mini">R</span><input type="range" id="bgColorR" min="0" max="255"
+            value="255"></div>
+        <div class="slider-wrapper"><span class="label-mini">G</span><input type="range" id="bgColorG" min="0" max="255"
+            value="255"></div>
+        <div class="slider-wrapper"><span class="label-mini">B</span><input type="range" id="bgColorB" min="0" max="255"
+            value="255"></div>
+      </div>
+      <div class="color-preview-box" id="bgColorPreview"></div>
+    </div>
+
+    <div class="menu-section">
+      <h3 data-i18n="vjPro">VJ PRO</h3>
+      <div class="vj-controls">
+        <button class="vj-pro-btn" id="fullscreenBtn" data-i18n="fullscreen">FULLSCREEN</button>
+        <button class="vj-pro-btn" id="recordBtn">REC</button>
+      </div>
+
+      <label class="sub-label" data-i18n="visualControl">Master Intensity</label>
+      <div class="slider-wrapper">
+        <input type="range" id="masterIntensity" min="0" max="200" value="100">
+      </div>
+    </div>
+
+    <!-- Camera Mosaic Section -->
+    <div class="menu-section" id="cameraMosaicSection">
+      <h3>📹 CAMERA MOSAIC</h3>
+      <div class="control-row" style="margin-bottom: 10px;">
+        <label class="sub-label">Camera Select</label>
+        <select id="cameraSelect"
+          style="width: 100%; padding: 5px; background: var(--panel-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">
+          <option value="">-- Select Camera --</option>
+        </select>
+      </div>
+      <div class="vj-controls" style="margin-bottom: 10px;">
+        <button class="vj-pro-btn" id="startCameraBtn">▶ START</button>
+        <button class="vj-pro-btn" id="stopCameraBtn">⬛ STOP</button>
+      </div>
+      <label class="checkbox-label">
+        <input type="checkbox" id="mosaicEnabled" checked>
+        <span>Mosaic Enabled</span>
+      </label>
+      <label class="sub-label" style="margin-top: 10px;">Mosaic Strength</label>
+      <div class="slider-wrapper">
+        <input type="range" id="mosaicBlockSize" min="2" max="30" value="6">
+        <span id="mosaicBlockSizeValue">6</span>
+      </div>
+      <div class="info-text">Camera preview appears in projector output</div>
+    </div>
+
+    <div class="menu-section">
+      <h3 data-i18n="effects">GLOBAL EFFECTS</h3>
+      <div class="vj-controls" style="margin-top: 10px;">
+        <button class="vj-pro-btn" id="sideNoiseBtn">NOISE</button>
+        <button class="vj-pro-btn" id="sideMosaicBtn">MOSAIC</button>
+      </div>
+    </div>
+
+    <div class="menu-section">
+      <button class="reset-btn" id="resetScene" data-i18n="resetScene">RESET SCENE</button>
+    </div>
+  </div>
+
+  </div>
+
+  <!-- Context Menu -->
+  <div id="contextMenu" class="context-menu">
+    <div class="context-menu-item" data-action="pin">📌 Pin</div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item" data-action="duplicate">📋 Duplicate</div>
+    <div class="context-menu-item" data-action="savePreset">💾 Save as Preset</div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item" data-action="color">🎨 Change Color</div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item" data-action="front">Bring to Front</div>
+    <div class="context-menu-item" data-action="forward">Bring Forward</div>
+    <div class="context-menu-item" data-action="backward">Send Backward</div>
+    <div class="context-menu-item" data-action="back">Send to Back</div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item danger" data-action="delete">Delete</div>
+  </div>
+
+  <!-- Color Picker Modal -->
+  <div id="colorPickerModal" class="color-picker-modal" style="display: none;">
+    <div class="color-picker-content">
+      <h3>Select Color</h3>
+      <div class="color-sliders">
+        <div class="color-slider-group">
+          <label>R: <span id="pickerRValue">0</span></label>
+          <input type="range" id="pickerR" min="0" max="255" value="0">
+        </div>
+        <div class="color-slider-group">
+          <label>G: <span id="pickerGValue">0</span></label>
+          <input type="range" id="pickerG" min="0" max="255" value="0">
+        </div>
+        <div class="color-slider-group">
+          <label>B: <span id="pickerBValue">0</span></label>
+          <input type="range" id="pickerB" min="0" max="255" value="0">
+        </div>
+      </div>
+      <div class="color-preview" id="colorPreview"></div>
+      <div class="color-picker-buttons">
+        <button id="colorPickerApply">Apply</button>
+        <button id="colorPickerCancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+
+
+
+  <script>
+    (function () { var b = document.getElementById('leftPanelToggle'), p = document.getElementById('leftPanel'), r = document.getElementById('app-root'), o = true; b.addEventListener('click', function () { o = !o; if (o) { p.classList.remove('collapsed'); r.classList.remove('left-collapsed'); b.classList.add('open'); b.textContent = '‹'; } else { p.classList.add('collapsed'); r.classList.add('left-collapsed'); b.classList.remove('open'); b.textContent = '›'; } }); })();
+  </script><!-- PERFORMANCE: Auto GC + FPS monitor -->
+  <script>
+    (function setupPerformanceManager() {
+      function applyPatch() {
+        const mm = window.mandalaMachine;
+        if (!mm) return setTimeout(applyPatch, 200);
+
+        const sm = mm.sceneManager;
+
+        // 1. clearAllにclearMeshCacheを追加（メモリリーク防止）
+        const _origClearAll = mm.clearAll.bind(mm);
+        mm.clearAll = function () {
+          _origClearAll();
+          sm.clearMeshCache();
+        };
+
+        // 2. 30秒ごとに自動GC（形状切り替え時の残骸を解放）
+        setInterval(() => {
+          if (!mm.state?.isPlaying) return;
+          const before = sm.renderer?.info?.memory?.geometries || 0;
+          sm.clearMeshCache();
+          const after = sm.renderer?.info?.memory?.geometries || 0;
+          if (before > after) console.log('GC: ' + before + ' -> ' + after + ' geometries');
+        }, 30000);
+
+        // 3. FPS監視 - 30FPS以下が3秒続いたら自動GC
+        let lowFpsCount = 0;
+        let lastFpsCheck = performance.now();
+        let frameCount = 0;
+
+        const origRaf = requestAnimationFrame;
+        let monitorActive = true;
+
+        function fpsMonitor() {
+          if (!monitorActive) return;
+          frameCount++;
+          const now = performance.now();
+          if (now - lastFpsCheck >= 1000) {
+            const fps = frameCount;
+            frameCount = 0;
+            lastFpsCheck = now;
+
+            if (fps < 30) {
+              lowFpsCount++;
+              if (lowFpsCount >= 3) {
+                // 3秒連続で30FPS以下 → 自動GC実行
+                sm.clearMeshCache();
+                lowFpsCount = 0;
+                console.log('Auto GC triggered (low FPS: ' + fps + ')');
+              }
+            } else {
+              lowFpsCount = 0;
+            }
+          }
+          requestAnimationFrame(fpsMonitor);
+        }
+        requestAnimationFrame(fpsMonitor);
+
+        // 4. オブジェクト上限を50に設定（デフォルトが無制限の場合）
+        if (typeof mm.setMaxObjects === 'function') {
+          mm.setMaxObjects(50);
+        }
+
+        console.log('Performance manager ready');
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyPatch);
+      } else {
+        applyPatch();
+      }
+    })();
+  </script>
+
+  <!-- FIX: BARYON Mode OFF → preserve object color from sliders -->
+  <script>
+    (function patchBaryonColorReset() {
+      function applyPatch() {
+        const mm = window.mandalaMachine;
+        if (!mm || typeof mm.toggleBaryonMode !== 'function') {
+          return setTimeout(applyPatch, 200);
+        }
+        const _orig = mm.toggleBaryonMode.bind(mm);
+        mm.toggleBaryonMode = function (t) {
+          const willTurnOff = (t === false) || (t === undefined && this.state.baryonMode);
+          let savedColor = null;
+          if (willTurnOff) {
+            const r = parseInt(document.getElementById('colorR')?.value ?? 0);
+            const g = parseInt(document.getElementById('colorG')?.value ?? 0);
+            const b = parseInt(document.getElementById('colorB')?.value ?? 0);
+            savedColor = { r, g, b };
+          }
+          _orig(t);
+          if (willTurnOff && savedColor) {
+            this.defaultObjectColor = savedColor;
+            this.instanceManager.getAllInstances().forEach(inst => {
+              inst.color = savedColor;
+            });
+            this.sceneManager.clearMeshCache();
+          }
+        };
+        console.log('✅ BARYON color reset patch applied');
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyPatch);
+      } else {
+        applyPatch();
+      }
+    })();
+  </script>
+
+  <!-- CAMERA INPUT -->
+  <script>
+    (function setupCameraInput() {
+      function applyCamera() {
+        const btn = document.getElementById('cameraInputBtn');
+        const selectBtn = document.getElementById('camSelectBtn');
+        const deviceList = document.getElementById('camDeviceList');
+        if (!btn) return setTimeout(applyCamera, 200);
+
+        let stream = null;
+        let isActive = false;
+        let selectedDevice = null; // { deviceId, label }
+
+        // ---- デバイスアイコン判定 ----
+        function deviceIcon(label) {
+          if (/iphone/i.test(label)) return '📱';
+          if (/ipad/i.test(label)) return '📱';
+          if (/continuity/i.test(label)) return '📱';
+          if (/facetime/i.test(label)) return '💻';
+          return '📷';
+        }
+
+        // ---- デバイスリストを構築 ----
+        async function buildDeviceList() {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const cams = devices.filter(d =>
+            d.kind === 'videoinput' &&
+            !/facetime|macbook|built.?in|内蔵/i.test(d.label)
+          );
+
+          // ラベルなし（未許可）なら1件だけ表示
+          deviceList.innerHTML = '';
+          cams.forEach((cam, i) => {
+            const label = cam.label || `カメラ ${i + 1}`;
+            const icon = deviceIcon(label);
+            const item = document.createElement('div');
+            item.className = 'cam-device-item' + (selectedDevice?.deviceId === cam.deviceId ? ' active' : '');
+            item.innerHTML = `<span class="cam-device-icon">${icon}</span><span>${label}</span>`;
+            item.addEventListener('click', () => {
+              selectedDevice = { deviceId: cam.deviceId, label };
+              deviceList.style.display = 'none';
+              // アクティブ表示更新
+              [...deviceList.querySelectorAll('.cam-device-item')].forEach(el => el.classList.remove('active'));
+              item.classList.add('active');
+              // CAMが起動中なら切り替え
+              if (isActive) { stopCamera(); startCamera(); }
+            });
+            deviceList.appendChild(item);
+
+            // iPhoneを自動選択（初回）
+            if (!selectedDevice && /iphone|ipad|continuity/i.test(label)) {
+              selectedDevice = { deviceId: cam.deviceId, label };
+            }
+          });
+
+          // それでも未選択なら先頭
+          if (!selectedDevice && cams.length) {
+            selectedDevice = { deviceId: cams[0].deviceId, label: cams[0].label || 'カメラ 1' };
+          }
+
+          // iPhoneが選択されていたら▼ボタンを青く
+          if (selectedDevice && /iphone|ipad|continuity/i.test(selectedDevice.label)) {
+            selectBtn.classList.add('has-iphone');
+          }
+        }
+
+        // ---- カメラ起動 ----
+        async function startCamera() {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: {
+                deviceId: selectedDevice?.deviceId ? { ideal: selectedDevice.deviceId } : undefined,
+                width: { ideal: 640 },
+                height: { ideal: 360 },
+                frameRate: { ideal: 30, max: 30 }
+              },
+              audio: false
+            });
+
+            const container = document.querySelector('.canvas-container');
+            const sm = window.mandalaMachine?.sceneManager;
+
+            document.getElementById('__cam_video__')?.remove();
+
+            const video = document.createElement('video');
+            video.id = '__cam_video__';
+            video.srcObject = stream;
+            video.autoplay = true;
+            video.muted = true;
+            video.playsInline = true;
+            video.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:1;pointer-events:none;will-change:transform;';
+
+            container.style.position = 'relative';
+            container.insertBefore(video, container.firstChild);
+
+            if (sm) {
+              sm.renderer.domElement.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:transparent;z-index:2;will-change:transform;';
+              sm.scene.background = null;
+              sm.renderer.setPixelRatio(1);
+            }
+
+            const p5c = document.getElementById('p5-container');
+            if (p5c) p5c.style.zIndex = '3';
+
+            await video.play();
+            isActive = true;
+            btn.classList.add('active');
+            btn.textContent = '⏹ CAM';
+          } catch (e) {
+            console.error('Camera error:', e.name, e.message);
+            alert('カメラエラー: ' + e.message);
+          }
+        }
+
+        // ---- カメラ停止 ----
+        function stopCamera() {
+          isActive = false;
+          if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+          document.getElementById('__cam_video__')?.remove();
+          const sm = window.mandalaMachine?.sceneManager;
+          if (sm) {
+            sm.renderer.domElement.style.cssText = '';
+            sm.renderer.domElement.style.backgroundColor = 'rgb(255,255,255)';
+            sm.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+          }
+          btn.classList.remove('active');
+          btn.textContent = '📷 CAM';
+        }
+
+        // ---- ▼ボタン: リスト開閉 ----
+        selectBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const isOpen = deviceList.style.display !== 'none';
+          if (isOpen) {
+            deviceList.style.display = 'none';
+          } else {
+            await buildDeviceList();
+            deviceList.style.display = 'block';
+          }
+        });
+
+        // 外側クリックで閉じる
+        document.addEventListener('click', () => { deviceList.style.display = 'none'; });
+
+        // ---- CAMボタン ----
+        btn.addEventListener('click', async () => {
+          if (isActive) { stopCamera(); return; }
+          // 初回は先にデバイスリスト構築（自動選択のため）
+          if (!selectedDevice) await buildDeviceList();
+          startCamera();
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyCamera);
+      } else { applyCamera(); }
+    })();
+  </script>
+
+  <!-- BRAIN HACK REDESIGN -->
+  <script>
+    (function setupBrainHack() {
+      function applyBH() {
+        const mm = window.mandalaMachine;
+        if (!mm) return setTimeout(applyBH, 200);
+
+        const modeNames = ['Phantom', 'Boolean', 'Raven', 'Neuro', 'Lattice', 'Orbital'];
+
+        // モードボタン
+        document.querySelectorAll('.bh-mode-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const mode = parseInt(btn.dataset.mode);
+            document.querySelectorAll('.bh-mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            mm.setBrainHackModeIndex(mode);
+
+            // 既存seekbarとも同期
+            const seekbar = document.getElementById('brainHackModeSeekbar');
+            const valueEl = document.getElementById('brainHackModeValue');
+            if (seekbar) seekbar.value = mode;
+            if (valueEl) valueEl.textContent = modeNames[mode];
+          });
+        });
+
+        // カラーピッカー（既存と同じロジック）
+        const colorMap = {
+          brainColorA: 0, brainColorB: 1, brainColorC: 2
+        };
+        Object.entries(colorMap).forEach(([id]) => {
+          const input = document.getElementById(id);
+          if (!input) return;
+          input.addEventListener('input', () => {
+            const a = document.getElementById('brainColorA')?.value || '#00ffcc';
+            const b = document.getElementById('brainColorB')?.value || '#ff00aa';
+            const c = document.getElementById('brainColorC')?.value || '#110033';
+            const hex2rgb = h => {
+              const r = parseInt(h.slice(1, 3), 16) / 255;
+              const g = parseInt(h.slice(3, 5), 16) / 255;
+              const bl = parseInt(h.slice(5, 7), 16) / 255;
+              return { r, g, b: bl };
+            };
+            mm.setBrainHackColors(hex2rgb(a), hex2rgb(b), hex2rgb(c));
+          });
+        });
+
+        // topBrainHackBtnと連動（既存チェックボックスの代替）
+        const topBtn = document.getElementById('topBrainHackBtn');
+        if (topBtn) {
+          const orig = topBtn.onclick;
+          topBtn.addEventListener('click', () => {
+            const isOn = mm.state?.brainHackMode;
+            mm.toggleBrainHackMode(!isOn);
+          });
+        }
+
+        console.log('Brain Hack redesign ready');
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyBH);
+      } else {
+        applyBH();
+      }
+    })();
+  </script>
+
+  <!-- FILTER BUTTONS -->
+  <!-- SVG filters for visual effects -->
+  <svg style="position:absolute;width:0;height:0;overflow:hidden" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="filter-noise">
+        <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" result="noise" />
+        <feColorMatrix type="saturate" values="0" in="noise" result="grayNoise" />
+        <feBlend in="SourceGraphic" in2="grayNoise" mode="overlay" result="blend" />
+        <feComposite in="blend" in2="SourceGraphic" operator="in" />
+      </filter>
+      <filter id="filter-mosaic">
+        <feMorphology operator="erode" radius="4" result="erode" />
+        <feMorphology operator="dilate" radius="4" in="erode" />
+      </filter>
+      <filter id="filter-glitch">
+        <feTurbulence type="turbulence" baseFrequency="0.02 0.8" numOctaves="1" result="turb" seed="2" />
+        <feDisplacementMap in="SourceGraphic" in2="turb" scale="12" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+    </defs>
+  </svg>
+  <script>
+    (function setupFilterButtons() {
+      function applyFilters() {
+        const container = document.querySelector('.canvas-container');
+        if (!container) return setTimeout(applyFilters, 200);
+
+        // フィルター状態管理
+        const state = { glitch: false, noise: false, mosaic: false };
+
+        // アニメーションするGLITCH用
+        let glitchTimer = null;
+        function animateGlitch() {
+          if (!state.glitch) return;
+          const filter = document.getElementById('filter-glitch');
+          const turb = filter?.querySelector('feTurbulence');
+          if (turb) {
+            const seed = Math.floor(Math.random() * 100);
+            turb.setAttribute('seed', seed);
+            turb.setAttribute('baseFrequency', (0.01 + Math.random() * 0.04) + ' ' + (0.5 + Math.random() * 0.6));
+            const disp = filter.querySelector('feDisplacementMap');
+            if (disp) disp.setAttribute('scale', 8 + Math.random() * 20);
+          }
+          glitchTimer = setTimeout(animateGlitch, 150 + Math.random() * 250);
+        }
+
+        // NOISE アニメーション
+        let noiseTimer = null;
+        function animateNoise() {
+          if (!state.noise) return;
+          const turb = document.querySelector('#filter-noise feTurbulence');
+          if (turb) turb.setAttribute('seed', Math.floor(Math.random() * 100));
+          noiseTimer = setTimeout(animateNoise, 200);
+        }
+
+        function applyFilter() {
+          const filters = [];
+          if (state.glitch) filters.push('url(#filter-glitch)');
+          if (state.noise) filters.push('url(#filter-noise)');
+          if (state.mosaic) filters.push('url(#filter-mosaic)');
+          // Three.jsとp5のcanvasにのみfilterをかける（video背景を除外）
+          const threeCanvas = window.mandalaMachine?.sceneManager?.renderer?.domElement;
+          const p5Canvas = document.querySelector('#p5-container canvas');
+          [threeCanvas, p5Canvas].forEach(c => { if (c) c.style.filter = filters.join(' ') || 'none'; });
+        }
+
+        const filterDefs = [
+          {
+            id: 'topGlitchBtn', key: 'glitch',
+            onEnable: () => { animateGlitch(); },
+            onDisable: () => { clearTimeout(glitchTimer); }
+          },
+          {
+            id: 'topNoiseBtn', key: 'noise',
+            onEnable: () => { animateNoise(); },
+            onDisable: () => { clearTimeout(noiseTimer); }
+          },
+          {
+            id: 'topMosaicBtn', key: 'mosaic',
+            onEnable: () => { },
+            onDisable: () => { }
+          },
+        ];
+
+        filterDefs.forEach(({ id, key, onEnable, onDisable }) => {
+          const btn = document.getElementById(id);
+          if (!btn) return;
+          btn.addEventListener('click', () => {
+            state[key] = !state[key];
+            btn.classList.toggle('active', state[key]);
+            state[key] ? onEnable() : onDisable();
+            applyFilter();
+          });
+        });
+
+        console.log('Filter buttons ready (CSS/SVG mode)');
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyFilters);
+      } else {
+        applyFilters();
+      }
+    })();
+  </script>
+
+  <!-- RESET ALL BUTTON -->
+  <script>
+    (function setupResetButton() {
+      function applyReset() {
+        const mm = window.mandalaMachine;
+        const btn = document.getElementById('topResetBtn');
+        if (!mm || !btn) return setTimeout(applyReset, 200);
+
+        btn.addEventListener('click', () => {
+          // 全モードボタンのアクティブ状態を解除
+          document.querySelectorAll('.mode-btn.active').forEach(b => b.classList.remove('active'));
+
+          // autoModeを先にOFF（背景色リセットのため）
+          mm.toggleAutoMode(false);
+          mm.setSpaceMode(false);
+
+          // アプリ全体をリセット
+          mm.clearAll();
+          mm.toggleBaryonMode(false);
+          mm.setMandalaMode(false);
+          mm.toggleAutoMode(false); // MANDALAがautoModeをONにするため念押し
+          mm.setReflectMode(false);
+          mm.toggleAntigravityMode(false);
+          mm.toggleSpinMode(false);
+          mm.toggleOrbitMode(false);
+          mm.setWireframeMode('solid');
+          mm.setDefaultObjectColor({ r: 0, g: 0, b: 0 });
+          mm.setSizeMultiplier(1);
+          mm.setSpeedMultiplier(1);
+          mm.setSpreadMultiplier(1);
+          mm.setSpacingMultiplier(8);
+          mm.setSymmetryCount(1);
+          mm.setMasterIntensity(100);
+          mm.setBrightness(100);
+          mm.setContrast(100);
+          mm.setSaturation(100);
+
+          // 背景を白に強制セット
+          mm.setBackgroundColor({ r: 255, g: 255, b: 255 });
+
+          // カラースライダーをリセット
+          ['colorR', 'colorG', 'colorB'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.value = 0; el.dispatchEvent(new Event('input', { bubbles: true })); }
+          });
+
+          // 全モード強制OFFを最後に念押し（非同期処理の後に確実にOFFにするため）
+          setTimeout(() => {
+            mm.toggleAutoMode(false);
+            mm.setMandalaMode(false);
+            mm.setSpaceMode(false);
+            mm.state.autoMode = false;
+            mm.state.mandalaMode = false;
+            mm.state.spaceMode = false;
+            document.querySelectorAll('.mode-btn.active').forEach(b => b.classList.remove('active'));
+            mm.setBackgroundColor({ r: 255, g: 255, b: 255 });
+          }, 100);
+
+          console.log('RESET complete');
+        });
+
+        console.log('Reset button ready');
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyReset);
+      } else {
+        applyReset();
+      }
+    })();
+  </script>
+  <!-- AUTO FULL MODE -->
+  <script>
+    (function setupAutoFullMode() {
+      function apply() {
+        const btn = document.getElementById('topAutoBtn');
+        if (!btn) return setTimeout(apply, 200);
+
+        const mm = window.mandalaMachine;
+        if (!mm) return setTimeout(apply, 300);
+
+        let isActive = false;
+        let timers = [];
+        let fxRafId = null;
+
+        // 利用可能なモードリスト（Brain Hackは除外）
+        const MODES = [
+          { on: () => mm.setSpaceMode(true), off: () => mm.setSpaceMode(false) },
+          { on: () => mm.setMandalaMode(true), off: () => mm.setMandalaMode(false) },
+          { on: () => mm.toggleAntigravityMode(true), off: () => mm.toggleAntigravityMode(false) },
+          { on: () => mm.toggleOrbitMode(true), off: () => mm.toggleOrbitMode(false) },
+          { on: () => mm.toggleSpinMode(true), off: () => mm.toggleSpinMode(false) },
+          { on: () => mm.toggleBaryonMode(true), off: () => mm.toggleBaryonMode(false) },
+          { on: () => mm.toggleQuantumMode(true), off: () => mm.toggleQuantumMode(false) },
+          // STROBE: ON/OFFはblinkingModeで制御（短時間だけON）
+          {
+            on: () => { mm.setBlinkingMode(true); mm.setBlinkingSpeed(rand(4, 10)); },
+            off: () => mm.setBlinkingMode(false)
+          },
+
+        ];
+
+        // プリセットグリッドのボタンを取得
+        function getPresetBtns() {
+          return [...document.querySelectorAll('#presetGridLeft .preset-item, #presetGridLeft button')];
+        }
+
+        // ランダム整数
+        function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+        // ランダムカラー（低彩度〜高彩度のランダム）
+        function randColor() {
+          const h = rand(0, 360);
+          const s = rand(40, 100);
+          const l = rand(30, 70);
+          // HSLをRGBに変換
+          const c = (1 - Math.abs(2 * l / 100 - 1)) * s / 100;
+          const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+          const m = l / 100 - c / 2;
+          let r = 0, g = 0, b = 0;
+          if (h < 60) { r = c; g = x; }
+          else if (h < 120) { r = x; g = c; }
+          else if (h < 180) { g = c; b = x; }
+          else if (h < 240) { g = x; b = c; }
+          else if (h < 300) { r = x; b = c; }
+          else { r = c; b = x; }
+          return { r: Math.round((r + m) * 255), g: Math.round((g + m) * 255), b: Math.round((b + m) * 255) };
+        }
+
+        // 黒背景用: 明るい色 (L: 65-90)
+        function randBrightColor() {
+          const h = rand(0, 360);
+          const s = rand(60, 100);
+          const l = rand(65, 90);
+          const c = (1 - Math.abs(2 * l / 100 - 1)) * s / 100;
+          const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+          const m = l / 100 - c / 2;
+          let r = 0, g = 0, b = 0;
+          if (h < 60) { r = c; g = x; }
+          else if (h < 120) { r = x; g = c; }
+          else if (h < 180) { g = c; b = x; }
+          else if (h < 240) { g = x; b = c; }
+          else if (h < 300) { r = x; b = c; }
+          else { r = c; b = x; }
+          return { r: Math.round((r + m) * 255), g: Math.round((g + m) * 255), b: Math.round((b + m) * 255) };
+        }
+
+        // 白背景用: 濃い色 (L: 10-40)
+        function randDarkColor() {
+          const h = rand(0, 360);
+          const s = rand(60, 100);
+          const l = rand(10, 40);
+          const c = (1 - Math.abs(2 * l / 100 - 1)) * s / 100;
+          const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+          const m = l / 100 - c / 2;
+          let r = 0, g = 0, b = 0;
+          if (h < 60) { r = c; g = x; }
+          else if (h < 120) { r = x; g = c; }
+          else if (h < 180) { g = c; b = x; }
+          else if (h < 240) { g = x; b = c; }
+          else if (h < 300) { r = x; b = c; }
+          else { r = c; b = x; }
+          return { r: Math.round((r + m) * 255), g: Math.round((g + m) * 255), b: Math.round((b + m) * 255) };
+        }
+
+        // ランダムにモードを切り替え（1〜3個をON）
+        function randomizeModes() {
+          // 全OFF
+          MODES.forEach(m => m.off());
+          // ランダムに1〜3個ON
+          const count = rand(1, 3);
+          const shuffled = [...MODES].sort(() => Math.random() - 0.5);
+          shuffled.slice(0, count).forEach(m => m.on());
+        }
+
+        // ランダムにプリセットを切り替え
+        function randomizePreset() {
+          const btns = getPresetBtns();
+          if (!btns.length) return;
+          const target = btns[rand(0, btns.length - 1)];
+          // rAFで次フレームに分散（同フレーム内の処理集中を防ぐ）
+          requestAnimationFrame(() => target.click());
+        }
+
+        // ランダムにオブジェクト数を変更
+        function randomizeCount() {
+          const n = rand(3, 20); // 最低3個保証（0個による真っ黒を防止）
+          // rAFで次フレームに分散
+          requestAnimationFrame(() => {
+            mm.setObjectCount?.(n);
+            const input = document.getElementById('objectCount');
+            if (input) { input.value = n; input.dispatchEvent(new Event('input', { bubbles: true })); }
+          });
+        }
+
+        // ランダムにパラメータを変更
+        function randomizeParams() {
+          mm.setSizeMultiplier?.(0.5 + Math.random() * 2.0);  // 最小0.5→見切れ防止
+          mm.setSpeedMultiplier?.(0.2 + Math.random() * 2.0);
+          mm.setSpreadMultiplier?.(0.3 + Math.random() * 1.5); // spread上限を抑えて画面内に
+          mm.setSpacingMultiplier?.(rand(2, 12));
+          // 背景は黒か白のみ
+          const isDark = Math.random() < 0.5;
+          const bg = isDark ? { r: 0, g: 0, b: 0 } : { r: 255, g: 255, b: 255 };
+          mm.setBackgroundColor?.(bg);
+          // オブジェクトカラー: 背景と被らない色を必ず選ぶ
+          if (isDark) {
+            // 黒背景 → 必ず明るいカラー（白 or bright color、黒NG）
+            mm.setDefaultObjectColor?.(randBrightColor());
+          } else {
+            // 白背景 → 必ず濃いカラー（黒 or dark color、白NG）
+            mm.setDefaultObjectColor?.(randDarkColor());
+          }
+        }
+
+        // シーン全体をランダムに変化させる1サイクル
+        // ワイヤーフレームモードをランダムに切り替え
+        function randomizeWireframe() {
+          const modes = ['solid', 'wire', 'mix'];
+          const picked = modes[rand(0, modes.length - 1)];
+          mm.setWireframeMode?.(picked);
+          // wire/mix + 黒背景の組み合わせ時は色を明るく再強制
+          if (picked === 'wire' || picked === 'mix') {
+            const bg = mm.getState?.()?.backgroundColor || { r: 0, g: 0, b: 0 };
+            const isDark = bg.r < 128 && bg.g < 128 && bg.b < 128;
+            if (isDark) mm.setDefaultObjectColor?.(randBrightColor());
+          }
+          // ボタン状態を更新
+          ['solid', 'wire', 'mix'].forEach(m => {
+            const btn = document.querySelector(`.wireframe-btn[data-mode="${m}"], #wireframe${m.charAt(0).toUpperCase() + m.slice(1)}Btn`);
+            if (btn) btn.classList.toggle('active', m === picked);
+          });
+        }
+
+        function cycle() {
+          // 各処理を1フレームずつ分散してガクつきゼロ
+          randomizePreset();
+          requestAnimationFrame(() => {
+            randomizeModes();
+            requestAnimationFrame(() => {
+              randomizeParams();
+              randomizeWireframe();
+              if (Math.random() < 0.4) randomizeCount();
+            });
+          });
+        }
+
+        // ============================================================
+        // AUTO VJ ENGINE — 10時間飽きさせないロジック
+        // ============================================================
+        function startAuto() {
+          isActive = true;
+          btn.classList.add('active');
+          mm.toggleAutoMode?.(false);
+
+          // ---- 状態管理 ----
+          let sessionStart = Date.now();
+          let cycleCount = 0;
+          let lastModeHash = '';
+          const recentHashes = [];   // 直近10パターンを記憶
+          const MAX_HISTORY = 10;
+
+          // ---- フェーズ定義 ----
+          // CALM(穏やか) / FLOW(流れる) / BUILD(盛り上がり) / PEAK(クライマックス) / RESET(リセット)
+          const PHASES = ['CALM', 'FLOW', 'BUILD', 'PEAK', 'RESET'];
+
+          // フェーズ別パラメータ
+          const PHASE_CONFIG = {
+            CALM: { minModes: 1, maxModes: 1, minDelay: 8000, maxDelay: 14000, fxChance: 0.05, countRange: [3, 6], speedRange: [0.2, 0.8], sizeRange: [0.6, 1.2] },
+            FLOW: { minModes: 1, maxModes: 2, minDelay: 5000, maxDelay: 9000, fxChance: 0.10, countRange: [4, 10], speedRange: [0.5, 1.5], sizeRange: [0.5, 1.8] },
+            BUILD: { minModes: 2, maxModes: 3, minDelay: 3000, maxDelay: 7000, fxChance: 0.20, countRange: [6, 15], speedRange: [1.0, 2.0], sizeRange: [0.4, 2.2] },
+            PEAK: { minModes: 2, maxModes: 4, minDelay: 2000, maxDelay: 5000, fxChance: 0.40, countRange: [10, 20], speedRange: [1.5, 2.5], sizeRange: [0.5, 2.8] },
+            RESET: { minModes: 1, maxModes: 1, minDelay: 10000, maxDelay: 16000, fxChance: 0.02, countRange: [3, 5], speedRange: [0.2, 0.6], sizeRange: [0.5, 1.0] },
+          };
+
+          // フェーズシーケンス（繰り返すパターン）
+          // 約6〜10分で1サイクル
+          const PHASE_SEQUENCE = [
+            { phase: 'CALM', duration: rand(90, 150) * 1000 },  // 1.5〜2.5分
+            { phase: 'FLOW', duration: rand(120, 180) * 1000 },  // 2〜3分
+            { phase: 'BUILD', duration: rand(90, 150) * 1000 },  // 1.5〜2.5分
+            { phase: 'PEAK', duration: rand(30, 60) * 1000 },  // 30〜60秒
+            { phase: 'RESET', duration: rand(30, 60) * 1000 },  // 30〜60秒
+          ];
+
+          let phaseSeqIdx = 0;
+          let currentPhase = 'CALM';
+          let phaseTimer = null;
+
+          // クライマックス（30〜60分に1回）
+          let climaxTimer = null;
+          let climaxActive = false;
+
+          // ---- フェーズ管理 ----
+          function advancePhase() {
+            phaseSeqIdx = (phaseSeqIdx + 1) % PHASE_SEQUENCE.length;
+            const next = PHASE_SEQUENCE[phaseSeqIdx];
+            currentPhase = next.phase;
+            phaseTimer = setTimeout(advancePhase, next.duration);
+            timers.push(phaseTimer);
+          }
+
+          // 最初のフェーズをセット
+          const firstPhase = PHASE_SEQUENCE[0];
+          currentPhase = firstPhase.phase;
+          phaseTimer = setTimeout(advancePhase, firstPhase.duration);
+          timers.push(phaseTimer);
+
+          // ---- クライマックス（30〜60分ごと） ----
+          function scheduleClimax() {
+            const wait = rand(30 * 60000, 60 * 60000);
+            climaxTimer = setTimeout(() => {
+              if (!isActive) return;
+              triggerClimax();
+              scheduleClimax();
+            }, wait);
+            timers.push(climaxTimer);
+          }
+
+          function triggerClimax() {
+            climaxActive = true;
+            currentPhase = 'PEAK';
+            // 全モードOFF→ランダムに3〜4個一気にON
+            MODES.forEach(m => m.off());
+            const shuffled = [...MODES].sort(() => Math.random() - 0.5);
+            shuffled.slice(0, rand(3, 4)).forEach(m => m.on());
+            // エフェクト爆発
+            mm.setGlobalEffect?.('glitch', true);
+            mm.setGlobalEffect?.('noise', true);
+            mm.setBlinkingMode?.(true);
+            mm.setBlinkingSpeed?.(10);
+            mm.setSpeedMultiplier?.(2.5);
+            mm.setSizeMultiplier?.(2.0);
+            // 20〜40秒後に収束
+            const t = setTimeout(() => {
+              if (!isActive) return;
+              climaxActive = false;
+              mm.setGlobalEffect?.('glitch', false);
+              mm.setGlobalEffect?.('noise', false);
+              mm.setBlinkingMode?.(false);
+              currentPhase = 'RESET';
+            }, rand(20000, 40000));
+            timers.push(t);
+          }
+
+          scheduleClimax();
+
+          // ---- メインサイクル ----
+          function getPhaseConfig() {
+            return climaxActive ? PHASE_CONFIG.PEAK : (PHASE_CONFIG[currentPhase] || PHASE_CONFIG.FLOW);
+          }
+
+          function cycle() {
+            if (!isActive) return;
+            cycleCount++;
+            const cfg = getPhaseConfig();
+
+            // プリセット変更（rAFで分散）
+            requestAnimationFrame(() => {
+              randomizePreset();
+
+              requestAnimationFrame(() => {
+                // モード切り替え（直近と被らないよう）
+                MODES.forEach(m => m.off());
+                const count = rand(cfg.minModes, cfg.maxModes);
+                const shuffled = [...MODES].sort(() => Math.random() - 0.5);
+                const chosen = shuffled.slice(0, count);
+
+                // ハッシュで重複チェック
+                const hash = chosen.map((m, i) => MODES.indexOf(chosen[i])).sort().join(',');
+                if (recentHashes.includes(hash) && recentHashes.length >= 3) {
+                  // 被ったら別の1個だけON
+                  const fallback = shuffled.find(m => !chosen.includes(m)) || shuffled[0];
+                  fallback.on();
+                  recentHashes.push(MODES.indexOf(fallback).toString());
+                } else {
+                  chosen.forEach(m => m.on());
+                  recentHashes.push(hash);
+                }
+                if (recentHashes.length > MAX_HISTORY) recentHashes.shift();
+
+                requestAnimationFrame(() => {
+                  // パラメータ（フェーズに応じた範囲）
+                  const [sMin, sMax] = cfg.speedRange;
+                  const [szMin, szMax] = cfg.sizeRange;
+                  mm.setSpeedMultiplier?.(sMin + Math.random() * (sMax - sMin));
+                  mm.setSizeMultiplier?.(szMin + Math.random() * (szMax - szMin));
+                  mm.setSpreadMultiplier?.(0.3 + Math.random() * 1.5);
+                  mm.setSpacingMultiplier?.(rand(2, 12));
+
+                  // 背景・カラー
+                  const isDark = Math.random() < 0.5;
+                  mm.setBackgroundColor?.(isDark ? { r: 0, g: 0, b: 0 } : { r: 255, g: 255, b: 255 });
+                  mm.setDefaultObjectColor?.(isDark ? randBrightColor() : randDarkColor());
+
+                  // ワイヤーフレーム
+                  randomizeWireframe();
+
+                  // オブジェクト数（40%の確率で変更）
+                  if (Math.random() < 0.4) {
+                    const [cMin, cMax] = cfg.countRange;
+                    const n = rand(cMin, cMax);
+                    requestAnimationFrame(() => {
+                      mm.setObjectCount?.(n);
+                      const input = document.getElementById('objectCount');
+                      if (input) { input.value = n; input.dispatchEvent(new Event('input', { bubbles: true })); }
+                    });
+                  }
+                });
+              });
+            });
+          }
+
+          // ---- サイクルスケジューラー ----
+          function scheduleNext() {
+            if (!isActive) return;
+            const cfg = getPhaseConfig();
+            const delay = rand(cfg.minDelay, cfg.maxDelay);
+            const t = setTimeout(() => {
+              if (!isActive) return;
+              cycle();
+              scheduleNext();
+            }, delay);
+            timers.push(t);
+          }
+
+          cycle();
+          scheduleNext();
+
+          // ---- エフェクトスケジューラー（フェーズ連動） ----
+          const FX_SLOTS = [
+            { key: 'glitch', apply: v => mm.setGlobalEffect?.('glitch', v) },
+            { key: 'noise', apply: v => mm.setGlobalEffect?.('noise', v) },
+            { key: 'mosaic', apply: v => mm.setGlobalEffect?.('mosaic', v) },
+          ];
+
+          function scheduleFx() {
+            if (!isActive || climaxActive) return;
+            const cfg = getPhaseConfig();
+            const pause = rand(3000, 10000);
+            const t1 = setTimeout(() => {
+              if (!isActive || climaxActive) return;
+              // フェーズに応じた確率でエフェクトON
+              if (Math.random() < cfg.fxChance * 3) {
+                const fx = FX_SLOTS[rand(0, FX_SLOTS.length - 1)];
+                fx.apply(true);
+                const onDur = rand(1500, 5000);
+                const t2 = setTimeout(() => {
+                  fx.apply(false);
+                  scheduleFx();
+                }, onDur);
+                timers.push(t2);
+              } else {
+                scheduleFx();
+              }
+            }, pause);
+            timers.push(t1);
+          }
+
+          scheduleFx();
+
+          // ---- ウォッチドッグ: 2秒ごとに監視 ----
+          // オブジェクト0個 or spread/sizeが極端 → 強制リセット
+          function watchdog() {
+            if (!isActive) return;
+
+            const instances = mm.getAllInstances?.() || [];
+            const state = mm.getState?.() || {};
+            const bg = state.backgroundColor || { r: 0, g: 0, b: 0 };
+            const isDark = bg.r < 128 && bg.g < 128 && bg.b < 128;
+
+            // オブジェクトが0個 → 最低3個追加
+            if (instances.length === 0) {
+              const n = rand(3, 8);
+              for (let i = 0; i < n; i++) mm.addRandomInstance?.();
+              // カラーも再設定
+              mm.setDefaultObjectColor?.(isDark ? randBrightColor() : randDarkColor());
+            }
+
+            // spread が大きすぎる → 画面内に戻す
+            const spread = state.spreadMultiplier ?? 1;
+            if (spread > 2.0) {
+              mm.setSpreadMultiplier?.(0.8 + Math.random() * 0.8);
+            }
+
+            // size が大きすぎる → 縮小
+            const size = state.sizeMultiplier ?? 1;
+            if (size > 2.5) {
+              mm.setSizeMultiplier?.(0.8 + Math.random() * 1.0);
+            }
+
+            // オブジェクトカラーと背景が近すぎる（どちらも暗い or 明るい）→ 修正
+            const objColor = state.defaultObjectColor || { r: 128, g: 128, b: 128 };
+            const objBright = (objColor.r + objColor.g + objColor.b) / 3;
+            const bgBright = (bg.r + bg.g + bg.b) / 3;
+            const contrast = Math.abs(objBright - bgBright);
+            if (contrast < 60) {
+              // コントラスト不足 → 強制修正
+              mm.setDefaultObjectColor?.(isDark ? randBrightColor() : randDarkColor());
+            }
+
+            const t = setTimeout(watchdog, 2000);
+            timers.push(t);
+          }
+
+          watchdog();
+        }
+
+        // AUTO停止
+        function stopAuto() {
+          isActive = false;
+          timers.forEach(t => clearTimeout(t));
+          timers = [];
+          if (fxRafId) { cancelAnimationFrame(fxRafId); fxRafId = null; }
+          btn.classList.remove('active');
+          MODES.forEach(m => m.off());
+          mm.setGlobalEffect?.('glitch', false);
+          mm.setGlobalEffect?.('noise', false);
+          mm.setGlobalEffect?.('mosaic', false);
+          mm.setBlinkingMode?.(false);
+          ['topGlitchBtn', 'topNoiseBtn', 'topMosaicBtn', 'topBlinkBtn'].forEach(id => {
+            document.getElementById(id)?.classList.remove('active');
+          });
+        }
+
+        btn.addEventListener('click', () => isActive ? stopAuto() : startAuto());
+
+        // RESETボタンと連携
+        const resetBtn = document.getElementById('topResetBtn');
+        if (resetBtn) {
+          resetBtn.addEventListener('click', () => {
+            if (isActive) stopAuto();
+          }, { capture: true });
+        }
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', apply);
+      } else { apply(); }
+    })();
+  </script>
+
+  <script>
+    // ===== テキストフィット: 文字数に応じてフォントサイズを自動調整 =====
+    (function () {
+      function patchFitTextSize() {
+        const mm = window.mandalaMachine;
+        if (!mm || !mm.processingLayer) {
+          setTimeout(patchFitTextSize, 500);
+          return;
+        }
+        const pl = mm.processingLayer;
+
+        // fitTextSizeをオーバーライド
+        // 元: t.width * 0.85 で横幅のみチェック
+        // 新: 文字数に応じてベースサイズを下げ、横幅80%・縦幅70%の両方でクランプ
+        pl.fitTextSize = function (p, text, baseSize) {
+          const len = text.length;
+
+          // 文字数によるベースサイズの補正
+          // 1〜5文字: そのまま / 6〜10: 80% / 11〜20: 60% / 21〜: 40%
+          let scale = 1.0;
+          if (len <= 5) scale = 1.0;
+          else if (len <= 10) scale = 0.80;
+          else if (len <= 20) scale = 0.60;
+          else if (len <= 35) scale = 0.45;
+          else scale = 0.30;
+
+          let size = baseSize * scale;
+          p.textSize(size);
+
+          // 横幅クランプ（キャンバス幅の78%以内）
+          const maxW = p.width * 0.78;
+          const textW = p.textWidth(text);
+          if (textW > maxW) {
+            size *= maxW / textW;
+          }
+
+          // 縦幅クランプ（キャンバス高さの60%以内）
+          const maxH = p.height * 0.60;
+          if (size > maxH) size = maxH;
+
+          // 最小サイズ保証（小さすぎて読めないのを防止）
+          size = Math.max(size, 8);
+
+          p.textSize(size);
+          return size;
+        };
+
+        console.log('[TextFit] fitTextSize patched');
+      }
+
+      // DOMContentLoaded後にパッチ
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => setTimeout(patchFitTextSize, 1000));
+      } else {
+        setTimeout(patchFitTextSize, 1000);
+      }
+    })();
+  </script>
+
+</body>
+
+</html>

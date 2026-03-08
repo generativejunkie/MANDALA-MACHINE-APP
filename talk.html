@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TALK MACHINE | GENERATIVE JUNKIE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: var(--color-bg-primary);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .talk-page-container {
+            width: 100%;
+            max-width: 1200px;
+            padding: var(--space-md);
+        }
+
+        .back-link {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: var(--color-text-tertiary);
+            text-decoration: none;
+            font-family: var(--font-family-mono);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: color 0.3s ease;
+            z-index: 1000;
+        }
+
+        .back-link:hover {
+            color: var(--color-text-primary);
+        }
+    </style>
+</head>
+
+<body>
+    <a href="index.html" class="back-link">← RETURN_TO_CORE</a>
+
+    <div class="talk-page-container">
+        <section id="talk-machine" class="section">
+            <div class="section-container">
+                <header class="section-header">
+                    <span class="section-number">03</span>
+                    <h2 class="section-title">TALK MACHINE</h2>
+                    <div class="section-description">
+                        <span id="talk-desc-text"
+                            data-text="Connect with the CORE Clone. A permanent interface to the singularity."
+                            data-loop="true"></span>
+                    </div>
+                </header>
+
+                <div class="machine-canvas-wrapper" id="talkCanvas-container">
+                    <!-- Chat Interface -->
+                    <div class="talk-interface">
+                        <div class="talk-messages" id="talk-messages">
+                            <!-- Messages will appear here -->
+                        </div>
+                        <div class="talk-input-area">
+                            <input type="text" id="talk-input" placeholder="Speak to the machine..." autocomplete="off">
+                            <button id="talk-send-btn" class="btn btn-primary">SEND</button>
+                        </div>
+                    </div>
+                    <span class="canvas-prompt hidden" id="talk-prompt">INITIALIZING CONNECTION...</span>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script type="module">
+        import { initTalkMachine } from './js/modules/talk-machine.js';
+        import { typeText } from './js/utils/typing.js';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initTalkMachine();
+            const descEl = document.getElementById('talk-desc-text');
+            if (descEl) {
+                typeText(descEl, descEl.dataset.text, 50, true);
+            }
+        });
+    </script>
+</body>
+
+</html>

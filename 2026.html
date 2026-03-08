@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>COUNTDOWN 2026 | GENERATIVE MACHINE</title>
+
+    <!-- Fonts: Inter (Minimalist Sans-Serif) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #000000;
+            --text-color: #ffffff;
+            --icon-color: #666666;
+            --icon-hover: #ffffff;
+            --font-family: 'Inter', sans-serif;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            letter-spacing: -0.02em;
+        }
+
+        /* Glitch effect layer (kept subtle) */
+        .glitch-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.03;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: 0;
+        }
+
+        .container {
+            text-align: center;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4rem;
+            /* Spacing between timer and SNS */
+        }
+
+        .countdown {
+            display: flex;
+            align-items: baseline;
+            gap: 1.5rem;
+            font-weight: 200;
+            /* Extra Light for minimalism */
+            line-height: 1;
+        }
+
+        .unit-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .number {
+            font-size: 6rem;
+            font-variant-numeric: tabular-nums;
+            /* Align numbers */
+        }
+
+        .unit-label {
+            font-size: 0.75rem;
+            opacity: 0.3;
+            margin-top: 0.5rem;
+            font-weight: 400;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .colon {
+            font-size: 4rem;
+            opacity: 0.3;
+            transform: translateY(-1rem);
+            animation: blink 2s ease-in-out infinite;
+        }
+
+        /* Footer Container */
+        .footer-links {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3rem;
+            margin-top: 4rem;
+        }
+
+        /* Common Footer Item Styles for alignment */
+        .footer-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            opacity: 0.7;
+        }
+
+        .footer-item:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .footer-item img,
+        .footer-item svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            fill: currentColor;
+        }
+
+        /* 1. X Icon */
+        .sns-link {
+            width: 28px;
+            height: 28px;
+            color: var(--icon-color);
+        }
+
+        /* 2. Back Pill (Home) */
+        .back-pill {
+            width: 40px;
+            /* Scaled down 90% */
+            height: auto;
+        }
+
+        /* 3. Logo (Store) */
+        .home-link {
+            width: 77px;
+            /* Scaled up 110% */
+            height: auto;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .countdown {
+                gap: 0.5rem;
+            }
+
+            .number {
+                font-size: 2.5rem;
+                /* Smaller for mobile */
+            }
+
+            .colon {
+                font-size: 1.5rem;
+                transform: translateY(-0.2rem);
+            }
+
+            .unit-label {
+                font-size: 0.6rem;
+            }
+
+            .footer-links {
+                gap: 2rem;
+                margin-top: 3rem;
+            }
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 0.1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="glitch-layer"></div>
+
+
+
+    <div class="container">
+        <!-- Countdown Timer -->
+        <div class="countdown" id="countdown">
+            <div class="unit-group">
+                <span id="days" class="number">000</span>
+                <span class="unit-label">Days</span>
+            </div>
+            <span class="colon">:</span>
+            <div class="unit-group">
+                <span id="hours" class="number">00</span>
+                <span class="unit-label">Hours</span>
+            </div>
+            <span class="colon">:</span>
+            <div class="unit-group">
+                <span id="minutes" class="number">00</span>
+                <span class="unit-label">Minutes</span>
+            </div>
+            <span class="colon">:</span>
+            <div class="unit-group">
+                <span id="seconds" class="number">00</span>
+                <span class="unit-label">Seconds</span>
+            </div>
+        </div>
+
+        <!-- Footer Links Container -->
+        <div class="footer-links">
+            <!-- 1. X (Twitter) -->
+            <a href="https://twitter.com/intent/tweet?text=%3F%3F%3F%20%7C%20GENERATIVE%20JUNKIE&url=https%3A%2F%2Fgenerativejunkie.net%2F2026.html"
+                target="_blank" rel="noopener noreferrer" class="footer-item sns-link" aria-label="Share on X">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+            </a>
+
+            <!-- 2. Back Pill (Home) -->
+            <a href="/" class="footer-item back-pill" aria-label="Back to Home">
+                <img src="logo/back-arrow-white.png" alt="Back to Home">
+            </a>
+
+
+        </div>
+    </div>
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-M6PMRQR437"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-M6PMRQR437');
+    </script>
+
+    <script>
+        // Target Date: 2026/01/01 00:00:00 JST
+        const targetDate = new Date('2026-01-01T00:00:00+09:00').getTime();
+
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const distance = targetDate - now;
+
+            if (distance < 0) {
+                document.getElementById('countdown').innerHTML = "SYSTEM ONLINE";
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            // Pad with zeros
+            document.getElementById('days').innerText = String(days).padStart(3, '0');
+            document.getElementById('hours').innerText = String(hours).padStart(2, '0');
+            document.getElementById('minutes').innerText = String(minutes).padStart(2, '0');
+            document.getElementById('seconds').innerText = String(seconds).padStart(2, '0');
+        }
+
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
+    </script>
+</body>
+
+</html>

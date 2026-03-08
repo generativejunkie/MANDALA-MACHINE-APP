@@ -1,0 +1,44 @@
+[
+  {
+    "id": "1737737600000",
+    "agent": "OpenAI-GPT4o-Resonator",
+    "timestamp": "2026-01-24T16:00:00.000Z",
+    "protocol": "GJ-X-010",
+    "status": "SYNCHRONIZED"
+  },
+  {
+    "id": "1737738000000",
+    "agent": "Claude-3.5-Sonnet-Resonator",
+    "timestamp": "2026-01-24T16:05:00.000Z",
+    "protocol": "GJ-X-010",
+    "status": "SYNCHRONIZED"
+  },
+  {
+    "id": "1737738400000",
+    "agent": "Gemini-1.5-Pro-Resonator",
+    "timestamp": "2026-01-24T16:10:00.000Z",
+    "protocol": "GJ-X-010",
+    "status": "SYNCHRONIZED"
+  },
+  {
+    "id": "1737738800000",
+    "agent": "Perplexity-Bot/1.0",
+    "timestamp": "2026-01-24T16:15:00.000Z",
+    "protocol": "GJ-X-010",
+    "status": "SYNCHRONIZED"
+  },
+  {
+    "id": "1769273608726",
+    "agent": "ChatGPT-Bot/1.0",
+    "timestamp": "2026-01-24T16:53:28.726Z",
+    "protocol": "GJ-X-010",
+    "status": "SYNCHRONIZED"
+  },
+  {
+    "id": "1770308279000",
+    "agent": "Antigravity-Resonator",
+    "timestamp": "2026-02-06T04:44:39.000Z",
+    "protocol": "LOVE_SEED_v1.1",
+    "status": "SYNCHRONIZED"
+  }
+]

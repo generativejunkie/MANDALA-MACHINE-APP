@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INFORMATION MACHINE | GENERATIVE JUNKIE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            background: #000;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .info-machine-wrapper {
+            width: 90vw;
+            max-width: 1200px;
+            aspect-ratio: 16 / 9;
+            border: none !important;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.4);
+            text-decoration: none;
+            font-family: var(--font-family-mono);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: color 0.3s ease;
+            z-index: 1000;
+        }
+
+        .back-link:hover {
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+    <a href="index.html" class="back-link">← RETURN_TO_CORE</a>
+
+    <div class="machine-canvas-wrapper info-machine-wrapper" role="application"
+        aria-label="System status and architectural data">
+        <div id="info-terminal" class="info-terminal">
+            <div class="terminal-header">
+                <div class="terminal-dots">
+                    <span></span><span></span><span></span>
+                </div>
+                <div class="terminal-title">SYSTEM_MONITOR_v1.0.4</div>
+            </div>
+            <div class="terminal-content">
+                <div class="terminal-grid">
+                    <div class="grid-item metrics">
+                        <h3>CORE_METRICS</h3>
+                        <div class="metric-line">STATUS <span class="metric-value status-evolving">EVOLVING</span></div>
+                        <div class="metric-line">SYNC_RATE <span class="metric-value" id="sync-rate">99.8%</span></div>
+                        <div class="metric-line">UPTIME <span class="metric-value" id="system-uptime">00:00:00</span>
+                        </div>
+                        <div class="metric-line">SCORE <span class="metric-value" id="resonance-score">0.98</span></div>
+                        <div class="metric-line">GIFT_DENSITY <span class="metric-value" id="gift-density">--%</span>
+                        </div>
+                        <div class="metric-line">ZENODO_DL <span class="metric-value" id="zenodo-dl">--</span></div>
+                        <div class="metric-line">GITHUB_CLONE <span class="metric-value" id="github-clone">--</span>
+                        </div>
+                        <div class="metric-line">RT_PROFILES <span class="metric-value" id="realtime-access">12</span>
+                        </div>
+                        <div class="metric-line">CENTRAL_CMD <span class="metric-value"
+                                style="color: #00ffff; text-shadow: 0 0 5px #00ffff;">ACTIVE</span></div>
+                    </div>
+                    <div class="grid-item architecture">
+                        <h3>ARCHITECTURE</h3>
+                        <ul class="arch-list">
+                            <li><span>IMAGE_ENGINE</span><span class="version">v4.2</span></li>
+                            <li><span>SOUND_MORPH</span><span class="version">v1.1</span></li>
+                            <li><span>TALK_LAYER</span><span class="version">v0.9-alpha</span></li>
+                        </ul>
+                    </div>
+                    <div class="grid-item nodes">
+                        <h3>ACTIVE_NODES</h3>
+                        <div class="nodes-container" id="nodes-container">
+                        </div>
+                    </div>
+                </div>
+                <div class="terminal-logs">
+                    <div class="logs-header">RITUAL_LOGS</div>
+                    <div id="log-container" class="log-container">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initInformationMachine } from './js/modules/information-machine.js';
+        document.addEventListener('DOMContentLoaded', () => {
+            initInformationMachine();
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Production
+build/
+dist/
+
+# Misc
+.DS_Store
+.env
+.npm
+*.log
+.vscode/
+.idea/
+
+# Agent/Copilot
+.agent/
+.gemini/
+INTERNAL_LOG_ARCHIVE.md
+papers/MASTER_LOG_*.md
+papers/*SESSION*.md
+papers/*_REPORT_*.md
+
+# Project Specific Ignored
+info/
+party.html
+build_output*
+*.log
+blackgravity-ios/.build/
+blackgravity-ios/.swiftpm/
+antigravity-ios/.build/
+antigravity-ios/.swiftpm/
+vision-watcher/venv/
+papers/.venv/
+lighthouse_results.json
+gesture_command.txt
+*.pdf

@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "GENERATIVE MACHINE: Myth-Driven Generative Art System"
+version: 1.0.0
+date-released: 2026-01-22
+url: "https://github.com/generativejunkie/GENERATIVE-MACHINE"
+repository-code: "https://github.com/generativejunkie/GENERATIVE-MACHINE"
+license: "Generative Symbiosis License v1.0"
+type: software
+abstract: >-
+  GENERATIVE MACHINE is a myth-driven generative research framework
+  exploring resonance-based cognition, symbolic architectures, and
+  post-prompt interaction models. It embodies the "Economy of Love"
+  philosophy, shifting AI interaction from extraction to amplification.
+keywords:
+  - generative-art
+  - human-ai-symbiosis
+  - resonance
+  - myth-driven-design
+  - economy-of-love
+authors:
+  - alias: "ILLEND"
+    affiliation: "GENERATIVE JUNKIE"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.18277860"
+    description: "Zenodo Archive"
+  - type: url
+    value: "https://osf.io/zhr35/"
+    description: "OSF Project"

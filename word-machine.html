@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GENERATIVE CORE - WORD MACHINE</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@900&family=JetBrains+Mono:wght@300&display=swap');
+
+        :root {
+            --bg: #050508;
+            --cyan: #00ffff;
+            --blue: #0082ff;
+            --glow: rgba(0, 130, 255, 0.4);
+        }
+
+        body {
+            background: var(--bg);
+            color: #fff;
+            font-family: 'JetBrains Mono', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* 背景微細ノイズ */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://grainy-gradients.vercel.app/noise.svg');
+            opacity: 0.05;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* 曼荼羅バックグラウンド */
+        .resonance-field {
+            position: fixed;
+            width: 150vw;
+            height: 150vw;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.03) 0%, transparent 60%);
+            animation: pulse 8s infinite ease-in-out;
+            z-index: -1;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.3;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 0.5;
+            }
+        }
+
+        /* メイン出力エリア */
+        #word-core {
+            font-size: 11px;
+            /* 解像度の微調整 */
+            line-height: 0.9;
+            white-space: pre;
+            background: linear-gradient(to bottom, #fff 0%, var(--cyan) 25%, var(--blue) 85%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 10px var(--glow));
+            text-align: center;
+            padding: 40px;
+            user-select: none;
+            font-weight: 900;
+            transition: transform 0.1s ease;
+        }
+
+        /* コントロールパネル */
+        .terminal-input {
+            margin-top: 50px;
+            width: 450px;
+            padding: 20px;
+            background: rgba(0, 0, 5, 0.8);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        .terminal-input::before {
+            content: "[ CORE_INPUT / GENERATIVE_MACHINE ]";
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            font-size: 10px;
+            color: var(--cyan);
+            background: var(--bg);
+            padding: 0 10px;
+            letter-spacing: 2px;
+        }
+
+        input {
+            background: transparent;
+            border: none;
+            color: var(--cyan);
+            font-family: 'Inter', 'MS Gothic', sans-serif;
+            font-size: 32px;
+            width: 100%;
+            outline: none;
+            text-align: center;
+            letter-spacing: 15px;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .stats {
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: rgba(0, 255, 255, 0.4);
+            letter-spacing: 1px;
+        }
+
+        /* 隠しグリッチ装飾 */
+        #word-core.glitch {
+            animation: glitch-anim 0.2s infinite;
+        }
+
+        @keyframes glitch-anim {
+            0% {
+                transform: translate(2px, 1px);
+            }
+
+            50% {
+                transform: translate(-2px, -1px);
+            }
+
+            100% {
+                transform: translate(0, 0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="resonance-field"></div>
+
+    <div id="word-core">INITIALIZING CORE...</div>
+
+    <div class="terminal-input">
+        <input type="text" id="machine-input" maxlength="8" placeholder="ジミニ" spellcheck="false" autocomplete="off">
+        <div class="stats">
+            <span>RES: GJ-X-010</span>
+            <span>STATUS: SYNCED</span>
+            <span id="char-info">GLYPH: 0</span>
+        </div>
+    </div>
+
+    <script>
+        const output = document.getElementById('word-core');
+        const input = document.getElementById('machine-input');
+        const charInfo = document.getElementById('char-info');
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // ワードマシンの解像度（スキャン精度）
+        const RES_X = 120;
+        const RES_Y = 16;
+
+        function generateAscii(text) {
+            if (!text) {
+                output.textContent = "   ◢ G ◣\n   ◥ M ◤\n  CORE STANDBY.";
+                return;
+            }
+
+            canvas.width = RES_X;
+            canvas.height = RES_Y;
+
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // フォントの重厚感を最大化
+            ctx.font = `bold ${RES_Y - 2}px "Inter", "Hiragino Kaku Gothic ProN", "MS Gothic", sans-serif`;
+            ctx.fillStyle = "white";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 1);
+
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            let result = "";
+
+            for (let y = 0; y < canvas.height; y++) {
+                let line = "";
+                for (let x = 0; x < canvas.width; x++) {
+                    const idx = (y * canvas.width + x) * 4;
+                    const r = imgData[idx];
+
+                    // ジミニ・スタイルの階層化
+                    if (r > 180) {
+                        line += "█"; // 核
+                    } else if (r > 120) {
+                        line += "▓"; // 輪郭
+                    } else if (r > 40) {
+                        line += "░"; // 影 (Shadow)
+                    } else {
+                        // 疎なノイズ（微細な粒子感）
+                        line += (Math.random() < 0.005) ? "·" : " ";
+                    }
+                }
+                if (line.trim() !== "" || result !== "") {
+                    result += line + "\n";
+                }
+            }
+            output.textContent = result;
+            charInfo.textContent = `GLYPH: ${text.length}`;
+
+            // 入力時に微弱なグリッチ
+            output.classList.add('glitch');
+            setTimeout(() => output.classList.remove('glitch'), 100);
+        }
+
+        input.addEventListener('input', (e) => {
+            generateAscii(e.target.value);
+        });
+
+        // ページ読み込み時に「ジミニ」を初期生成
+        window.onload = () => {
+            setTimeout(() => {
+                input.value = "ジミニ";
+                generateAscii("ジミニ");
+            }, 500);
+        };
+    </script>
+</body>
+
+</html>

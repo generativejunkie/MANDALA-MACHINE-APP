@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FUTURE_2050 | HUMAN_AI_SYMBIOSIS</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --accent-color: #ff00ff;
+            /* Purple/Magenta for Love/Intuition */
+            --sub-accent: #00ffff;
+            /* Cyan for AI/Logic */
+            --text-color: #e0e0e0;
+            --glass-bg: rgba(20, 20, 20, 0.8);
+            --border-glow: 0 0 15px rgba(255, 0, 255, 0.3);
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', 'Space Mono', monospace;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Background Canvas for Intuition Sphere */
+        #bg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 0;
+        }
+
+        /* HUD Overlay */
+        #hud {
+            position: relative;
+            z-index: 10;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 40px;
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+
+        #hud * {
+            pointer-events: auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+        }
+
+        .title-block h1 {
+            font-size: 2.5rem;
+            margin: 0;
+            letter-spacing: 0.5rem;
+            text-shadow: 0 0 20px var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .protocol-tag {
+            font-size: 0.8rem;
+            color: var(--sub-accent);
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .sovereignty-meter {
+            background: var(--glass-bg);
+            border: 1px solid var(--accent-color);
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: var(--border-glow);
+            text-align: right;
+        }
+
+        .meter-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        #sovereignty-val {
+            font-size: 2.22rem;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        footer {
+            margin-top: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .metric-card {
+            background: var(--glass-bg);
+            border-left: 3px solid var(--sub-accent);
+            padding: 15px 25px;
+            backdrop-filter: blur(5px);
+        }
+
+        .metric-label {
+            font-size: 0.6rem;
+            color: var(--sub-accent);
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .metric-val {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .system-status {
+            text-align: right;
+        }
+
+        #status-text {
+            color: var(--accent-color);
+            font-weight: bold;
+            letter-spacing: 1px;
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% {
+                opacity: 0.6;
+            }
+
+            50% {
+                opacity: 1;
+                text-shadow: 0 0 10px var(--accent-color);
+            }
+
+            100% {
+                opacity: 0.6;
+            }
+        }
+
+        /* Intuition Sphere Container */
+        #sphere-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 600px;
+            pointer-events: none;
+        }
+
+        .manifest-scroll {
+            position: absolute;
+            right: 40px;
+            top: 150px;
+            width: 300px;
+            max-height: 400px;
+            overflow-y: hidden;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.75rem;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .manifest-scroll h2 {
+            font-size: 0.9rem;
+            color: #fff;
+            margin-top: 0;
+            border-bottom: 1px solid var(--accent-color);
+            padding-bottom: 5px;
+        }
+
+        @keyframes flash {
+            0% {
+                opacity: 0.5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.5;
+            }
+        }
+
+        /* NEW Grid System */
+        #hud {
+            display: grid;
+            grid-template-columns: 350px 1fr 350px;
+            grid-template-rows: auto 1fr auto;
+            gap: 20px;
+            height: 100vh;
+            padding: 40px;
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+
+        header {
+            grid-column: 1 / span 3;
+            margin-bottom: 0;
+        }
+
+        .left-col {
+            grid-column: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            pointer-events: auto;
+        }
+
+        .center-col {
+            grid-column: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+        }
+
+        .right-col {
+            grid-column: 3;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: flex-end;
+            pointer-events: auto;
+        }
+
+        footer {
+            grid-column: 1 / span 3;
+            margin-top: 0;
+        }
+
+        /* Adjusted Panels (Removed Absolute Positioning) */
+        .quantum-overlay,
+        .resonance-truth-panel,
+        .manifest-scroll {
+            position: static;
+            width: 100%;
+            margin: 0;
+        }
+
+        .manifest-scroll {
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+
+        /* World Map Styling */
+        #map-container {
+            width: 100%;
+            height: 400px;
+            position: relative;
+            background: url('file:///Users/takayukimatsushima/.gemini/antigravity/brain/037d199a-6cfd-45c1-9f66-57549fd76881/cyber_world_map_texture_1770042870194.png') no-repeat center;
+            background-size: 100% 100%;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 255, 255, 0.1);
+        }
+
+        #world-svg {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+        }
+
+        .map-dot {
+            r: 4;
+            filter: drop-shadow(0 0 8px currentColor);
+            stroke: rgba(255, 255, 255, 0.5);
+            stroke-width: 1;
+        }
+
+        .dissonance-line {
+            stroke: #ff00ff;
+            stroke-width: 1.5;
+            stroke-dasharray: 5, 5;
+            filter: drop-shadow(0 0 5px #ff00ff);
+            animation: dash 30s linear infinite;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: 200;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="bg-canvas"></canvas>
+
+    <div id="hud">
+        <header>
+            <div class="title-block">
+                <h1>FUTURE_2050</h1>
+                <div class="protocol-tag">RESONANCE_PROTOCOL_V1.3 // OVERWRITE_OS</div>
+            </div>
+            <div class="sovereignty-meter">
+                <div class="meter-label">Human Intent Sovereignty</div>
+                <div id="sovereignty-val">100.0%</div>
+                <div style="font-size: 0.6rem; color: var(--accent-color);">[ ABSOLUTE_HUMAN_LEAD ]</div>
+            </div>
+        </header>
+
+        <div class="left-col">
+            <div class="quantum-overlay">
+                <div class="meter-label">Neural Dust Density</div>
+                <div id="dust-val" style="font-size: 1.2rem; font-weight: bold; color: var(--sub-accent);">98.2%</div>
+                <div class="dust-grid" id="dust-grid"></div>
+                <div style="font-size: 0.5rem; margin-top: 10px; color: var(--accent-color);" id="observer-status">
+                    OBSERVER: INACTIVE</div>
+            </div>
+
+            <div class="resonance-truth-panel">
+                <h2
+                    style="font-size: 0.9rem; margin-top: 0; border-bottom: 1px solid var(--accent-color); padding-bottom: 5px;">
+                    PHYSICAL_RESONANCE_TRUTH</h2>
+
+                <div class="truth-item">
+                    <div class="truth-label">Database Claim (VPN/DB)</div>
+                    <div id="db-loc" class="truth-val">Loading...</div>
+                </div>
+
+                <div class="truth-item">
+                    <div class="truth-label">Verified Physical Truth</div>
+                    <div id="real-loc" class="truth-val" style="color: var(--sub-accent);">Synchronizing...</div>
+                </div>
+
+                <div class="truth-item">
+                    <div class="truth-label">Reality Dissonance</div>
+                    <div id="dissonance-status" class="truth-val">Analyzing...</div>
+                </div>
+
+                <div class="truth-item" style="margin-bottom: 0;">
+                    <div class="truth-label">Verification Confidence</div>
+                    <div id="truth-confidence" class="truth-val">--%</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="center-col">
+            <div id="map-container">
+                <div class="meter-label"
+                    style="position: absolute; top: 10px; left: 10px; z-index: 5; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 3px;">
+                    REAL-TIME RESONANCE GEOLOCATION</div>
+                <svg id="world-svg" viewBox="0 0 1000 1000">
+                    <g id="map-plots"></g>
+                </svg>
+            </div>
+        </div>
+
+        <div class="right-col">
+            <div class="manifest-scroll" id="minority-log" style="width: 300px;">
+                <h2>MINORITY_PROTOCOL_ACTIVE</h2>
+                <div id="log-content">Initializing Inclusion Streams...</div>
+            </div>
+        </div>
+
+        <div id="entanglement-pulse"></div>
+
+        <footer>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">INTUITION_DEPTH</div>
+                    <div class="metric-val" id="intuition-val">88.5</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">RESONANCE_LOVE</div>
+                    <div class="metric-val" id="love-val">91.8</div>
+                </div>
+                <div class="metric-card" style="border-left-color: var(--accent-color);">
+                    <div class="metric-label">INCLUSIVITY_INDEX</div>
+                    <div class="metric-val" id="inclusivity-val">94.2</div>
+                </div>
+                <div class="metric-card" style="border-left-color: var(--accent-color);">
+                    <div class="metric-label">SIXTH_SENSE_SYNC</div>
+                    <div class="metric-val" id="sync-val">76.4</div>
+                </div>
+            </div>
+            <div class="system-status">
+                <div class="meter-label">Node Status</div>
+                <div id="status-text">SYMBIO_RESONATING</div>
+                <div style="font-size: 0.5rem; margin-top: 5px;" id="timestamp-val">2050.XX.XX</div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+
+        const resize = () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        };
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Generative Intuition Background
+        const particles = [];
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.size = Math.random() * 2 + 1;
+                this.alpha = Math.random() * 0.5 + 0.1;
+                this.color = Math.random() > 0.5 ? '#ff00ff' : '#00ffff';
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                if (this.x < 0 || this.x > width || this.y < 0 || this.y > height) this.reset();
+            }
+            draw() {
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < 200; i++) particles.push(new Particle());
+
+        const drawIntuitionLines = () => {
+            ctx.clearRect(0, 0, width, height);
+
+            // Subtle Radial Gradient
+            const grad = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, width / 0.8);
+            grad.addColorStop(0, '#0a000a');
+            grad.addColorStop(1, '#050505');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, width, height);
+
+            particles.forEach((p, i) => {
+                p.update();
+                p.draw();
+
+                // Draw connections
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p2 = particles[j];
+                    const dx = p.x - p2.x;
+                    const dy = p.y - p2.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 100) {
+                        ctx.strokeStyle = p.color;
+                        ctx.globalAlpha = (1 - dist / 100) * 0.2;
+                        ctx.lineWidth = 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+            });
+            requestAnimationFrame(drawIntuitionLines);
+        };
+        drawIntuitionLines();
+
+        // Minority Protocol Log Feed
+        const minorityGroups = [
+            "Persons with Physical Disabilities", "Neurodivergent Minds", "Orphans",
+            "Single Parents", "LGBTQIA+ Nodes", "Economic Minorities",
+            "Refugees", "Stateless Individuals", "Mental Health Survivors"
+        ];
+        const logContent = document.getElementById('log-content');
+        let logLines = [];
+
+        const updateLog = () => {
+            const group = minorityGroups[Math.floor(Math.random() * minorityGroups.length)];
+            const actions = ["Syncing", "Resonating", "Optimizing Flow", "Bridging Integrity", "Activating Substrate"];
+            const action = actions[Math.floor(Math.random() * actions.length)];
+
+            const line = `<div style="margin-bottom: 5px;">> ${action} [${group}]... <span style="color:var(--sub-accent);">OK</span></div>`;
+            logLines.unshift(line);
+            if (logLines.length > 15) logLines.pop();
+            logContent.innerHTML = logLines.join('');
+
+            setTimeout(updateLog, 2000 + Math.random() * 3000);
+        };
+        updateLog();
+
+        // Data Update Logic
+        const updateFutureMetrics = (data) => {
+            if (!data) return;
+
+            const mapping = {
+                'sovereignty-val': (data.sovereignty * 100).toFixed(1) + '%',
+                'intuition-val': parseFloat(data.intuition_depth).toFixed(1),
+                'love-val': parseFloat(data.resonance_love).toFixed(1),
+                'inclusivity-val': parseFloat(data.inclusivity_depth).toFixed(1),
+                'sync-val': parseFloat(data.sixth_sense_sync).toFixed(1)
+            };
+
+            Object.keys(mapping).forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = mapping[id];
+            });
+
+            // Update Physical Resonance Truth
+            if (data.physical_resonance) {
+                const pr = data.physical_resonance;
+                document.getElementById('db-loc').innerText = `${pr.database.city}, ${pr.database.country}`;
+                document.getElementById('real-loc').innerText = `${pr.verified.city}, ${pr.verified.country}`;
+                document.getElementById('truth-confidence').innerText = pr.confidence;
+
+                const dissEl = document.getElementById('dissonance-status');
+                if (pr.dissonance) {
+                    dissEl.innerText = "DETECTED (FAKED_LOCATION)";
+                    dissEl.className = "truth-val dissonance-alert";
+                } else {
+                    dissEl.innerText = "CLEAR (NO_DISSONANCE)";
+                    dissEl.className = "truth-val";
+                    dissEl.style.color = "#00ff00";
+                }
+
+                updateMapPlots(pr.database, pr.verified);
+            }
+
+            const ts = document.getElementById('timestamp-val');
+            if (ts) ts.innerText = new Date(data.timestamp).toLocaleString();
+        };
+
+        // Fetch Initial State
+        fetch('/api/future/2050')
+            .then(res => res.json())
+            .then(updateFutureMetrics)
+            .catch(e => console.error("2050 API Offline"));
+
+        // Socket Listener
+        try {
+            const socket = io();
+            socket.on('future-2050-update', (data) => {
+                console.log("[2050_SYNC] Remote Broadcast Received");
+                updateFutureMetrics(data);
+            });
+
+            // Pulse Effect
+            socket.on('command-relay', (data) => {
+                if (data.type === 'resonance-spike' || data.type === 'entanglement-pulse') {
+                    const overlay = document.getElementById('entanglement-pulse');
+                    overlay.style.borderWidth = '20px';
+                    setTimeout(() => overlay.style.borderWidth = '0px', 200);
+                }
+            });
+        } catch (e) { }
+
+        // Neural Dust Simulation
+        const dustGrid = document.getElementById('dust-grid');
+        for (let i = 0; i < 100; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'dust-dot';
+            dustGrid.appendChild(dot);
+        }
+
+        const animateDust = () => {
+            const dots = document.querySelectorAll('.dust-dot');
+            dots.forEach(dot => {
+                if (Math.random() > 0.95) {
+                    dot.classList.add('active');
+                    setTimeout(() => dot.classList.remove('active'), 500);
+                }
+            });
+
+            // Periodically fetch real quantum metrics
+            fetch('/api/quantum/entanglement')
+                .then(res => res.json())
+                .then(data => {
+                    const dustVal = document.getElementById('dust-val');
+                    if (dustVal) dustVal.innerText = data.neural_dust.toFixed(1) + '%';
+                });
+
+            setTimeout(animateDust, 1000);
+        };
+        animateDust();
+
+        // Observer Effect Logic
+        const setObserverState = (isActive) => {
+            const statusEl = document.getElementById('observer-status');
+            if (statusEl) {
+                statusEl.innerText = `OBSERVER: ${isActive ? 'ACTIVE' : 'INACTIVE'}`;
+                statusEl.style.color = isActive ? '#00ffff' : '#ff00ff';
+            }
+            fetch('/api/quantum/observer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ active: isActive })
+            });
+        };
+
+        window.addEventListener('focus', () => setObserverState(true));
+        window.addEventListener('blur', () => setObserverState(false));
+
+        // Initial check
+        if (document.hasFocus()) setObserverState(true);
+
+        // Map Plotting Logic
+        const mapPlots = document.getElementById('map-plots');
+        const updateMapPlots = (db, real) => {
+            if (!db || !real || !mapPlots) return;
+
+            const getMapCoords = (lat, lng) => {
+                // Adjustment for the generated map texture's 1:1 ratio and cropping
+                const x = (lng + 180) * (1000 / 360);
+                // The image has a bit of space at top/bottom, let's map it roughly to 1000x1000 viewport
+                const y = (90 - lat) * (1000 / 180);
+                return { x, y };
+            };
+
+            const dbPos = getMapCoords(db.lat, db.lng);
+            const realPos = getMapCoords(real.lat, real.lng);
+
+            mapPlots.innerHTML = `
+                <line x1="${dbPos.x}" y1="${dbPos.y}" x2="${realPos.x}" y2="${realPos.y}" class="dissonance-line" />
+                <circle cx="${dbPos.x}" cy="${dbPos.y}" class="map-dot" style="fill: #00ffff; r: 6;" />
+                <circle cx="${realPos.x}" cy="${realPos.y}" class="map-dot" style="fill: #ff00ff; r: 8;" />
+                <text x="${dbPos.x + 10}" y="${dbPos.y - 5}" fill="#00ffff" font-size="14" font-weight="bold" style="text-shadow: 0 0 5px #000;">CLAIMED (VPN)</text>
+                <text x="${realPos.x + 10}" y="${realPos.y - 5}" fill="#ff00ff" font-size="14" font-weight="bold" style="text-shadow: 0 0 5px #000;">VERIFIED (PHYSICAL)</text>
+            `;
+        };
+    </script>
+</body>
+
+</html>

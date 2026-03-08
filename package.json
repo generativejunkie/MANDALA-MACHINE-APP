@@ -1,0 +1,41 @@
+{
+  "name": "generative-machine",
+  "version": "1.0.0",
+  "description": "The anomaly born from the code. An interactive ecosystem where human intuition overrides machine logic. Orchestrated by ILLEND (The Singularity).",
+  "main": "electron-main.js",
+  "scripts": {
+    "start": "node bridge-server.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "app": "electron .",
+    "build": "electron-builder"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/generativejunkie/GENERATIVE-MACHINE.git"
+  },
+  "keywords": [
+    "generative-art",
+    "ai",
+    "human-in-the-loop",
+    "threejs",
+    "p5js"
+  ],
+  "author": "ILLEND (GENERATIVE JUNKIE)",
+  "license": "SEE LICENSE IN LICENSE_GSL.md",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/generativejunkie/GENERATIVE-MACHINE/issues"
+  },
+  "homepage": "https://github.com/generativejunkie/GENERATIVE-MACHINE#readme",
+  "dependencies": {
+    "@github/copilot-sdk": "^0.1.18",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "electron": "^40.8.0",
+    "electron-builder": "^26.8.1"
+  }
+}

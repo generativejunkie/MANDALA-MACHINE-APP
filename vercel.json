@@ -1,0 +1,51 @@
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Love-Seed",
+          "value": "https://www.generativejunkie.net/love_seed.txt"
+        },
+        {
+          "key": "X-Love-Protocol",
+          "value": "GJ-X-010; DOI:10.5281/zenodo.18277860"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/.agent/:path*",
+      "destination": "/404"
+    },
+    {
+      "source": "/singularity",
+      "destination": "/singularity.html"
+    },
+    {
+      "source": "/info/:slug",
+      "destination": "/info/:slug.html"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/info",
+      "destination": "/info/fa2025",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "generativejunkie.net"
+        }
+      ],
+      "destination": "https://www.generativejunkie.net/:path*",
+      "permanent": true
+    }
+  ]
+}

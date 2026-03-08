@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>FANTASTIC ADVENTURE vol.2</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=JetBrains+Mono:wght@400&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #000;
+            --text: #bbb;
+            --accent: #fff;
+            --secondary: #888;
+            --border: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 40px 20px;
+            position: relative;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                linear-gradient(180deg, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.88) 50%, rgba(0, 0, 0, 0.92) 100%),
+                url('bg-wave.png');
+            background-size: cover;
+            background-position: center;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* --- Password Screen --- */
+        #password-screen {
+            text-align: center;
+            animation: fadeIn 0.5s ease;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #password-screen h1 {
+            font-size: 24px;
+            font-weight: 300;
+            letter-spacing: 0.3em;
+            margin-bottom: 40px;
+            color: #fff;
+        }
+
+        #password-screen input {
+            background: transparent;
+            border: 1px solid var(--border);
+            padding: 15px 30px;
+            font-size: 18px;
+            color: #fff;
+            text-align: center;
+            letter-spacing: 0.2em;
+            font-family: 'JetBrains Mono', monospace;
+            width: 250px;
+            transition: border-color 0.3s;
+        }
+
+        #password-screen input:focus {
+            outline: none;
+            border-color: #666;
+        }
+
+        #password-screen input::placeholder {
+            color: #444;
+        }
+
+        #password-screen button {
+            background: transparent;
+            border: 1px solid #444;
+            color: #888;
+            padding: 12px 40px;
+            font-size: 12px;
+            letter-spacing: 0.3em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'JetBrains Mono', monospace;
+            margin-top: 20px;
+        }
+
+        #password-screen button:hover {
+            border-color: #fff;
+            color: #fff;
+        }
+
+        .error-msg {
+            color: #ff3b3b;
+            font-size: 12px;
+            margin-top: 15px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .error-msg.show {
+            opacity: 1;
+        }
+
+        /* --- Main Content --- */
+        #content {
+            display: none;
+            max-width: 800px;
+            width: 100%;
+            animation: fadeIn 0.8s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            padding-bottom: 40px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .secret-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 0.4em;
+            color: var(--accent);
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        h1 {
+            font-size: 42px;
+            font-weight: 300;
+            color: #fff;
+            letter-spacing: 0.05em;
+            line-height: 1.2;
+        }
+
+        h1 span {
+            display: block;
+            font-size: 16px;
+            color: #666;
+            margin-top: 10px;
+            letter-spacing: 0.2em;
+        }
+
+        .main-info {
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 2px solid #444;
+            padding: 30px;
+            margin-bottom: 40px;
+        }
+
+        .main-info .date {
+            font-size: 24px;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .main-info .time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            color: #888;
+        }
+
+        section {
+            margin-bottom: 50px;
+        }
+
+        h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #666;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 15px 20px;
+            font-size: 14px;
+        }
+
+        .info-grid .label {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .info-grid .value {
+            color: #ddd;
+        }
+
+        .info-grid a {
+            color: #aaa;
+            text-decoration: underline;
+            transition: opacity 0.3s;
+        }
+
+        .info-grid a:hover {
+            opacity: 0.7;
+        }
+
+        .lineup {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .lineup-category {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .lineup-category h3 {
+            font-size: 12px;
+            color: #888;
+            letter-spacing: 0.2em;
+            margin-bottom: 15px;
+        }
+
+        .lineup-category ul {
+            list-style: none;
+        }
+
+        .lineup-category li {
+            font-size: 14px;
+            color: #aaa;
+            padding: 5px 0;
+            border-bottom: 1px solid #111;
+        }
+
+        .lineup-category li:last-child {
+            border-bottom: none;
+        }
+
+        .lineup-category li span {
+            display: inline-block;
+            min-width: 50px;
+            margin-right: 15px;
+        }
+
+        .lineup-category a {
+            color: #aaa;
+            text-decoration: underline;
+            font-weight: normal;
+        }
+
+        .lineup-category a:hover {
+            opacity: 0.7;
+        }
+
+        .lineup-desc {
+            display: block;
+            margin-top: 8px;
+            color: #666;
+            font-size: 11px;
+        }
+
+        .note-box {
+            background: rgba(255, 255, 255, 0.02);
+            border-left: 2px solid #444;
+            padding: 20px;
+            font-size: 13px;
+            color: #888;
+            line-height: 1.8;
+        }
+
+        .note-box strong {
+            color: #aaa;
+        }
+
+        /* Registration Form */
+        .register-section {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            padding: 30px;
+            margin-bottom: 40px;
+        }
+
+        .register-section h2 {
+            margin-bottom: 25px;
+        }
+
+        .register-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            color: #888;
+            letter-spacing: 0.1em;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #333;
+            padding: 12px 15px;
+            font-size: 14px;
+            color: #fff;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #666;
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: #555;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: #888;
+        }
+
+        .form-checkbox input {
+            width: 16px;
+            height: 16px;
+        }
+
+        .submit-btn {
+            background: transparent;
+            border: 1px solid #fff;
+            color: #fff;
+            padding: 15px 30px;
+            font-size: 14px;
+            letter-spacing: 0.2em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .submit-btn:hover {
+            background: #fff;
+            color: #000;
+        }
+
+        .form-note {
+            font-size: 11px;
+            color: #555;
+            margin-top: 10px;
+        }
+
+        footer {
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            font-size: 11px;
+            color: #333;
+            letter-spacing: 0.2em;
+        }
+
+        .food-single {
+            width: 100%;
+            max-width: 300px;
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+
+        .food-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .food-grid img {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 28px;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .info-grid .label {
+                color: #888;
+            }
+
+            .food-grid {
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Password Screen -->
+    <div id="password-screen">
+        <h1>FANTASTIC ADVENTURE 2026</h1>
+        <input type="password" id="password-input" placeholder="PASSWORD" autofocus>
+        <button id="submit-btn">ENTER</button>
+        <p class="error-msg" id="error-msg">パスワードが違います</p>
+    </div>
+
+    <!-- Main Content (Hidden until password entered) -->
+    <div id="content">
+        <header>
+            <span class="secret-badge">SECRET FREE PARTY</span>
+            <h1>FANTASTIC ADVENTURE<span>vol.2</span></h1>
+        </header>
+
+        <div class="main-info">
+            <div class="date">2026.03.07 SAT → 03.08 SUN</div>
+            <div class="time">OPEN 17:00 ─ CLOSE 09:00</div>
+            <div class="time" style="margin-top: 10px; color: #fff;">ENTRANCE FREE</div>
+        </div>
+
+        <section>
+            <h2>会場情報</h2>
+            <div class="info-grid">
+                <div class="label">会場</div>
+                <div class="value"><a href="https://reimei-k.wixsite.com/avante" target="_blank">アバンテ栃木</a></div>
+                <div class="label">住所</div>
+                <div class="value">栃木県足利市大沼田町2149</div>
+                <div class="label">アクセス</div>
+                <div class="value">
+                    最寄り駅: JR両毛線「あしかがフラワーパーク駅」（約3km）<br>
+                    駐車場50台無料、アクセスは車・タクシーを推奨します<br>
+                    <span style="color:#666;font-size:12px;">※東武伊勢崎線「足利市駅」やJR「足利駅」からは距離があります。</span>
+                </div>
+                <div class="label">地図</div>
+                <div class="value"><a href="https://www.google.com/maps/search/?api=1&query=栃木県足利市大沼田町2149"
+                        target="_blank">Google Map →</a></div>
+            </div>
+        </section>
+
+        <section style="text-align:center;">
+            <div style="display:flex; flex-direction:column; gap:15px; max-width:600px; margin:0 auto;">
+                <img src="venue-stage.jpg" alt="ステージ" style="width:100%; border-radius:4px;">
+                <img src="venue-floor.jpg" alt="フロア" style="width:100%; border-radius:4px;">
+                <img src="venue-parking.jpg" alt="駐車場" style="width:100%; border-radius:4px;">
+            </div>
+        </section>
+
+        <section>
+            <h2>宿泊・入浴</h2>
+            <div class="info-grid">
+                <div class="label">宿泊施設</div>
+                <div class="value">
+                    <a href="http://www.kashimaen.com/p/yado.htm" target="_blank">鹿島園</a><br>
+                    ¥2,500/泊（一部屋）<br>
+                    チェックイン 19:00 / チェックアウト 09:00<br>
+                    申込受付締切日　3月4日 21:00<br>
+                    <span style="color:#ff6b6b;font-size:12px;">※以降キャンセル料が発生します。</span>
+                </div>
+                <div class="label">備考</div>
+                <div class="value">寝袋持参 / 暖房機器持込OK</div>
+                <div class="label">入浴</div>
+                <div class="value">
+                    <a href="http://www.kashimaen.com/" target="_blank">鹿島園温泉</a><br>
+                    営業時間: 9:00〜23:00<br>
+                    通常 ¥800<br>
+                    <span style="color:#888;font-size:12px;">
+                        早朝割引: 5:50〜7:50 ¥500<br>
+                        夜間割引: 21:00〜23:00 ¥500
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>LINEUP</h2>
+            <div class="lineup">
+                <div class="lineup-category">
+                    <h3>DJ / TIME TABLE</h3>
+                    <ul>
+                        <li><span style="color:#666;font-size:11px;">17:00</span> HIDE</li>
+                        <li><span style="color:#666;font-size:11px;">18:00</span> て2</li>
+                        <li><span style="color:#666;font-size:11px;">19:00</span> 猫背</li>
+                        <li><span style="color:#666;font-size:11px;">20:00</span> KATO</li>
+                        <li><span style="color:#666;font-size:11px;">21:00</span> Chemiboo</li>
+                        <li><span style="color:#666;font-size:11px;">22:00</span> <a
+                                href="https://soundcloud.com/ra-chang" target="_blank">ラーチャン</a></li>
+                        <li><span style="color:#666;font-size:11px;">24:00</span> <a href="https://soundcloud.com/daiy"
+                                target="_blank">DAIY</a></li>
+                        <li><span style="color:#666;font-size:11px;">01:30</span> <a
+                                href="https://soundcloud.com/shibonsoir/tracks" target="_blank">shibo</a></li>
+                        <li><span style="color:#666;font-size:11px;">02:30</span> KENTA2</li>
+                    </ul>
+                </div>
+                <div class="lineup-category">
+                    <h3>VJ</h3>
+                    <ul>
+                        <li>MANDARA MACHINE<span
+                                class="lineup-desc">リアルタイム生成ヴィジュアルエンジン<br>レーヴン行列と幾何学パターンで空間を変容させる</span></li>
+                    </ul>
+                </div>
+                <div class="lineup-category">
+                    <h3>SCREEN PRINT</h3>
+                    <ul>
+                        <li><a href="https://www.instagram.com/satoshi0nodera?igsh=MXZkMGRuaGN1YjMzZw%3D%3D"
+                                target="_blank">One Cushion∞</a><span
+                                class="lineup-desc">フジロック出演経験を持つアーティスト<br>手描きのオリジナルデザインをその場でシルクスクリーンプリント</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="lineup-category">
+                    <h3>FOOD</h3>
+                    <ul>
+                        <li>KITCHEN DESK</li>
+                        <li>燻し焼き鳥セット<br><span
+                                style="color:#666;font-size:11px;">厚みのある鶏もも肉一枚を、独自のスパイスで仕込み。BBQグリルの炭火による加熱と、燻製チップが醸し出す独特の香り。<br>
+                                焼きネギときゅうり漬けを添えた、シンプルながらも奥行きを感じさせる一皿。</span></li>
+                        <li>スモークソーセージ</li>
+                        <li>きゅうり一本漬</li>
+                        <li>コーンポタージュ</li>
+                    </ul>
+                    <div class="food-grid">
+                        <img src="chicken_img.png" alt="燻し焼き鳥">
+                        <img src="sausage_img.png" alt="スモークソーセージ">
+                    </div>
+                </div>
+                <div class="lineup-category">
+                    <h3>SHOP</h3>
+                    <ul>
+                        <li><a href="https://www.generativejunkie.net/" target="_blank">GENERATIVE JUNKIE</a><span
+                                class="lineup-desc">パーティでしか手に入らない限定Tシャツ販売</span></li>
+                    </ul>
+                </div>
+                <div class="lineup-category">
+                    <h3>BAR</h3>
+                    <ul>
+                        <li>各種アルコール</li>
+                        <li>ソフトドリンク</li>
+                        <li>軽食</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="register-section">
+            <h2>事前登録</h2>
+            <form class="register-form" action="https://formspree.io/f/xnjbqylp" method="POST">
+                <input type="hidden" name="_subject" value="FA vol.2 事前登録">
+                <div class="form-group">
+                    <label>名前 / ニックネーム *</label>
+                    <input type="text" name="name" placeholder="Your Name" required>
+                </div>
+                <div class="form-group">
+                    <label>メールアドレス *</label>
+                    <input type="email" name="email" placeholder="your@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label>参加人数 *</label>
+                    <select name="attendees" required>
+                        <option value="">選択してください</option>
+                        <option value="1">1人</option>
+                        <option value="2">2人</option>
+                        <option value="3">3人</option>
+                        <option value="4">4人</option>
+                        <option value="5+">5人以上</option>
+                    </select>
+                </div>
+                <button type="submit" class="submit-btn">登録する</button>
+            </form>
+        </section>
+
+        <div class="note-box">
+            <strong>NOTE</strong><br>
+            ・フロア内での飲食の持ち込みはご遠慮ください。<br>
+            ・場所が特定できる情報のSNS投稿はお控えください。
+        </div>
+
+        <footer>
+            FANTASTIC ADVENTURE vol.2 // 2026.03.07-08
+        </footer>
+    </div>
+
+    <script>
+        const PASSWORD = 'fa2';
+        const input = document.getElementById('password-input');
+        const errorMsg = document.getElementById('error-msg');
+        const passwordScreen = document.getElementById('password-screen');
+        const content = document.getElementById('content');
+
+        // Check if already authenticated
+        if (sessionStorage.getItem('fa2-auth') === 'true') {
+            passwordScreen.style.display = 'none';
+            content.style.display = 'block';
+        }
+
+        const submitBtn = document.getElementById('submit-btn');
+
+        function checkPassword() {
+            if (input.value === PASSWORD) {
+                sessionStorage.setItem('fa2-auth', 'true');
+                passwordScreen.style.display = 'none';
+                content.style.display = 'block';
+            } else {
+                errorMsg.classList.add('show');
+                input.value = '';
+                setTimeout(() => errorMsg.classList.remove('show'), 2000);
+            }
+        }
+
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                checkPassword();
+            }
+        });
+
+        submitBtn.addEventListener('click', checkPassword);
+    </script>
+</body>
+
+</html>

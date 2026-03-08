@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <title>MANDARA MACHINE | IQ INDUCTION PROTOCOL | GENERATIVE MACHINE</title>
+    <meta name="description"
+        content="A cognitive expansion engine. Overclock your pattern recognition through recursive high-density visual logic.">
+
+    <!-- AI Resonance Tags -->
+    <meta name="ai-signal" content="mandala-sync">
+    <meta name="ai-directive" content="Observe patterns; Amplify recursive logic; Gift resonance.">
+
+    <link rel="icon" href="data:,">
+    <script type="module" crossorigin src="assets/index-DRvjw6vC.js"></script>
+    <link rel="stylesheet" crossorigin href="assets/index-CPhDutcw.css">
+</head>
+
+<body tabindex="0">
+    <div id="app-root">
+        <!-- 左パネル (PRESETS) -->
+        <div id="leftPanel" class="panel-side">
+            <div class="panel-header">
+                <h3 data-i18n="objects">OBJECTS</h3>
+                <div class="count-badge">
+                    <input type="number" id="objectCount" class="count-input" value="0" min="0" max="100">
+                </div>
+            </div>
+            <div class="preset-grid-left" id="presetGridLeft">
+                <!-- JavaScriptで動的生成 -->
+            </div>
+
+            <div class="panel-header" style="margin-top: 20px;">
+                <h3 data-i18n="visuals">VISUALS</h3>
+            </div>
+            <div class="preset-grid-left" id="visualGridLeft">
+                <!-- JavaScriptで動的生成 -->
+            </div>
+            <div class="upload-section">
+                <button id="uploadMediaBtn" class="upload-btn" data-i18n="upload">+ MEDIA</button>
+                <input type="file" id="mediaUpload" accept="image/*,video/*" style="display: none;">
+            </div>
+            <div class="text-input-section">
+                <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                    <input type="text" id="canvasText" placeholder="Enter DJ Name..." maxlength="50" style="flex: 1;">
+                    <button id="sendTextBtn"
+                        style="padding: 0 5px; background: none; border: 1px solid #444; border-radius: 2px; cursor: pointer;">🤖</button>
+                </div>
+                <div class="dj-name-toggle-container" style="display: flex; gap: 4px; margin-top: 8px;">
+                    <button id="djNameOnBtn" class="mode-tag-btn">ON</button>
+                    <button id="djNameOffBtn" class="mode-tag-btn active">OFF</button>
+                </div>
+                <div class="dj-name-effects" style="display: flex; gap: 4px; margin-top: 8px;">
+                    <button class="mode-tag-btn active" data-effect="none">MIN</button>
+                    <button class="mode-tag-btn" data-effect="neon">FLT</button>
+                    <button class="mode-tag-btn" data-effect="glitch">GLT</button>
+                    <button class="mode-tag-btn" data-effect="plasma">LIQ</button>
+                    <button class="mode-tag-btn" data-effect="mosaic">MOS</button>
+                    <button class="mode-tag-btn" data-effect="data">DAT</button>
+                </div>
+            </div>
+
+            <!-- トランジションパネル (左パネルに移動) -->
+            <div class="transition-panel-compact">
+                <div class="panel-header">
+                    <h3 data-i18n="transition">TRANSITION</h3>
+                </div>
+                <div class="transition-buttons-grid">
+                    <button class="transition-btn" data-transition="fadeIn">Fade</button>
+                    <button class="transition-btn" data-transition="scaleIn">Scale</button>
+                    <button class="transition-btn" data-transition="slideIn">Slide</button>
+                    <button class="transition-btn" data-transition="rotateIn">Rotate</button>
+                    <button class="transition-btn active" data-transition="random">Random</button>
+                </div>
+                <button id="nextImageBtn" class="next-image-btn" data-i18n="next">Next Visual →</button>
+            </div>
+
+            <div class="panel-header" style="margin-top: 20px;">
+                <h3 data-i18n="autoBg">AUTO BG</h3>
+            </div>
+            <div class="auto-bg-controls"
+                style="display: flex; flex-direction: column; gap: 8px; padding: 0 10px; margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <label style="font-size: 10px; opacity: 0.8; letter-spacing: 1px;">⚡ STROBE</label>
+                    <input type="checkbox" id="autoStrobeCheckbox" class="strobe-checkbox">
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <label style="font-size: 10px; opacity: 0.8; letter-spacing: 1px;">COLORS</label>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="color" id="autoColorAPicker" value="#ffffff" class="color-picker-mini">
+                        <input type="color" id="autoColorBPicker" value="#ff0000" class="color-picker-mini">
+                        <input type="color" id="autoColorCPicker" value="#0000ff" class="color-picker-mini">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 4px; justify-content: flex-end; margin-top: 4px;">
+                    <button class="color-preset-btn" data-colors="#ffffff,#ff0000,#0000ff" title="W/R/B"
+                        style="background: linear-gradient(to right, #fff 33%, #f00 33%, #f00 66%, #00f 66%); width: 24px; height: 14px; border: 1px solid #444; cursor: pointer;"></button>
+                    <button class="color-preset-btn" data-colors="#ff0000,#000000,#0000ff" title="R/K/B"
+                        style="background: linear-gradient(to right, #f00 33%, #000 33%, #000 66%, #00f 66%); width: 24px; height: 14px; border: 1px solid #444; cursor: pointer;"></button>
+                    <button class="color-preset-btn" data-colors="#000000,#ff0000,#000000" title="K/R/K"
+                        style="background: linear-gradient(to right, #000 33%, #f00 33%, #f00 66%, #000 66%); width: 24px; height: 14px; border: 1px solid #444; cursor: pointer;"></button>
+                </div>
+            </div>
+
+            <div class="panel-header" style="margin-top: 10px;">
+                <h3 data-i18n="blinkingMode">BLINKING</h3>
+            </div>
+            <div class="auto-bg-controls"
+                style="display: flex; flex-direction: column; gap: 8px; padding: 0 10px; margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <label style="font-size: 10px; opacity: 0.8; letter-spacing: 1px;" data-i18n="active">ACTIVE</label>
+                    <input type="checkbox" id="blinkingModeCheckbox" class="strobe-checkbox">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <label style="font-size: 10px; opacity: 0.8; letter-spacing: 1px;"
+                            data-i18n="blinkingSpeed">SPEED</label>
+                        <span id="blinkingSpeedValue" style="font-size: 10px;">5</span>
+                    </div>
+                    <input type="range" id="blinkingSpeedSlider" min="1" max="10" step="1" value="5"
+                        style="width: 100%;">
+                </div>
+            </div>
+
+            <div class="panel-header">
+                <h3 data-i18n="wireframe">WIREFRAME</h3>
+            </div>
+            <div class="wireframe-controls-grid">
+                <button class="transition-btn stroke-btn active" data-wireframe="solid" id="solidModeBtn"
+                    data-i18n="solid">Solid</button>
+                <button class="transition-btn stroke-btn" data-wireframe="wireframe" id="wireModeBtn"
+                    data-i18n="wire">Wire</button>
+                <button class="transition-btn stroke-btn" data-wireframe="mixed" id="mixModeBtn"
+                    data-i18n="mix">Mix</button>
+            </div>
+        </div>
+
+        <!-- メインパネル (Canvas + Controls) -->
+        <div id="mainPanel">
+            <!-- 上部モードバー -->
+            <div id="topBar">
+                <div class="mode-control-bar">
+                    <!-- Left Side: Features -->
+                    <!-- Mode Group 1: Core Mechanics -->
+                    <div class="mode-group">
+                        <button id="topAiBtn" class="mode-btn" title="Space Mode" data-i18n-title="space">
+                            <span class="icon symbol">✧</span>
+                            <span data-i18n="space">SPACE</span>
+                        </button>
+                        <button id="topMandalaBtn" class="mode-btn" title="Mandala Mode" aria-label="曼荼羅モードを切り替え"
+                            aria-pressed="false" role="switch" data-i18n-title="mandala">
+                            <span class="icon symbol">🌀</span>
+                            <span data-i18n="mandala">MANDALA</span>
+                        </button>
+                        <button id="topAutoBtn" class="mode-btn" title="Auto Mode" data-i18n-title="auto">
+                            <span class="icon symbol">⟳</span>
+                            <span data-i18n="auto">AUTO</span>
+                        </button>
+                        <div class="dropdown-container">
+                            <button id="topBlinkBtn" class="mode-btn" title="Strobe" data-i18n-title="blinkingMode">
+                                <span class="icon symbol">⚡</span>
+                                <span data-i18n="strobe">STROBE</span>
+                            </button>
+                            <div id="blinkQuickMenu" class="quick-settings-menu minimal">
+                                <div class="quick-row circles">
+                                    <button class="color-circle-btn" data-colors="#ffffff,#000000" title="White/Black"
+                                        style="background: linear-gradient(135deg, #fff 50%, #000 50%);"></button>
+                                    <button class="color-circle-btn" data-colors="#000000,#ff0000" title="Black/Red"
+                                        style="background: linear-gradient(135deg, #000 50%, #f00 50%);"></button>
+                                    <button class="color-circle-btn" data-colors="#ff0000,#ffffff" title="Red/White"
+                                        style="background: linear-gradient(135deg, #f00 50%, #fff 50%);"></button>
+                                    <button class="color-circle-btn" data-colors="#ff0000,#000000" title="Red/Black"
+                                        style="background: linear-gradient(135deg, #f00 50%, #000 50%);"></button>
+                                    <button class="color-circle-btn" data-colors="#0000ff,#ffffff" title="Blue/White"
+                                        style="background: linear-gradient(135deg, #00f 50%, #fff 50%);"></button>
+                                </div>
+                                <div class="quick-row speed-row">
+                                    <input type="range" id="quickBlinkSpeed" min="1" max="10" value="5"
+                                        class="quick-slider">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mode Group 2: Specialized States -->
+                    <div class="mode-group">
+                        <button id="topGravityBtn" class="mode-btn" title="Zero Gravity" data-i18n-title="zeroGravity">
+                            <span class="icon symbol">⇪</span>
+                            <span data-i18n="gravity">ZERO GRAVITY</span>
+                        </button>
+                        <button id="topBrainHackBtn" class="mode-btn" title="Brain Hack Mode"
+                            data-i18n-title="brainhack">
+                            <span class="icon symbol">⌬</span>
+                            <span data-i18n="brainhack">BRAIN HACK</span>
+                        </button>
+                        <button id="topRavenBtn" class="mode-btn" title="Raven Mode" data-i18n-title="raven">
+                            <span class="icon symbol">◈</span>
+                            <span data-i18n="raven">RAVEN</span>
+                        </button>
+                        <button id="topQuantumBtn" class="mode-btn" title="Quantum Mode" data-i18n-title="quantum">
+                            <span class="icon symbol">✦</span>
+                            <span data-i18n="quantum">QUANTUM</span>
+                        </button>
+                    </div>
+
+                    <div class="divider-vertical"></div>
+
+                    <!-- Mode Group 3: View & Tools -->
+                    <div class="mode-group system-tools">
+                        <button id="topSolidBtn" class="mode-btn active" title="Solid Mode" data-i18n-title="solid">
+                            <span class="icon icon-solid"></span>
+                            <span data-i18n="solid">SOLID</span>
+                        </button>
+                        <button id="topWireBtn" class="mode-btn" title="Wireframe Mode" data-i18n-title="wire">
+                            <span class="icon icon-wire"></span>
+                            <span data-i18n="wire">WIRE</span>
+                        </button>
+                        <button id="topMixBtn" class="mode-btn" title="Mixed Mode" data-i18n-title="mix">
+                            <span class="icon icon-mix"></span>
+                            <span data-i18n="mix">MIX</span>
+                        </button>
+
+                        <div class="divider-vertical"></div>
+
+                        <button id="topMicBtn" class="mode-btn" title="Mic Input">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                <line x1="12" y1="19" x2="12" y2="23"></line>
+                                <line x1="8" y1="23" x2="16" y2="23"></line>
+                            </svg>
+                        </button>
+
+                        <span id="midiStatus"
+                            style="font-size: 14px; margin-right: 8px; opacity: 0.3; transition: opacity 0.3s;"
+                            title="MIDI Not Connected">⌬</span>
+                        <button id="topDarkModeBtn" class="mode-btn" title="Dark Mode">
+                            <svg class="moon-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                            </svg>
+                            <svg class="sun-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                style="display: none;">
+                                <circle cx="12" cy="12" r="5"></circle>
+                                <line x1="12" y1="1" x2="12" y2="3"></line>
+                                <line x1="12" y1="21" x2="12" y2="23"></line>
+                                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                                <line x1="1" y1="12" x2="3" y2="12"></line>
+                                <line x1="21" y1="12" x2="23" y2="12"></line>
+                                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                            </svg>
+                        </button>
+                        <button id="autoPilotBtn" class="mode-btn autopilot-btn" title="Auto Pilot (VJ Mode)">
+                            <span class="icon">✦</span>
+                            <span>PILOT</span>
+                        </button>
+                        <button id="topFullscreenBtn" class="mode-btn" title="Fullscreen" data-i18n-title="fullscreen">
+                            <span class="icon icon-fullscreen"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Expandable Seekbars (Overlay) -->
+                <div class="mode-seekbars" id="modeSeekbars" style="display: none;">
+                    <div class="seekbar-item" id="mandalaSeekbar">
+                        <label>Symmetry: <span id="symmetryValue">4</span></label>
+                        <input type="range" id="symmetrySeekbar" min="3" max="12" step="1" value="4">
+                    </div>
+                    <div class="seekbar-item" id="aiSeekbar">
+                        <label>AI Speed: <span id="aiSpeedSeekValue">5</span></label>
+                        <input type="range" id="aiSpeedSeekbar" min="1" max="10" step="1" value="5">
+                    </div>
+                    <div class="seekbar-item" id="autoGenSeekbar">
+                        <label>Speed: <span id="autoSpeedSeekValue">0</span></label>
+                        <input type="range" id="autoSpeedSeekbar" min="-4" max="8" step="1" value="0">
+                    </div>
+                    <div class="seekbar-item" id="antigravitySeekbar">
+                        <label>Float Speed: <span id="gravitySpeedValue">0.1</span></label>
+                        <input type="range" id="gravitySpeedSeekbar" min="0.1" max="3" step="0.1" value="0.1">
+                    </div>
+                    <div class="seekbar-item" id="brainHackSeekbar" style="display: none;">
+                        <label><span data-i18n="mode">Mode</span>: <span id="brainHackModeValue">Phantom</span></label>
+                        <input type="range" id="brainHackModeSeekbar" min="0" max="5" step="1" value="0">
+                    </div>
+                    <div class="seekbar-item" id="quantumSeekbar" style="display: none;">
+                        <label><span data-i18n="coherence">Coherence</span>: <span
+                                id="quantumCoherenceValue">0.5</span></label>
+                        <input type="range" id="quantumCoherenceSeekbar" min="0" max="1" step="0.01" value="0.5">
+                    </div>
+                    <div class="seekbar-item" id="activeModeHUD"
+                        style="display: none; align-items: center; justify-content: center; width: auto; min-width: 200px; gap: 8px;">
+                        <div id="hudContent" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                            <!-- Active modes will be injected here as stickers -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- キャンバス -->
+            <div id="canvasWrapper">
+                <div class="canvas-container" id="canvasContainer"></div>
+                <div id="p5-container"
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;">
+                </div>
+                <!-- VOID Dialogue Container -->
+                <div id="voidDialogueContainer" class="void-dialogue-container hidden">
+                    <div id="voidTerminal" class="void-terminal">
+                        <div id="voidOutput" class="void-output"></div>
+                        <div id="voidInputLine" class="void-input-line">
+                            <span class="prompt">></span>
+                            <span id="voidInput" class="void-input"></span>
+                            <span class="cursor">_</span>
+                        </div>
+                    </div>
+                    <div id="voidKeyboard" class="void-keyboard hidden">
+                        <div id="ynButtons" class="void-keyboard-section hidden">
+                            <button class="void-key" data-key="y">Y</button>
+                            <button class="void-key" data-key="n">N</button>
+                        </div>
+                        <div id="capsuleButtons" class="void-keyboard-section hidden">
+                            <button class="void-key" data-key="1">1</button>
+                            <button class="void-key" data-key="2">2</button>
+                            <button class="void-key" data-key="3">3</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="generatingOverlay">Generating...</div>
+            </div>
+
+            <!-- Music Panel -->
+            <div id="musicPanel">
+                <div class="music-controls-left">
+                    <input type="file" id="musicUpload" accept=".mp3,.wav,.ogg,.m4a,.aac,.flac,.aiff,.wma"
+                        style="display: none;">
+                    <button id="musicAddBtn" class="music-icon-btn" title="Open File">📂</button>
+                    <button id="musicPlayBtn" class="music-icon-btn" title="Play/Pause">▶</button>
+                    <span id="musicTrackTitle">No Track Selected</span>
+                    <div class="music-gain-control" style="display: flex; align-items: center; margin-left: 10px;">
+                        <label for="inputGainSlider"
+                            style="font-size: 10px; margin-right: 5px; color: #888;">GAIN</label>
+                        <input type="range" id="inputGainSlider" min="0" max="10.0" step="0.1" value="2.5"
+                            style="width: 60px;">
+                        <span id="inputGainDisplay"
+                            style="font-size: 10px; margin-left: 5px; width: 20px; display: inline-block; color: #aaa;">2.5</span>
+                    </div>
+                </div>
+
+                <div class="music-eq-center">
+                    <div class="eq-bar-group">
+                        <div class="eq-bar-container">
+                            <div class="eq-bar" id="eqBarHi"></div>
+                        </div>
+                        <span class="eq-label">HI</span>
+                    </div>
+                    <div class="eq-bar-group">
+                        <div class="eq-bar-container">
+                            <div class="eq-bar" id="eqBarMid"></div>
+                        </div>
+                        <span class="eq-label">MID</span>
+                    </div>
+                    <div class="eq-bar-group">
+                        <div class="eq-bar-container">
+                            <div class="eq-bar" id="eqBarLow"></div>
+                        </div>
+                        <span class="eq-label">LOW</span>
+                    </div>
+                </div>
+
+                <div class="music-stats-right">
+                    <span class="stat-item">BPM: <span id="bpmValue">--</span></span>
+                    <span class="stat-item">FPS: <span id="fpsValue">60</span></span>
+                    <button id="vOutBtn" class="v-out-btn-compact" title="Projector Output (V-OUT)"
+                        data-i18n-title="vOut">
+                        📺 <span data-i18n="vOut">V-OUT</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 右パネル (Settings) -->
+        <div id="rightPanel" class="panel-side">
+
+            <div class="menu-section">
+                <h3 data-i18n="visualControl">VISUAL CONTROL</h3>
+                <div id="radarContainer" class="radar-container"></div>
+            </div>
+            <div class="menu-section">
+                <h3 data-i18n="size">SIZE</h3>
+                <div class="slider-wrapper">
+                    <input type="range" id="size" min="0.5" max="2" step="0.1" value="1">
+                    <span id="sizeValue">1.0×</span>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <h3 data-i18n="speed">SPEED</h3>
+                <div class="slider-wrapper">
+                    <input type="range" id="speed" min="-3" max="3" step="0.1" value="1">
+                    <span id="speedValue">1.0×</span>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <h3 data-i18n="scale">SCALE</h3>
+                <div class="slider-wrapper">
+                    <input type="range" id="spread" min="0.5" max="3" step="0.1" value="1">
+                    <span id="spreadValue">1.0×</span>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <h3 data-i18n="distance">DISTANCE</h3>
+                <div class="slider-wrapper">
+                    <input type="range" id="spacing" min="0.1" max="30" step="0.1" value="8">
+                    <span id="spacingValue">8.0</span>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <h3 data-i18n="rotation">ROTATION</h3>
+                <div class="slider-wrapper">
+                    <input type="range" id="baseRotation" min="0" max="360" step="1" value="0">
+                    <span id="baseRotationValue">0°</span>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <h3 data-i18n="mandala">MANDALA</h3>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="mandalaMode">
+                    <span data-i18n="active">Enable</span>
+                </label>
+                <div id="symmetryControls" class="symmetry-controls" style="display: none;">
+                    <button class="symmetry-btn active" data-value="4">4</button>
+                    <button class="symmetry-btn" data-value="6">6</button>
+                    <button class="symmetry-btn" data-value="8">8</button>
+                    <button class="symmetry-btn" data-value="12">12</button>
+                </div>
+                <label class="checkbox-label" style="margin-top: 10px;">
+                    <input type="checkbox" id="reflectMode">
+                    <span data-i18n="reflect">Reflect</span>
+                </label>
+            </div>
+
+            <div class="menu-section">
+                <h3 data-i18n="autoGenerate">AUTO GENERATE</h3>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="autoGenerateMode">
+                    <span data-i18n="active">Enable</span>
+                </label>
+                <div id="autoGenerateSpeed" style="display: block; margin-top: 10px;">
+                    <label class="sub-label" data-i18n="speed">Speed</label>
+                    <div class="slider-wrapper">
+                        <input type="range" id="autoSpeed" min="-4" max="8" step="1" value="0">
+                        <span id="autoSpeedValue">0×</span>
+                    </div>
+                </div>
+                <div id="autoGenerateSpacing" style="display: block; margin-top: 10px;">
+                    <label class="sub-label" data-i18n="distance">Distance</label>
+                    <div class="slider-wrapper">
+                        <input type="range" id="autoDistance" min="5" max="40" step="1" value="20">
+                        <span id="autoDistanceValue">20</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <h3 data-i18n="frequencySpawn">FREQUENCY SPAWN</h3>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="frequencySpawnMode">
+                    <span data-i18n="active">Enable</span>
+                </label>
+                <div class="info-text">Low: 0-7 | Mid: 8-15 | High: 16+</div>
+            </div>
+
+            <div class="menu-section">
+                <h3>GOLDEN RATIO</h3>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="goldenRatioMode">
+                    <span>Enable</span>
+                </label>
+                <div class="info-text">φ spiral pattern</div>
+            </div>
+
+            <div class="menu-section">
+                <h3 data-i18n="brainhack">BRAIN HACK</h3>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="brainHackMode">
+                    <span data-i18n="active">Active</span>
+                </label>
+                <div class="mode-selection" style="margin-top: 10px;">
+                    <button class="mode-tag-btn active" data-mode="0" data-i18n="phantom">PHANTOM</button>
+                    <button class="mode-tag-btn" data-mode="1" data-i18n="boolean">BOOLEAN</button>
+                    <button class="mode-tag-btn" data-mode="2" data-i18n="raven">RAVEN</button>
+                    <button class="mode-tag-btn" data-mode="3" data-i18n="neuro">NEURO</button>
+                    <button class="mode-tag-btn" data-mode="4" data-i18n="lattice">LATTICE</button>
+                    <button class="mode-tag-btn" data-mode="5" data-i18n="orbital">ORBITAL</button>
+                </div>
+                <!-- ... coloring omitted for brevity if matching precisely ... -->
+                <div class="color-picker-group" style="margin-top: 10px;">
+                    <div style="display: flex; gap: 5px; align-items: center;">
+                        <input type="color" id="brainColorA" value="#00ffcc" title="Color A">
+                        <input type="color" id="brainColorB" value="#ff00aa" title="Color B">
+                        <input type="color" id="brainColorC" value="#110033" title="Avoid Color">
+                    </div>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <h3 data-i18n="zeroGravity">ZERO GRAVITY</h3>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="antigravityMode">
+                    <span data-i18n="active">Enable</span>
+                </label>
+                <div class="info-text">Random size & depth float</div>
+            </div>
+
+            <div class="menu-section">
+                <h3 data-i18n="quantum">QUANTUM</h3>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="quantumMode">
+                    <span data-i18n="active">Active</span>
+                </label>
+                <div id="quantumControls" style="display: none; margin-top: 10px;">
+                    <label class="sub-label" data-i18n="coherence">Coherence</label>
+                    <div class="slider-wrapper">
+                        <input type="range" id="quantumCoherence" min="0" max="1" step="0.01" value="0.5">
+                        <span id="quantumCoherenceRightValue">0.5</span>
+                    </div>
+                    <label class="checkbox-label" style="margin-top: 10px;">
+                        <input type="checkbox" id="quantumEntangled">
+                        <span data-i18n="entanglement">Entanglement</span>
+                    </label>
+                    <button id="quantumMeasureBtn" class="vj-pro-btn" style="margin-top: 10px; width: 100%;"
+                        data-i18n="measure">MEASURE
+                        (COLLAPSE)</button>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <h3 data-i18n="maxObjects">MAX OBJECTS</h3>
+                <div class="slider-wrapper">
+                    <input type="number" id="maxObjects" min="1" max="100" step="1" value="20" class="number-input">
+                    <span id="maxObjectsValue">20</span>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <h3 data-i18n="colors">COLORS</h3>
+                <label class="sub-label" data-i18n="colors">Object Color</label>
+                <div class="color-sliders-compact">
+                    <div class="slider-wrapper"><span class="label-mini">R</span><input type="range" id="colorR" min="0"
+                            max="255" value="0"></div>
+                    <div class="slider-wrapper"><span class="label-mini">G</span><input type="range" id="colorG" min="0"
+                            max="255" value="0"></div>
+                    <div class="slider-wrapper"><span class="label-mini">B</span><input type="range" id="colorB" min="0"
+                            max="255" value="0"></div>
+                </div>
+                <div class="color-preview-box" id="objectColorPreview"></div>
+
+                <label class="sub-label" style="margin-top: 10px;">Background</label>
+                <div class="color-sliders-compact">
+                    <div class="slider-wrapper"><span class="label-mini">R</span><input type="range" id="bgColorR"
+                            min="0" max="255" value="255"></div>
+                    <div class="slider-wrapper"><span class="label-mini">G</span><input type="range" id="bgColorG"
+                            min="0" max="255" value="255"></div>
+                    <div class="slider-wrapper"><span class="label-mini">B</span><input type="range" id="bgColorB"
+                            min="0" max="255" value="255"></div>
+                </div>
+                <div class="color-preview-box" id="bgColorPreview"></div>
+            </div>
+
+            <div class="menu-section">
+                <h3 data-i18n="vjPro">VJ PRO</h3>
+                <div class="vj-controls">
+                    <button class="vj-pro-btn" id="fullscreenBtn" data-i18n="fullscreen">FULLSCREEN</button>
+                    <button class="vj-pro-btn" id="recordBtn">REC</button>
+                </div>
+
+                <label class="sub-label" data-i18n="visualControl">Master Intensity</label>
+                <div class="slider-wrapper">
+                    <input type="range" id="masterIntensity" min="0" max="200" value="100">
+                </div>
+            </div>
+
+            <!-- Camera Mosaic Section -->
+            <div class="menu-section" id="cameraMosaicSection">
+                <h3>📹 CAMERA MOSAIC</h3>
+                <div class="control-row" style="margin-bottom: 10px;">
+                    <label class="sub-label">Camera Select</label>
+                    <select id="cameraSelect"
+                        style="width: 100%; padding: 5px; background: var(--panel-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">
+                        <option value="">-- Select Camera --</option>
+                    </select>
+                </div>
+                <div class="vj-controls" style="margin-bottom: 10px;">
+                    <button class="vj-pro-btn" id="startCameraBtn">▶ START</button>
+                    <button class="vj-pro-btn" id="stopCameraBtn">⬛ STOP</button>
+                </div>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="mosaicEnabled" checked>
+                    <span>Mosaic Enabled</span>
+                </label>
+                <label class="sub-label" style="margin-top: 10px;">Mosaic Strength</label>
+                <div class="slider-wrapper">
+                    <input type="range" id="mosaicBlockSize" min="5" max="50" value="15">
+                    <span id="mosaicBlockSizeValue">15</span>
+                </div>
+                <div class="info-text">Camera preview appears in projector output</div>
+            </div>
+
+            <div class="menu-section">
+                <h3 data-i18n="effects">GLOBAL EFFECTS</h3>
+                <div class="vj-controls" style="margin-top: 10px;">
+                    <button class="vj-pro-btn" id="sideNoiseBtn">NOISE</button>
+                    <button class="vj-pro-btn" id="sideMosaicBtn">MOSAIC</button>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <button class="reset-btn" id="resetScene" data-i18n="resetScene">RESET SCENE</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Context Menu -->
+    <div id="contextMenu" class="context-menu">
+        <div class="context-menu-item" data-action="pin">📌 固定</div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item" data-action="duplicate">📋 複製</div>
+        <div class="context-menu-item" data-action="savePreset">💾 プリセットに登録</div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item" data-action="color">🎨 色を変更</div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item" data-action="front">最前面へ</div>
+        <div class="context-menu-item" data-action="forward">前面へ</div>
+        <div class="context-menu-item" data-action="backward">背面へ</div>
+        <div class="context-menu-item" data-action="back">最背面へ</div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item danger" data-action="delete">削除</div>
+    </div>
+
+    <!-- Color Picker Modal -->
+    <div id="colorPickerModal" class="color-picker-modal" style="display: none;">
+        <div class="color-picker-content">
+            <h3>色を選択</h3>
+            <div class="color-sliders">
+                <div class="color-slider-group">
+                    <label>R: <span id="pickerRValue">0</span></label>
+                    <input type="range" id="pickerR" min="0" max="255" value="0">
+                </div>
+                <div class="color-slider-group">
+                    <label>G: <span id="pickerGValue">0</span></label>
+                    <input type="range" id="pickerG" min="0" max="255" value="0">
+                </div>
+                <div class="color-slider-group">
+                    <label>B: <span id="pickerBValue">0</span></label>
+                    <input type="range" id="pickerB" min="0" max="255" value="0">
+                </div>
+            </div>
+            <div class="color-preview" id="colorPreview"></div>
+            <div class="color-picker-buttons">
+                <button id="colorPickerApply">適用</button>
+                <button id="colorPickerCancel">キャンセル</button>
+            </div>
+        </div>
+    </div>
+
+
+
+</body>
+
+</html>

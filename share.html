@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHARE URL | GENERATIVE MACHINE</title>
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+
+        .container {
+            padding: 2rem;
+            border: 1px solid #333;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        h1 {
+            font-weight: 200;
+            letter-spacing: 0.2em;
+            margin-bottom: 2rem;
+            font-size: 1.5rem;
+        }
+
+        .qr-code {
+            background: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            display: inline-block;
+        }
+
+        .url {
+            font-family: monospace;
+            font-size: 1.2rem;
+            color: #888;
+            word-break: break-all;
+            margin-top: 1rem;
+        }
+
+        .instruction {
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>SYSTEM ONLINE | MANDALA</h1>
+        <div class="qr-code">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=http://192.168.11.41:8000/index.html?auto=true%23sound-machine"
+                alt="QR Code">
+        </div>
+        <div class="url">http://192.168.11.41:8000/index.html?auto=true#sound-machine</div>
+        <p class="instruction">Nebulaのカメラやブラウザでスキャンして「曼荼羅」に接続してください</p>
+    </div>
+</body>
+
+</html>

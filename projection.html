@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>PURE VISUAL | GENERATIVE MACHINE</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: #000;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            cursor: none;
+            /* Initial hide */
+        }
+
+        #projection-canvas-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+        }
+
+        canvas {
+            object-fit: contain;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* Blackout for transitions */
+        #blackout {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 10000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s;
+        }
+
+        /* GJ Mode Projection Overrides */
+        .gj-mode-active {
+            filter: invert(1) contrast(1.5) brightness(1.2);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="blackout"></div>
+    <div id="projection-canvas-container">
+        <!-- The Image Machine will mount here -->
+    </div>
+
+    <!-- p5.js and modules -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+    <script type="module">
+        import { initImageMachine } from './js/modules/image-machine.js';
+        import { initSync } from './js/utils/sync.js';
+        import { initGJMode } from './js/modules/gj-mode.js';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize Core
+            window.imageMachine = initImageMachine();
+            initGJMode();
+
+            // Auto-hide cursor logic
+            let cursorTimer;
+            document.addEventListener('mousemove', () => {
+                document.body.style.cursor = 'default';
+                clearTimeout(cursorTimer);
+                cursorTimer = setTimeout(() => {
+                    document.body.style.cursor = 'none';
+                }, 2000);
+            });
+
+            // Listen for cross-tab sync
+            initSync({
+                'image-update': (detail) => {
+                    if (window.imageMachine && window.imageMachine.setImage) {
+                        window.imageMachine.setImage(detail.index);
+                    }
+                },
+                'trigger-secret': (detail) => {
+                    if (window.imageMachine && window.imageMachine.triggerSecret) {
+                        window.imageMachine.triggerSecret(detail.code);
+                    }
+                },
+                'gj-mode': (detail) => {
+                    // Visual feedback handled by gj-mode.js
+                    console.log("[NEBULA] GJ Mode:", detail.active);
+                },
+                'blackout': (detail) => {
+                    const el = document.getElementById('blackout');
+                    if (el) el.style.opacity = detail.active ? '1' : '0';
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

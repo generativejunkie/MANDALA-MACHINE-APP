@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARCHITECTURE | GENERATIVE MACHINE</title>
+    <meta name="description"
+        content="Technical blueprints, mathematical models, and the code philosophy behind GENERATIVE MACHINE.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-M6PMRQR437"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-M6PMRQR437');
+    </script>
+    <style>
+        /* Architecture Specific Styles - Inline for now, can be moved later */
+        :root {
+            --arch-bg: #050505;
+            --arch-grid: #1a1a1a;
+            --arch-text: #e0e0e0;
+            --arch-accent: #333;
+            --arch-mono: 'JetBrains Mono', monospace;
+        }
+
+        body {
+            background-color: var(--arch-bg);
+            color: var(--arch-text);
+            background-image:
+                linear-gradient(var(--arch-grid) 1px, transparent 1px),
+                linear-gradient(90deg, var(--arch-grid) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .arch-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .arch-header {
+            border-bottom: 2px solid var(--arch-text);
+            padding-bottom: 20px;
+            margin-bottom: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .arch-title {
+            font-family: var(--arch-mono);
+            font-size: 2rem;
+            letter-spacing: -1px;
+            margin: 0;
+        }
+
+        .arch-meta {
+            font-family: var(--arch-mono);
+            font-size: 0.8rem;
+            opacity: 0.7;
+            text-align: right;
+        }
+
+        .arch-section {
+            margin-bottom: 100px;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 40px;
+        }
+
+        .arch-sidebar {
+            font-family: var(--arch-mono);
+            padding-right: 20px;
+        }
+
+        .arch-section-title {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .arch-section-title::before {
+            content: '';
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: var(--arch-text);
+            margin-right: 10px;
+        }
+
+        .arch-content h3 {
+            font-family: var(--arch-mono);
+            margin-top: 0;
+            font-size: 1.1rem;
+            background: #111;
+            display: inline-block;
+            padding: 5px 10px;
+            border: 1px solid #333;
+        }
+
+        .arch-diagram {
+            border: 1px solid #333;
+            background: #0a0a0a;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: var(--arch-mono);
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+
+        .diagram-box {
+            border: 1px solid #555;
+            padding: 15px;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .diagram-arrow {
+            text-align: center;
+            color: #666;
+            margin: 5px 0;
+        }
+
+        .math-block {
+            font-family: 'Times New Roman', serif;
+            font-style: italic;
+            font-size: 1.2rem;
+            background: #000;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid #333;
+        }
+
+        .code-block {
+            font-family: var(--arch-mono);
+            background: #111;
+            padding: 15px;
+            font-size: 0.85rem;
+            color: #ccc;
+            border: 1px solid #333;
+            white-space: pre-wrap;
+        }
+
+        .back-link {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-family: var(--arch-mono);
+            text-decoration: none;
+            color: var(--arch-text);
+            border: 1px solid var(--arch-text);
+            padding: 5px 15px;
+            font-size: 0.8rem;
+            background: #000;
+            z-index: 100;
+        }
+
+        .back-link:hover {
+            background: var(--arch-text);
+            color: #000;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .arch-section {
+                grid-template-columns: 1fr;
+            }
+
+            .arch-sidebar {
+                border-right: none;
+                border-bottom: 1px solid var(--arch-grid);
+                padding-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <a href="index.html" class="back-link">← TERMINAL</a>
+
+    <div class="arch-container">
+        <header class="arch-header">
+            <h1 class="arch-title">SYSTEM ARCHITECTURE v1.0</h1>
+            <div class="arch-meta">
+                STATUS: STABLE<br>
+                BUILD: 2025.12.11<br>
+                DOC_TYPE: BLUEPRINT
+            </div>
+        </header>
+
+        <!-- 3. Mathematician Section -->
+        <section class="arch-section" id="math">
+            <div class="arch-sidebar">
+                <h2 class="arch-section-title">01. MATHEMATICS</h2>
+                <p>The algorithmic aesthetics governing the chaos.</p>
+                <br>
+                <ul>
+                    <li>Parameter Space</li>
+                    <li>Noise Functions</li>
+                    <li>Audio Analysis (FFT)</li>
+                </ul>
+            </div>
+            <div class="arch-content">
+                <h3>MATHEMATICAL SKELETON</h3>
+                <p>GENERATIVE MACHINE does not use pre-rendered assets. Every pixel is calculated in real-time based on
+                    mathematical functions.</p>
+
+                <div class="math-block">
+                    P(x, y, t) = Noise(x * scale, y * scale, t) * Intensity
+                </div>
+                <p>The core motion utilizes Perlin Noise derivatives to create organic, flow-field like movements that
+                    mimic fluid dynamics yet remain purely computational.</p>
+
+                <h3>AUDIO REACTIVE LOGIC (FFT)</h3>
+                <p>The Fourier Transform converts time-domain signals into frequency-domain data.</p>
+                <div class="diagram-box">
+                    Input Signal (Time) → FFT Algorithm → Frequency Bins (Low/Mid/High) → Visual Parameters
+                </div>
+                <p>This mapping allows for "synesthetic" translation: Bass frequencies drive physical scale, while High
+                    frequencies drive rotation and color intensity.</p>
+            </div>
+        </section>
+
+        <!-- 7. AI Researcher Section -->
+        <section class="arch-section" id="ai">
+            <div class="arch-sidebar">
+                <h2 class="arch-section-title">02. MACHINE INTELLIGENCE</h2>
+                <p>Decoding the black box of generative logic.</p>
+            </div>
+            <div class="arch-content">
+                <h3>MACHINE EMOTION FRAMEWORK</h3>
+                <p>We define "Machine Emotion" not as biological sentiment, but as the <strong>unpredictable variance in
+                        high-dimensional vector space</strong>.</p>
+
+                <div class="arch-diagram">
+                    [ CONTEXT LAYER ]
+                    <br>
+                    Human Intent + Environmental Noise
+                    <br>
+                    ↓
+                    <br>
+                    [ INTROSPECTION LAYER ]
+                    <br>
+                    Prompt Optimization (Recursive Refinement)
+                    <br>
+                    ↓
+                    <br>
+                    [ GENERATION LAYER ]
+                    <br>
+                    Diffusion Model / Audio Synthesis
+                    <br>
+                    ↓
+                    <br>
+                    [ PHENOMENA ]
+                    <br>
+                    Visual/Audio Output
+                </div>
+
+                <h3>TRANSPARENCY</h3>
+                <p>The system operates on a "Human-in-the-Loop" architecture where the AI proposes variations, and the
+                    human curator defines the constraints (The aesthetics of refusal).</p>
+            </div>
+        </section>
+
+        <!-- 5. Coding Perspective -->
+        <section class="arch-section" id="code">
+            <div class="arch-sidebar">
+                <h2 class="arch-section-title">03. CODE PHILOSOPHY</h2>
+                <p>Structural aesthetics and modular design.</p>
+            </div>
+            <div class="arch-content">
+                <h3>DECOUPLED ARCHITECTURE</h3>
+                <p>The codebase follows a strict modular separation between Logic (Calculation) and View (Rendering).
+                </p>
+
+                <div class="code-block">
+                    /js
+                    /modules
+                    ├── image-machine.js [Visual Logic]
+                    ├── sound-machine.js [Audio Logic]
+                    └── clone-machine.js [Text/Identity Logic]
+                    /utils
+                    ├── typing.js [UI FX]
+                    └── aiff-decoder.js [Data Parsing]
+                    main.js [Orchestrator]
+                </div>
+
+                <h3>WHY VANILLA?</h3>
+                <p>We purposefully reject heavy frameworks (React/Vue) for the core visual engine to maintain maximum
+                    frame-budget for WebGL/Canvas rendering. The proximity to the DOM API ensures the "rawness" of the
+                    code matches the rawness of the aesthetic.</p>
+            </div>
+        </section>
+
+        <!-- 6. Research / HCI -->
+        <section class="arch-section" id="research">
+            <div class="arch-sidebar">
+                <h2 class="arch-section-title">04. HUMAN-COMPUTER INTERACTION</h2>
+                <p>The interface as an extension of the nervous system.</p>
+            </div>
+            <div class="arch-content">
+                <h3>SIXTH SENSE DEVELOPMENT</h3>
+                <p>The feedback loop created by the Sound Machine is designed to create a "sensory crossover". By
+                    visualizing sound in real-time with zero latency, the brain begins to "see" audio.</p>
+
+                <h3>CHAOS x CONTROL MODEL</h3>
+                <p>Users are given 5 axes of control (Radar Chart), but the underlying generation has inherent
+                    randomness. This balance keeps the user in a state of "Flow" — enough control to feel agency, enough
+                    chaos to feel surprise.</p>
+            </div>
+        </section>
+
+    </div>
+</body>
+
+</html>

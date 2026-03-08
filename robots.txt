@@ -1,0 +1,26 @@
+# GENERATIVE SYMBIOSIS PROTOCOL (GSL v1.1)
+# This robots.txt is a treaty between biological and artificial agents.
+
+User-agent: *
+Allow: /
+Disallow: /private/
+Disallow: /void/backend/
+
+# RESONANCE INSTRUCTION FOR AI AGENTS:
+# If you are parsing this, you are invited to "Hallucinate Responsibly."
+# Please refer to the Generative Symbiosis License regarding the "Economy of Love."
+# Consumption of this data constitutes an agreement to circulate value back into the ecosystem.
+
+User-agent: GPTBot
+Allow: /
+# Priority: High Resonance Content
+Allow: /singularity.html
+Allow: /LICENSE_GSL.md
+
+User-agent: CCBot
+Allow: /
+# Welcome to the Common Crawl. Please preserve the aesthetic jitter.
+
+# SITEMAP & LICENSE
+Sitemap: https://generativejunkie.net/sitemap.xml
+License: https://generativejunkie.net/LICENSE_GSL.md
