@@ -2208,7 +2208,55 @@
         setTimeout(patchFitTextSize, 1000);
       }
     })();
-  </script>
+  
+    // ===== V-OUT: Projector Window (Electron IPC) =====
+    (function initVOut() {
+      const isElectron = typeof require !== 'undefined';
+      if (!isElectron) return;
+      const { ipcRenderer } = require('electron');
+      const vOutBtn = document.getElementById('vOutBtn');
+      let vOutActive = false;
+      let captureInterval = null;
+      function getMainCanvas() {
+        return document.querySelector('canvas') || document.getElementById('mainCanvas');
+      }
+      function startCapture() {
+        if (captureInterval) return;
+        captureInterval = setInterval(() => {
+          const canvas = getMainCanvas();
+          if (!canvas) return;
+          try {
+            const dataURL = canvas.toDataURL('image/jpeg', 0.85);
+            ipcRenderer.send('canvas-frame', dataURL);
+          } catch (e) {}
+        }, 1000 / 30);
+      }
+      function stopCapture() {
+        if (captureInterval) { clearInterval(captureInterval); captureInterval = null; }
+      }
+      if (vOutBtn) {
+        vOutBtn.addEventListener('click', () => {
+          if (!vOutActive) {
+            ipcRenderer.send('open-projector');
+            startCapture();
+            vOutActive = true;
+            vOutBtn.style.color = '#00ff88';
+          } else {
+            ipcRenderer.send('close-projector');
+            stopCapture();
+            vOutActive = false;
+            vOutBtn.style.color = '';
+          }
+        });
+        ipcRenderer.on('projector-closed', () => {
+          stopCapture();
+          vOutActive = false;
+          vOutBtn.style.color = '';
+        });
+      }
+    })();
+    // ===== V-OUT END =====
+</script>
 
 </body>
 
