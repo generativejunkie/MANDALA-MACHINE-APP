@@ -6,8 +6,8 @@ let projectorWindow;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: 1440,
+    height: 900,
     fullscreen: false,
     autoHideMenuBar: true,
     webPreferences: {
@@ -18,35 +18,31 @@ function createWindow() {
 
   mainWindow.loadFile('mandaramachine.html');
 
-  // DevTools（開発時のみ有効化）
-  // mainWindow.webContents.openDevTools();
-
-  mainWindow.on('closed', () => {
+  mainWindow.on('closed', function () {
     mainWindow = null;
-    if (projectorWindow && !projectorWindow.isDestroyed()) {
+    if (projectorWindow) {
       projectorWindow.close();
+      projectorWindow = null;
     }
   });
 }
 
-// V-OUT: プロジェクターウィンドウを開く
-ipcMain.on('open-projector', (event) => {
+// V-OUT: projector window
+function openProjectorWindow() {
   if (projectorWindow && !projectorWindow.isDestroyed()) {
     projectorWindow.focus();
-    event.reply('projector-status', 'focused');
     return;
   }
 
   const displays = screen.getAllDisplays();
-  const secondDisplay = displays.find(d => d.id !== screen.getPrimaryDisplay().id);
-  const target = secondDisplay || screen.getPrimaryDisplay();
+  const externalDisplay = displays.find(d => d.id !== screen.getPrimaryDisplay().id);
+  const bounds = externalDisplay ? externalDisplay.bounds : { x: 100, y: 100, width: 1920, height: 1080 };
 
   projectorWindow = new BrowserWindow({
-    x: target.bounds.x,
-    y: target.bounds.y,
-    width: target.bounds.width,
-    height: target.bounds.height,
-    fullscreen: !!secondDisplay,
+    x: bounds.x,
+    y: bounds.y,
+    width: bounds.width,
+    height: bounds.height,
     frame: false,
     movable: true,
     resizable: true,
@@ -60,41 +56,38 @@ ipcMain.on('open-projector', (event) => {
 
   projectorWindow.loadFile('projector.html');
 
-  projectorWindow.on('closed', () => {
+  projectorWindow.on('closed', function () {
     projectorWindow = null;
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('projector-closed');
     }
   });
+}
 
-  event.reply('projector-status', 'opened');
+ipcMain.on('open-projector', () => openProjectorWindow());
+
+ipcMain.on('close-projector', () => {
+  if (projectorWindow && !projectorWindow.isDestroyed()) projectorWindow.close();
 });
 
-// V-OUT: プロジェクターウィンドウを閉じる
-ipcMain.on('close-projector', (event) => {
+ipcMain.on('canvas-frame', (event, dataURL) => {
   if (projectorWindow && !projectorWindow.isDestroyed()) {
-    projectorWindow.close();
+    projectorWindow.webContents.send('canvas-frame', dataURL);
   }
-  event.reply('projector-status', 'closed');
 });
 
-// V-OUT: フルスクリーントグル
-ipcMain.on('toggle-projector-fullscreen', () => {
+ipcMain.on('projector-fullscreen', (event, flag) => {
   if (projectorWindow && !projectorWindow.isDestroyed()) {
-    projectorWindow.setFullScreen(!projectorWindow.isFullScreen());
+    projectorWindow.setFullScreen(flag);
   }
 });
 
 app.on('ready', createWindow);
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+app.on('window-all-closed', function () {
+  if (process.platform !== 'darwin') app.quit();
 });
 
-app.on('activate', () => {
-  if (mainWindow === null) {
-    createWindow();
-  }
+app.on('activate', function () {
+  if (mainWindow === null) createWindow();
 });
