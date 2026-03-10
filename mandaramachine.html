@@ -476,7 +476,34 @@
       position: relative;
       display: inline-flex;
     }
-  </style>
+  
+    /* V-OUT Button */
+    .v-out-btn {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: rgba(255, 255, 255, 0.5);
+      font-family: 'Space Grotesk', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      flex-shrink: 0;
+      border-radius: 2px;
+    }
+    .v-out-btn:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+      color: rgba(255, 255, 255, 0.8);
+    }
+    .v-out-btn.active {
+      background: #00ff88;
+      border-color: #00ff88;
+      color: #000;
+      box-shadow: 0 0 12px rgba(0, 255, 136, 0.6);
+    }
+</style>
   <script type="module" crossorigin src="/assets/index-Dwl_9uI6.js"></script>
   <link rel="stylesheet" crossorigin href="/assets/index-_3glWkjg.css">
 </head>
@@ -505,7 +532,7 @@
       <div class="upload-section">
         <button id="uploadMediaBtn" class="upload-btn" data-i18n="upload">+ MEDIA</button>
         <div id="cam-select-wrap" style="display:inline-flex;margin-left:4px;gap:2px;position:relative;">
-          <button id="cameraInputBtn" class="upload-btn" title="カメラ入力">📷 CAM</button>
+          <button id="cameraInputBtn" class="upload-btn" title="カメラ入力">CAM</button>
           <button id="camSelectBtn" class="upload-btn" style="padding:0 6px;font-size:9px;" title="カメラを選択">▼</button>
           <div id="camDeviceList"
             style="display:none;position:absolute;top:100%;left:0;margin-top:3px;background:#111;border:1px solid #333;border-radius:4px;min-width:180px;z-index:999;overflow:hidden;">
@@ -517,7 +544,7 @@
         <div style="display: flex; gap: 5px; margin-bottom: 5px;">
           <input type="text" id="canvasText" placeholder="Enter DJ Name..." maxlength="50" style="flex: 1;">
           <button id="sendTextBtn"
-            style="padding: 0 5px; background: none; border: 1px solid #444; border-radius: 2px; cursor: pointer;">🤖</button>
+            style="padding: 0 5px; background: none; border: 1px solid #444; border-radius: 2px; cursor: pointer;"></button>
         </div>
         <div class="dj-name-toggle-container" style="display: flex; gap: 4px; margin-top: 8px;">
           <button id="djNameOnBtn" class="mode-tag-btn">ON</button>
@@ -545,7 +572,7 @@
       <div class="auto-bg-controls"
         style="display: flex; flex-direction: column; gap: 8px; padding: 0 10px; margin-bottom: 20px;">
         <div style="display: flex; align-items: center; justify-content: space-between;">
-          <label style="font-size: 10px; opacity: 0.8; letter-spacing: 1px;">⚡ STROBE</label>
+          <label style="font-size: 10px; opacity: 0.8; letter-spacing: 1px;">STROBE</label>
           <input type="checkbox" id="autoStrobeCheckbox" class="strobe-checkbox">
         </div>
         <div style="display: flex; align-items: center; justify-content: space-between;">
@@ -605,21 +632,21 @@
           <!-- ROW 1: モードボタン -->
           <div class="top-row top-row--modes">
             <button id="topAutoBtn" class="mode-btn" title="Auto Mode" data-i18n-title="auto">
-              <span class="icon symbol">⟳</span>
+              <span class="icon symbol"></span>
               <span data-i18n="auto">AUTO</span>
             </button>
             <button id="topAiBtn" class="mode-btn" title="Space Mode" data-i18n-title="space">
-              <span class="icon symbol">✧</span>
+              <span class="icon symbol"></span>
               <span data-i18n="space">SPACE</span>
             </button>
             <button id="topMandalaBtn" class="mode-btn" title="Mandala Mode" aria-label="曼荼羅モードを切り替え"
               aria-pressed="false" role="switch" data-i18n-title="mandala">
-              <span class="icon symbol">🌀</span>
+              <span class="icon symbol"></span>
               <span data-i18n="mandala">MANDALA</span>
             </button>
             <div class="dropdown-container">
               <button id="topBlinkBtn" class="mode-btn" title="Strobe" data-i18n-title="blinkingMode">
-                <span class="icon symbol">⚡</span>
+                <span class="icon symbol"></span>
                 <span data-i18n="strobe">STROBE</span>
               </button>
               <div id="blinkQuickMenu" class="quick-settings-menu minimal">
@@ -653,7 +680,7 @@
               <span data-i18n="raven">RAVEN</span>
             </button>
             <button id="topQuantumBtn" class="mode-btn" title="Quantum Mode" data-i18n-title="quantum">
-              <span class="icon symbol">✦</span>
+              <span class="icon symbol"></span>
               <span data-i18n="quantum">QUANTUM</span>
             </button>
             <button id="topOrbitBtn" class="mode-btn" title="360° Orbit">
@@ -661,7 +688,7 @@
               <span>ORBIT</span>
             </button>
             <button id="topSpinBtn" class="mode-btn" title="Spin Mandala">
-              <span class="icon symbol">⟳</span>
+              <span class="icon symbol"></span>
               <span>SPIN</span>
             </button>
             <button id="topBaryonBtn" class="mode-btn" title="Baryon Mode">
@@ -685,7 +712,7 @@
               <span>MOSAIC</span>
             </button>
             <button id="topResetBtn" class="mode-btn top-row--reset" title="RESET ALL">
-              <span class="icon symbol">⟳</span>
+              <span class="icon symbol"></span>
               <span>RESET</span>
             </button>
 
@@ -810,7 +837,7 @@
       <div id="musicPanel">
         <div class="music-controls-left">
           <input type="file" id="musicUpload" accept=".mp3,.wav,.ogg,.m4a,.aac,.flac,.aiff,.wma" style="display: none;">
-          <button id="musicAddBtn" class="music-icon-btn" title="Open File">📂</button>
+          <button id="musicAddBtn" class="music-icon-btn" title="Open File"></button>
           <button id="musicPlayBtn" class="music-icon-btn" title="Play/Pause">▶</button>
           <span id="musicTrackTitle">No Track Selected</span>
           <div class="music-gain-control" style="display: flex; align-items: center; margin-left: 10px;">
@@ -845,9 +872,7 @@
         <div class="music-stats-right">
           <span class="stat-item">BPM: <span id="bpmValue">--</span></span>
           <span class="stat-item">FPS: <span id="fpsValue">60</span></span>
-          <button id="vOutBtn" class="v-out-btn-compact" title="Projector Output (V-OUT)" data-i18n-title="vOut">
-            📺 <span data-i18n="vOut">V-OUT</span>
-          </button>
+          <button id="vOutBtn" class="v-out-btn" title="Projector Output">V-OUT</button>
         </div>
       </div>
 
@@ -1080,7 +1105,7 @@
 
     <!-- Camera Mosaic Section -->
     <div class="menu-section" id="cameraMosaicSection">
-      <h3>📹 CAMERA MOSAIC</h3>
+      <h3>CAMERA MOSAIC</h3>
       <div class="control-row" style="margin-bottom: 10px;">
         <label class="sub-label">Camera Select</label>
         <select id="cameraSelect"
@@ -1121,12 +1146,12 @@
 
   <!-- Context Menu -->
   <div id="contextMenu" class="context-menu">
-    <div class="context-menu-item" data-action="pin">📌 Pin</div>
+    <div class="context-menu-item" data-action="pin">Pin</div>
     <div class="context-menu-separator"></div>
-    <div class="context-menu-item" data-action="duplicate">📋 Duplicate</div>
-    <div class="context-menu-item" data-action="savePreset">💾 Save as Preset</div>
+    <div class="context-menu-item" data-action="duplicate">Duplicate</div>
+    <div class="context-menu-item" data-action="savePreset">Save as Preset</div>
     <div class="context-menu-separator"></div>
-    <div class="context-menu-item" data-action="color">🎨 Change Color</div>
+    <div class="context-menu-item" data-action="color">Change Color</div>
     <div class="context-menu-separator"></div>
     <div class="context-menu-item" data-action="front">Bring to Front</div>
     <div class="context-menu-item" data-action="forward">Bring Forward</div>
@@ -1268,7 +1293,7 @@
             this.sceneManager.clearMeshCache();
           }
         };
-        console.log('✅ BARYON color reset patch applied');
+        console.log('BARYON color reset patch applied');
       }
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', applyPatch);
@@ -1293,11 +1318,11 @@
 
         // ---- デバイスアイコン判定 ----
         function deviceIcon(label) {
-          if (/iphone/i.test(label)) return '📱';
-          if (/ipad/i.test(label)) return '📱';
-          if (/continuity/i.test(label)) return '📱';
-          if (/facetime/i.test(label)) return '💻';
-          return '📷';
+          if (/iphone/i.test(label)) return '';
+          if (/ipad/i.test(label)) return '';
+          if (/continuity/i.test(label)) return '';
+          if (/facetime/i.test(label)) return '';
+          return '';
         }
 
         // ---- デバイスリストを構築 ----
@@ -1404,7 +1429,7 @@
             sm.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
           }
           btn.classList.remove('active');
-          btn.textContent = '📷 CAM';
+          btn.textContent = 'CAM';
         }
 
         // ---- ▼ボタン: リスト開閉 ----
@@ -2209,7 +2234,7 @@
       }
     })();
   
-    // ===== V-OUT: Projector Window (Electron IPC) =====
+        // ===== V-OUT: Projector Window (Electron IPC) =====
     (function initVOut() {
       const isElectron = typeof require !== 'undefined';
       if (!isElectron) return;
@@ -2217,9 +2242,17 @@
       const vOutBtn = document.getElementById('vOutBtn');
       let vOutActive = false;
       let captureInterval = null;
+
       function getMainCanvas() {
         return document.querySelector('canvas') || document.getElementById('mainCanvas');
       }
+
+      // Dark Mode (INVERT) の状態を取得
+      function isDarkMode() {
+        return document.body.classList.contains('dark-mode');
+      }
+
+      // フレームキャプチャ + Dark Mode状態を一緒に送信
       function startCapture() {
         if (captureInterval) return;
         captureInterval = setInterval(() => {
@@ -2227,25 +2260,27 @@
           if (!canvas) return;
           try {
             const dataURL = canvas.toDataURL('image/jpeg', 0.85);
-            ipcRenderer.send('canvas-frame', dataURL);
+            ipcRenderer.send('canvas-frame', { dataURL, darkMode: isDarkMode() });
           } catch (e) {}
         }, 1000 / 30);
       }
+
       function stopCapture() {
         if (captureInterval) { clearInterval(captureInterval); captureInterval = null; }
       }
+
       if (vOutBtn) {
         vOutBtn.addEventListener('click', () => {
           if (!vOutActive) {
             ipcRenderer.send('open-projector');
             startCapture();
             vOutActive = true;
-            vOutBtn.style.color = '#00ff88';
+            vOutBtn.classList.add('active');
           } else {
             ipcRenderer.send('close-projector');
             stopCapture();
             vOutActive = false;
-            vOutBtn.style.color = '';
+            vOutBtn.classList.remove('active');
           }
         });
         ipcRenderer.on('projector-closed', () => {
