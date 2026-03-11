@@ -476,7 +476,7 @@
       position: relative;
       display: inline-flex;
     }
-  
+
     /* V-OUT Button */
     .v-out-btn {
       background: transparent;
@@ -493,19 +493,45 @@
       flex-shrink: 0;
       border-radius: 2px;
     }
+
     .v-out-btn:hover {
       border-color: rgba(255, 255, 255, 0.5);
       color: rgba(255, 255, 255, 0.8);
     }
+
     .v-out-btn.active {
       background: #00ff88;
       border-color: #00ff88;
       color: #000;
       box-shadow: 0 0 12px rgba(0, 255, 136, 0.6);
     }
-</style>
-  <script type="module" crossorigin src="/assets/index-Dwl_9uI6.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-_3glWkjg.css">
+
+    /* Center Visibility Glow */
+    #centerGlow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 80vw;
+      height: 80vh;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.1) 40%, transparent 70%);
+      pointer-events: none;
+      z-index: 4;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+      mix-blend-mode: screen;
+    }
+
+    #centerGlow.hidden {
+      opacity: 0 !important;
+    }
+
+    body.dark-mode #centerGlow {
+      opacity: 0.5;
+    }
+  </style>
+  <script type="module" crossorigin src="./assets/index-Dwl_9uI6.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-_3glWkjg.css">
 </head>
 
 <body tabindex="0">
@@ -763,6 +789,19 @@
                 <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
               </svg>
             </button>
+            <div class="top-row-divider"></div>
+            <button id="tapBpmBtn" class="mode-btn" title="Tap over time to set BPM">
+              <span class="icon symbol">⏱</span>
+              <span>TAP</span>
+            </button>
+            <button id="invertBtn" class="mode-btn" title="Invert Colors">
+              <span class="icon symbol">◐</span>
+              <span>INVERT</span>
+            </button>
+            <button id="glowBtn" class="mode-btn active" title="Toggle Center Glow Visibility">
+              <span class="icon symbol">☀</span>
+              <span>GLOW</span>
+            </button>
           </div>
 
         </div>
@@ -804,6 +843,7 @@
       <!-- キャンバス -->
       <div id="canvasWrapper">
         <div class="canvas-container" id="canvasContainer"></div>
+        <div id="centerGlow" class="center-glow"></div>
         <div id="p5-container"
           style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;">
         </div>
@@ -2233,8 +2273,8 @@
         setTimeout(patchFitTextSize, 1000);
       }
     })();
-  
-        // ===== V-OUT: Projector Window (Electron IPC) =====
+
+    // ===== V-OUT: Projector Window (Electron IPC) =====
     (function initVOut() {
       const isElectron = typeof require !== 'undefined';
       if (!isElectron) return;
@@ -2261,7 +2301,7 @@
           try {
             const dataURL = canvas.toDataURL('image/jpeg', 0.85);
             ipcRenderer.send('canvas-frame', { dataURL, darkMode: isDarkMode() });
-          } catch (e) {}
+          } catch (e) { }
         }, 1000 / 30);
       }
 
@@ -2291,8 +2331,80 @@
       }
     })();
     // ===== V-OUT END =====
-</script>
+    // ===== VJ Controls (TAP, INVERT, GLOW) =====
+    (function initVjControls() {
+      const tapBtn = document.getElementById('tapBpmBtn');
+      const invertBtn = document.getElementById('invertBtn');
+      const glowBtn = document.getElementById('glowBtn');
+      const centerGlow = document.getElementById('centerGlow');
 
+      if (glowBtn && centerGlow) {
+        glowBtn.addEventListener('click', () => {
+          centerGlow.classList.toggle('hidden');
+          if (centerGlow.classList.contains('hidden')) {
+            glowBtn.classList.remove('active');
+          } else {
+            glowBtn.classList.add('active');
+          }
+        });
+      }
+
+      if (invertBtn) {
+        invertBtn.addEventListener('click', () => {
+          document.body.classList.toggle('dark-mode');
+          if (document.body.classList.contains('dark-mode')) {
+            invertBtn.classList.add('active');
+          } else {
+            invertBtn.classList.remove('active');
+          }
+        });
+      }
+
+      if (tapBtn) {
+        let tapTimes = [];
+        tapBtn.addEventListener('click', () => {
+          const now = performance.now();
+          tapTimes.push(now);
+          // Maintain last 4 taps
+          if (tapTimes.length > 4) {
+            tapTimes.shift();
+          }
+          if (tapTimes.length >= 2) {
+            const intervals = [];
+            for (let i = 1; i < tapTimes.length; i++) {
+              intervals.push(tapTimes[i] - tapTimes[i - 1]);
+            }
+            const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+            let bpm = Math.round(60000 / avgInterval);
+
+            // Limit BPM
+            if (bpm > 300) bpm = 300;
+            if (bpm < 30) bpm = 30;
+
+            const bpmEl = document.getElementById('bpmValue');
+            if (bpmEl) bpmEl.innerText = bpm;
+
+            // Apply to mandalaMachine if exists
+            const mm = window.mandalaMachine;
+            if (mm && mm.audioManager) {
+              if (typeof mm.audioManager.setBpm === 'function') {
+                mm.audioManager.setBpm(bpm);
+              } else {
+                mm.audioManager.bpm = bpm;
+                if (mm.audioManager.onBpmChange) mm.audioManager.onBpmChange(bpm);
+              }
+            } else if (mm && typeof mm.setBpm === 'function') {
+              mm.setBpm(bpm);
+            }
+          }
+
+          tapBtn.classList.add('active');
+          setTimeout(() => tapBtn.classList.remove('active'), 100);
+        });
+      }
+    })();
+    // ===== VJ Controls END =====
+  </script>
 </body>
 
 </html>
