@@ -529,6 +529,16 @@
     body.dark-mode #centerGlow {
       opacity: 0.5;
     }
+
+    /* INVERT Effect: Default White Canvas, INVERT = Black Canvas */
+    body.dark-mode #canvasWrapper {
+      filter: invert(1) hue-rotate(180deg);
+      transition: filter 0.1s ease;
+    }
+
+    body.dark-mode.canvas-black #canvasWrapper {
+      filter: none;
+    }
   </style>
   <script type="module" crossorigin src="./assets/index-Dwl_9uI6.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-_3glWkjg.css">
@@ -658,21 +668,20 @@
           <!-- ROW 1: モードボタン -->
           <div class="top-row top-row--modes">
             <button id="topAutoBtn" class="mode-btn" title="Auto Mode" data-i18n-title="auto">
-              <span class="icon symbol"></span>
               <span data-i18n="auto">AUTO</span>
             </button>
+            <div class="top-row-divider"></div>
             <button id="topAiBtn" class="mode-btn" title="Space Mode" data-i18n-title="space">
-              <span class="icon symbol"></span>
               <span data-i18n="space">SPACE</span>
             </button>
+            <div class="top-row-divider"></div>
             <button id="topMandalaBtn" class="mode-btn" title="Mandala Mode" aria-label="曼荼羅モードを切り替え"
               aria-pressed="false" role="switch" data-i18n-title="mandala">
-              <span class="icon symbol"></span>
               <span data-i18n="mandala">MANDALA</span>
             </button>
+            <div class="top-row-divider"></div>
             <div class="dropdown-container">
               <button id="topBlinkBtn" class="mode-btn" title="Strobe" data-i18n-title="blinkingMode">
-                <span class="icon symbol"></span>
                 <span data-i18n="strobe">STROBE</span>
               </button>
               <div id="blinkQuickMenu" class="quick-settings-menu minimal">
@@ -694,31 +703,24 @@
               </div>
             </div>
             <button id="topGravityBtn" class="mode-btn" title="Zero Gravity" data-i18n-title="zeroGravity">
-              <span class="icon symbol">⇪</span>
               <span data-i18n="gravity">ZERO GRAVITY</span>
             </button>
             <button id="topBrainHackBtn" class="mode-btn" title="Brain Hack Mode" data-i18n-title="brainhack">
-              <span class="icon symbol">⌬</span>
               <span data-i18n="brainhack">BRAIN HACK</span>
             </button>
             <button id="topRavenBtn" class="mode-btn" title="Raven Mode" data-i18n-title="raven">
-              <span class="icon symbol">◈</span>
               <span data-i18n="raven">RAVEN</span>
             </button>
             <button id="topQuantumBtn" class="mode-btn" title="Quantum Mode" data-i18n-title="quantum">
-              <span class="icon symbol"></span>
               <span data-i18n="quantum">QUANTUM</span>
             </button>
             <button id="topOrbitBtn" class="mode-btn" title="360° Orbit">
-              <span class="icon symbol">◎</span>
               <span>ORBIT</span>
             </button>
             <button id="topSpinBtn" class="mode-btn" title="Spin Mandala">
-              <span class="icon symbol"></span>
               <span>SPIN</span>
             </button>
             <button id="topBaryonBtn" class="mode-btn" title="Baryon Mode">
-              <span class="icon symbol">⊛</span>
               <span>BARYON</span>
             </button>
           </div>
@@ -726,80 +728,39 @@
           <!-- ROW 2: エフェクト＋ツール -->
           <div class="top-row top-row--tools">
             <button id="topGlitchBtn" class="mode-btn" title="GLITCH">
-              <span class="icon symbol">▓</span>
               <span>GLITCH</span>
             </button>
             <button id="topNoiseBtn" class="mode-btn" title="NOISE">
-              <span class="icon symbol">░</span>
               <span>NOISE</span>
             </button>
             <button id="topMosaicBtn" class="mode-btn" title="MOSAIC">
-              <span class="icon symbol">▦</span>
               <span>MOSAIC</span>
             </button>
             <button id="topResetBtn" class="mode-btn top-row--reset" title="RESET ALL">
-              <span class="icon symbol"></span>
               <span>RESET</span>
             </button>
 
             <div class="top-row-divider"></div>
 
             <button id="topSolidBtn" class="mode-btn active" title="Solid Mode" data-i18n-title="solid">
-              <span class="icon icon-solid"></span>
               <span data-i18n="solid">SOLID</span>
             </button>
             <button id="topWireBtn" class="mode-btn" title="Wireframe Mode" data-i18n-title="wire">
-              <span class="icon icon-wire"></span>
               <span data-i18n="wire">WIRE</span>
             </button>
             <button id="topMixBtn" class="mode-btn" title="Mixed Mode" data-i18n-title="mix">
-              <span class="icon icon-mix"></span>
               <span data-i18n="mix">MIX</span>
             </button>
 
             <div class="top-row-divider"></div>
 
-            <button id="topMicBtn" class="mode-btn" title="Mic Input">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                <line x1="12" y1="19" x2="12" y2="23"></line>
-                <line x1="8" y1="23" x2="16" y2="23"></line>
-              </svg>
-            </button>
-            <span id="midiStatus"
-              style="font-size: 14px; opacity: 0.3; transition: opacity 0.3s; display:flex; align-items:center;"
-              title="MIDI Not Connected">⌬</span>
-            <button id="topDarkModeBtn" class="mode-btn" title="Dark Mode">
-              <svg class="moon-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-              </svg>
-              <svg class="sun-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
-                <circle cx="12" cy="12" r="5"></circle>
-                <line x1="12" y1="1" x2="12" y2="3"></line>
-                <line x1="12" y1="21" x2="12" y2="23"></line>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                <line x1="1" y1="12" x2="3" y2="12"></line>
-                <line x1="21" y1="12" x2="23" y2="12"></line>
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-              </svg>
-            </button>
-            <div class="top-row-divider"></div>
             <button id="tapBpmBtn" class="mode-btn" title="Tap over time to set BPM">
-              <span class="icon symbol">⏱</span>
               <span>TAP</span>
             </button>
             <button id="invertBtn" class="mode-btn" title="Invert Colors">
-              <span class="icon symbol">◐</span>
               <span>INVERT</span>
             </button>
             <button id="glowBtn" class="mode-btn active" title="Toggle Center Glow Visibility">
-              <span class="icon symbol">☀</span>
               <span>GLOW</span>
             </button>
           </div>
@@ -879,7 +840,19 @@
           <input type="file" id="musicUpload" accept=".mp3,.wav,.ogg,.m4a,.aac,.flac,.aiff,.wma" style="display: none;">
           <button id="musicAddBtn" class="music-icon-btn" title="Open File"></button>
           <button id="musicPlayBtn" class="music-icon-btn" title="Play/Pause">▶</button>
-          <span id="musicTrackTitle">No Track Selected</span>
+          <button id="topMicBtn" class="music-icon-btn" title="Mic Input" style="margin-left: 8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="23"></line>
+              <line x1="8" y1="23" x2="16" y2="23"></line>
+            </svg>
+          </button>
+          <span id="midiStatus"
+            style="font-size: 14px; opacity: 0.3; transition: opacity 0.3s; display:flex; align-items:center; margin-left: 4px;"
+            title="MIDI Not Connected">⌬</span>
+          <span id="musicTrackTitle" style="margin-left: 8px;">No Track Selected</span>
           <div class="music-gain-control" style="display: flex; align-items: center; margin-left: 10px;">
             <label for="inputGainSlider" style="font-size: 10px; margin-right: 5px; color: #888;">GAIN</label>
             <input type="range" id="inputGainSlider" min="0" max="10.0" step="0.1" value="2.5" style="width: 60px;">
@@ -2351,8 +2324,8 @@
 
       if (invertBtn) {
         invertBtn.addEventListener('click', () => {
-          document.body.classList.toggle('dark-mode');
-          if (document.body.classList.contains('dark-mode')) {
+          document.body.classList.toggle('canvas-black');
+          if (document.body.classList.contains('canvas-black')) {
             invertBtn.classList.add('active');
           } else {
             invertBtn.classList.remove('active');
