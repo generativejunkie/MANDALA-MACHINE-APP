@@ -448,16 +448,9 @@ h3 {
     touch-action: none;
 }
 
-.machine-controls {
-    display: flex;
-    justify-content: center;
-    width: 100%;
-}
-
 .machine-controls.sound-controls {
     display: grid;
     gap: var(--space-md);
-    /* Ensure the grid itself takes full width but items are centered if they have max-width */
     justify-items: center;
 }
 
@@ -623,7 +616,9 @@ h3 {
 
 /* ==================== Controls ==================== */
 .machine-controls {
-    display: grid;
+    display: flex;
+    justify-content: center;
+    width: 100%;
     gap: var(--space-md);
     padding: var(--space-lg);
     border: 1px solid var(--color-border);
@@ -977,10 +972,10 @@ select {
 }
 
 .settings-header {
-    font-size: 14px;
+    font-size: var(--font-size-base);
     font-weight: 500;
-    margin-bottom: 16px;
-    color: var(--color-text);
+    margin-bottom: var(--space-md);
+    color: var(--color-text-primary);
     letter-spacing: -0.02em;
 }
 
@@ -995,11 +990,7 @@ select {
     margin-bottom: 8px;
 }
 
-.control-label {
-    font-size: 14px;
-    color: #666;
-    font-weight: 400;
-}
+/* .control-label は上部で定義済み（重複削除） */
 
 .control-value {
     font-family: var(--font-family-mono);
@@ -1712,10 +1703,7 @@ select {
     margin: 0 var(--space-md);
 }
 
-.settings-header {
-    margin-bottom: var(--space-md);
-    font-size: var(--font-size-base);
-}
+/* .settings-header は上部で定義済み（重複削除） */
 
 .drop-zone {
     position: absolute;
