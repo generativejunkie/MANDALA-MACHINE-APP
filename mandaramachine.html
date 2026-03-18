@@ -4711,6 +4711,8 @@ float fbm(vec2 p) {
   return v;
 }
 
+uniform float u_elasticity;
+
 void main() {
   float flowSpeed = 0.025 + (1.0 - u_viscosity) * 0.055;
   float flowAmp   = 0.0015 + (1.0 - u_viscosity) * 0.0055 + u_beat * 0.003;
@@ -4719,9 +4721,13 @@ void main() {
   float fy = fbm(v_uv * 2.2 + vec2(0.7, u_time * flowSpeed * 0.85) + vec2(4.1, 2.3)) - 0.5;
   vec2 flow = vec2(fx, fy) * flowAmp * 12.0;
 
-  // branchless: if (u_beat > 0.4) → max()
+  // branchless beat pulse
   float beatPulse = max(0.0, u_beat - 0.4);
   flow += (v_uv - 0.5) * beatPulse * 0.025;
+
+  // Kinetic Elasticity: 強いbeat peakでラジアル弾性キック (ゴム的バウンス)
+  float kick = smoothstep(0.55, 0.95, u_beat) * u_elasticity;
+  flow += (v_uv - 0.5) * kick * 0.10;
 
   vec2 prevUV = clamp(v_uv + flow, 0.001, 0.999);
   float blurR = (0.5 + (1.0 - u_viscosity) * 1.5) / min(u_res.x, u_res.y);
@@ -4746,6 +4752,8 @@ uniform float u_viscosity;
 uniform float u_beat;
 uniform vec2  u_res;
 uniform vec3  u_tint;
+uniform float u_time;
+uniform float u_elasticity;
 out vec4 fragColor;
 
 void main() {
@@ -4783,6 +4791,19 @@ void main() {
   result.rgb   = mix(result.rgb, u_tint, meniscus * (0.45 + u_tension * 0.45));
   result.rgb  += vec3(meniscus * mask * 0.22);
   result.rgb  += vec3(u_beat * 0.035 * mask);
+
+  // Chromatic Aberration — beat + elasticity でRGBチャンネルを勾配法線方向にずらす
+  float caStr = 0.004 * mask * (1.0 + u_beat * 1.5) * u_elasticity;
+  vec3 rgbSplit;
+  rgbSplit.r = texture(u_src, clamp(v_uv + gradN * caStr,        0.001, 0.999)).r;
+  rgbSplit.g = result.g;
+  rgbSplit.b = texture(u_src, clamp(v_uv - gradN * caStr * 0.7,  0.001, 0.999)).b;
+  result.rgb = mix(result.rgb, rgbSplit, meniscus * 0.6 + mask * 0.15);
+
+  // Film Grain — u_time でアニメーションするノイズ
+  float grain = fract(sin(dot(v_uv * 1000.0 + fract(u_time * 0.07), vec2(127.1, 311.7))) * 43758.5453) - 0.5;
+  result.rgb += grain * 0.018 * (1.0 - mask * 0.5);
+
   fragColor = clamp(result, 0.0, 1.0);
 }`;
 
@@ -4879,21 +4900,24 @@ void main() {
 
     // ── ユニフォームロケーション ────────────────────────────
     const uAdv = {
-      u_src:       gl.getUniformLocation(progAdvect,  'u_src'),
-      u_prev:      gl.getUniformLocation(progAdvect,  'u_prev'),
-      u_time:      gl.getUniformLocation(progAdvect,  'u_time'),
-      u_viscosity: gl.getUniformLocation(progAdvect,  'u_viscosity'),
-      u_beat:      gl.getUniformLocation(progAdvect,  'u_beat'),
-      u_res:       gl.getUniformLocation(progAdvect,  'u_res'),
+      u_src:        gl.getUniformLocation(progAdvect,  'u_src'),
+      u_prev:       gl.getUniformLocation(progAdvect,  'u_prev'),
+      u_time:       gl.getUniformLocation(progAdvect,  'u_time'),
+      u_viscosity:  gl.getUniformLocation(progAdvect,  'u_viscosity'),
+      u_beat:       gl.getUniformLocation(progAdvect,  'u_beat'),
+      u_res:        gl.getUniformLocation(progAdvect,  'u_res'),
+      u_elasticity: gl.getUniformLocation(progAdvect,  'u_elasticity'),
     };
     const uDisp = {
-      u_fbo:       gl.getUniformLocation(progDisplay, 'u_fbo'),
-      u_src:       gl.getUniformLocation(progDisplay, 'u_src'),
-      u_tension:   gl.getUniformLocation(progDisplay, 'u_tension'),
-      u_viscosity: gl.getUniformLocation(progDisplay, 'u_viscosity'),
-      u_beat:      gl.getUniformLocation(progDisplay, 'u_beat'),
-      u_res:       gl.getUniformLocation(progDisplay, 'u_res'),
-      u_tint:      gl.getUniformLocation(progDisplay, 'u_tint'),
+      u_fbo:        gl.getUniformLocation(progDisplay, 'u_fbo'),
+      u_src:        gl.getUniformLocation(progDisplay, 'u_src'),
+      u_tension:    gl.getUniformLocation(progDisplay, 'u_tension'),
+      u_viscosity:  gl.getUniformLocation(progDisplay, 'u_viscosity'),
+      u_beat:       gl.getUniformLocation(progDisplay, 'u_beat'),
+      u_res:        gl.getUniformLocation(progDisplay, 'u_res'),
+      u_tint:       gl.getUniformLocation(progDisplay, 'u_tint'),
+      u_time:       gl.getUniformLocation(progDisplay, 'u_time'),
+      u_elasticity: gl.getUniformLocation(progDisplay, 'u_elasticity'),
     };
 
     // ── プリセット ──────────────────────────────────────────
@@ -4988,10 +5012,11 @@ void main() {
       gl.useProgram(progAdvect);
       gl.uniform1i(uAdv.u_src,       0);
       gl.uniform1i(uAdv.u_prev,      1);
-      gl.uniform1f(uAdv.u_time,      t);
-      gl.uniform1f(uAdv.u_viscosity, viscosity);
-      gl.uniform1f(uAdv.u_beat,      beat);
-      gl.uniform2f(uAdv.u_res,       simW, simH);
+      gl.uniform1f(uAdv.u_time,       t);
+      gl.uniform1f(uAdv.u_viscosity,  viscosity);
+      gl.uniform1f(uAdv.u_beat,       beat);
+      gl.uniform2f(uAdv.u_res,        simW, simH);
+      gl.uniform1f(uAdv.u_elasticity, getSlider('warpIntensitySlider', 3));
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, srcTex);
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, readTex);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -5003,11 +5028,13 @@ void main() {
       gl.useProgram(progDisplay);
       gl.uniform1i(uDisp.u_fbo,       0);
       gl.uniform1i(uDisp.u_src,       1);
-      gl.uniform1f(uDisp.u_tension,   tension);
-      gl.uniform1f(uDisp.u_viscosity, viscosity);
-      gl.uniform1f(uDisp.u_beat,      beat);
-      gl.uniform2f(uDisp.u_res,       simW, simH);  // Sobel用にsim解像度を渡す
-      gl.uniform3f(uDisp.u_tint,      currentTint[0], currentTint[1], currentTint[2]);
+      gl.uniform1f(uDisp.u_tension,    tension);
+      gl.uniform1f(uDisp.u_viscosity,  viscosity);
+      gl.uniform1f(uDisp.u_beat,       beat);
+      gl.uniform2f(uDisp.u_res,        simW, simH);  // Sobel用にsim解像度を渡す
+      gl.uniform3f(uDisp.u_tint,       currentTint[0], currentTint[1], currentTint[2]);
+      gl.uniform1f(uDisp.u_time,       t);
+      gl.uniform1f(uDisp.u_elasticity, getSlider('warpIntensitySlider', 3));
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texFBO[pingPong]);
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, srcTex);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
