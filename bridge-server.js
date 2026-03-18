@@ -711,6 +711,47 @@ app.post('/api/agent/status', (req, res) => {
 });
 // --- PROJECT DASHBOARD API END ---
 
+// ── MJPEG STREAM — VJ出力を TouchDesigner / OBS / VLC にゼロレイテンシ配信 ──
+const mjpegClients = new Set();
+let _latestFrame   = null;   // 最新フレームBuffer (再接続時に即送信)
+let _streamFps     = 0;      // 統計用
+let _frameCount    = 0;
+setInterval(() => { _streamFps = _frameCount; _frameCount = 0; }, 1000);
+
+// GET /stream — multipart/x-mixed-replace MJPEG
+// TouchDesigner: videoinstreamDAT → URL: http://localhost:8000/stream
+// OBS: メディアソース → ネットワーク URL
+// VLC: ネットワークストリームを開く
+app.get('/stream', (req, res) => {
+    res.setHeader('Content-Type',  'multipart/x-mixed-replace; boundary=frame');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Connection',    'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.flushHeaders();
+    mjpegClients.add(res);
+    // 接続直後に最新フレームを即送信
+    if (_latestFrame) {
+        try {
+            res.write(`--frame\r\nContent-Type: image/jpeg\r\nContent-Length: ${_latestFrame.length}\r\n\r\n`);
+            res.write(_latestFrame);
+            res.write('\r\n');
+        } catch(e) {}
+    }
+    req.on('close', () => mjpegClients.delete(res));
+    req.on('error', () => mjpegClients.delete(res));
+    console.log(`[STREAM] Client connected — total: ${mjpegClients.size}`);
+});
+
+// GET /stream/info — ステータス確認
+app.get('/stream/info', (req, res) => {
+    res.json({
+        url:     'http://localhost:8000/stream',
+        clients: mjpegClients.size,
+        fps:     _streamFps,
+        active:  _latestFrame !== null
+    });
+});
+
 io.on('connection', (socket) => {
     console.log('[BRIDGE] Web Client Connected');
 
@@ -718,6 +759,21 @@ io.on('connection', (socket) => {
     socket.on('client-broadcast', (data) => {
         console.log(`[BRIDGE] Relay Broadcast: ${data.type}`);
         socket.broadcast.emit('command-relay', data);
+    });
+
+    // ── SYPHON OUT: レンダラーからのJPEGフレームをMJPEGクライアントへ配信 ──
+    socket.on('video-frame', (jpegDataURL) => {
+        if (mjpegClients.size === 0) return;  // 視聴者がいないなら処理しない
+        try {
+            const b64start = jpegDataURL.indexOf(',') + 1;
+            _latestFrame = Buffer.from(jpegDataURL.slice(b64start), 'base64');
+            _frameCount++;
+            const header = `--frame\r\nContent-Type: image/jpeg\r\nContent-Length: ${_latestFrame.length}\r\n\r\n`;
+            mjpegClients.forEach(res => {
+                try { res.write(header); res.write(_latestFrame); res.write('\r\n'); }
+                catch(e) { mjpegClients.delete(res); }
+            });
+        } catch(e) {}
     });
 });
 

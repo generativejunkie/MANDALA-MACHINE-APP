@@ -1278,6 +1278,7 @@
           <span class="stat-item">BPM: <span id="bpmValue" style="color:#ff4d6d;font-size:1.3em;font-weight:700;letter-spacing:0.05em;">--</span></span>
           <span class="stat-item">FPS: <span id="fpsValue">60</span></span>
           <button id="vOutBtn" class="v-out-btn" title="Projector Output">V-OUT</button>
+          <button id="syphonOutBtn" class="v-out-btn" title="MJPEG Stream → TouchDesigner / OBS / VLC&#10;URL: http://localhost:8000/stream" style="margin-left:4px;opacity:0.7;">SYPHON</button>
         </div>
         </div><!-- /musicPanelRow1 -->
 
@@ -5258,6 +5259,82 @@ void main() {
     };
 
     console.log('[LIQUID] Ready — HALF_FLOAT:', !!extHF, '| VAO | Resolution Scaling');
+  })();
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SYPHON OUT — MJPEG stream to TouchDesigner / OBS / VLC
+       URL: http://localhost:8000/stream
+       ═══════════════════════════════════════════════════════ -->
+  <script src="http://localhost:8000/socket.io/socket.io.js"></script>
+  <script>
+  (function initSyphonOut() {
+    const btn = document.getElementById('syphonOutBtn');
+    if (!btn) return;
+
+    let _active  = false;
+    let _socket  = null;
+    let _rafId   = null;
+    let _lastT   = 0;
+    let _fpsTarget = 30;           // 送信FPS (変更可能)
+    const _interval = () => 1000 / _fpsTarget;
+
+    // 送信対象キャンバスを取得（Liquid overlay → mandala canvas の順で優先）
+    function getCanvas() {
+      const liquid = document.getElementById('liquidCanvas');
+      if (liquid && liquid.style.display !== 'none') return liquid;
+      return document.querySelector('#canvasContainer canvas');
+    }
+
+    function connectSocket() {
+      if (_socket?.connected) return;
+      _socket = io('http://localhost:8000', { transports: ['websocket'] });
+      _socket.on('connect',    () => console.log('[SYPHON] Socket connected'));
+      _socket.on('disconnect', () => console.log('[SYPHON] Socket disconnected'));
+    }
+
+    function captureLoop(now) {
+      if (!_active) return;
+      _rafId = requestAnimationFrame(captureLoop);
+      if (now - _lastT < _interval()) return;
+      _lastT = now;
+
+      const canvas = getCanvas();
+      if (!canvas || !_socket?.connected) return;
+      try {
+        // JPEG quality 0.80 — 画質とサイズのバランス
+        const jpeg = canvas.toDataURL('image/jpeg', 0.80);
+        _socket.emit('video-frame', jpeg);
+      } catch(e) { /* cross-origin等は無視 */ }
+    }
+
+    function start() {
+      if (_active) return;
+      _active = true;
+      connectSocket();
+      requestAnimationFrame(captureLoop);
+      btn.classList.add('active');
+      btn.style.opacity = '1';
+      btn.textContent = 'SYPHON●';
+      console.log('[SYPHON] OUT started — http://localhost:8000/stream');
+      console.log('[SYPHON] TouchDesigner: videoinstreamDAT → http://localhost:8000/stream');
+      console.log('[SYPHON] OBS: メディアソース → ネットワークURL → http://localhost:8000/stream');
+    }
+
+    function stop() {
+      if (!_active) return;
+      _active = false;
+      if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
+      btn.classList.remove('active');
+      btn.style.opacity = '0.7';
+      btn.textContent = 'SYPHON';
+      console.log('[SYPHON] OUT stopped');
+    }
+
+    btn.addEventListener('click', () => _active ? stop() : start());
+
+    // パブリック API (コンソールから操作可)
+    window.syphonOut = { start, stop, setFps: fps => { _fpsTarget = fps; } };
   })();
   </script>
 </body>
