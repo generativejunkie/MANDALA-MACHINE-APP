@@ -2163,14 +2163,14 @@
         if (!mm || !btn) return setTimeout(applyReset, 200);
 
         btn.addEventListener('click', () => {
-          // 全モードボタンのアクティブ状態を解除
+          // ── 1. 全モードボタンのアクティブ状態を解除 ─────────
           document.querySelectorAll('.mode-btn.active').forEach(b => b.classList.remove('active'));
 
-          // autoModeを先にOFF（背景色リセットのため）
+          // ── 2. autoModeを先にOFF（背景色リセットのため） ───
           mm.toggleAutoMode(false);
           mm.setSpaceMode(false);
 
-          // アプリ全体をリセット
+          // ── 3. アプリ全体をリセット ─────────────────────────
           mm.clearAll();
           mm.toggleBaryonMode(false);
           mm.setMandalaMode(false);
@@ -2191,28 +2191,66 @@
           mm.setContrast(100);
           mm.setSaturation(100);
 
-          // 背景を白に強制セット
+          // ── 4. 背景を白に強制セット ──────────────────────────
           mm.setBackgroundColor({ r: 255, g: 255, b: 255 });
 
-          // カラースライダーをリセット
+          // ── 5. カラースライダーをリセット ────────────────────
           ['colorR', 'colorG', 'colorB'].forEach(id => {
             const el = document.getElementById(id);
             if (el) { el.value = 0; el.dispatchEvent(new Event('input', { bubbles: true })); }
           });
 
-          // 全モード強制OFFを最後に念押し（非同期処理の後に確実にOFFにするため）
+          // ── 6. VJ Motion スライダーをデフォルト値にリセット ──
+          // [sliderId, valueLabelId, defaultVal]
+          const VJ_DEFAULTS = [
+            ['warpIntensitySlider',   'warpIntensityValue',   3  ],
+            ['liquidViscositySlider', 'liquidViscosityValue', 3  ],
+            ['elasticitySlider',      'elasticityValue',      3  ],
+            ['audioReactSlider',      'audioReactValue',      2.5],
+          ];
+          VJ_DEFAULTS.forEach(([id, valId, def]) => {
+            const sl = document.getElementById(id);
+            const vl = document.getElementById(valId);
+            if (sl) { sl.value = def; sl.dispatchEvent(new Event('input', { bubbles: true })); }
+            if (vl) vl.textContent = parseFloat(def).toFixed(1);
+          });
+
+          // QUALITY スライダーを MED (2) にリセット
+          const qSlider = document.getElementById('simQualitySlider');
+          const qLabel  = document.getElementById('simQualityValue');
+          if (qSlider) { qSlider.value = 2; qSlider.dispatchEvent(new Event('input', { bubbles: true })); }
+          if (qLabel)  qLabel.textContent = 'MED';
+
+          // ── 7. Liquid シェーダーをOFF・タイマーリセット ──────
+          // uTime の累積は toggleLiquidMode(false→true) 時に startTime が再設定される
+          window.toggleLiquidMode?.(false);
+
+          // ── 8. VJ プリセット / モーションボタン highlight解除 ─
+          document.querySelectorAll('.vj-preset-item, .vj-motion-btn').forEach(b => b.classList.remove('active'));
+
+          // ── 9. localStorage: 描画パラメータ用キーをクリア ────
+          // ※ vjSceneSlots_v1 はユーザー保存シーンなので保持
+          // ※ TIME TABLE の SCHEDULE データはIIFEプライベートスコープ内にあり
+          //    localStorage にも window にも露出しないため自動的に保護される
+          const PRESERVE_KEYS = new Set(['vjSceneSlots_v1']);
+          Object.keys(localStorage).forEach(k => {
+            if (!PRESERVE_KEYS.has(k)) localStorage.removeItem(k);
+          });
+
+          // ── 10. 全モード強制OFFを念押し（非同期処理の後） ────
           setTimeout(() => {
             mm.toggleAutoMode(false);
             mm.setMandalaMode(false);
             mm.setSpaceMode(false);
-            mm.state.autoMode = false;
+            mm.state.autoMode    = false;
             mm.state.mandalaMode = false;
-            mm.state.spaceMode = false;
+            mm.state.spaceMode   = false;
             document.querySelectorAll('.mode-btn.active').forEach(b => b.classList.remove('active'));
             mm.setBackgroundColor({ r: 255, g: 255, b: 255 });
           }, 100);
 
           console.log('RESET complete');
+          console.log('State Reset: CSV data preserved.');
         });
 
         console.log('Reset button ready');
