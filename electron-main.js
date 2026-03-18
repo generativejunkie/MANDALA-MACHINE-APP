@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, screen, session } = require('electron');
 const path = require('path');
+const osc  = require('./osc-bridge');
 
 // GPU パフォーマンス最適化（高解像度 V-OUT 用）
 app.commandLine.appendSwitch('enable-gpu-rasterization');
@@ -142,6 +143,27 @@ ipcMain.on('popup-request-fullscreen', (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   if (win) win.setFullScreen(true);
 });
+
+// ── OSC IPC handlers ──────────────────────────────────────────────────────
+// Renderer → ipcRenderer.send('osc', '/addr', arg0, arg1, ...)
+ipcMain.on('osc', (event, address, ...args) => {
+    osc.send(address, args);
+});
+
+// Renderer requests connect/disconnect
+ipcMain.on('osc-connect', (event, host, port) => {
+    osc.connect(host, port);
+});
+
+// Relay connection status back to renderer
+osc.setStatusCallback((connected, host, port) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('osc-status', { connected, host, port });
+    }
+});
+
+// Auto-connect on startup (TouchDesigner default port)
+osc.connect('127.0.0.1', 10000);
 
 app.on('ready', createWindow);
 
