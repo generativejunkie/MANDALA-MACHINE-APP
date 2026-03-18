@@ -1028,12 +1028,20 @@
             <input type="range" id="gravitySpeedSeekbar" min="0.1" max="3" step="0.1" value="0.1">
           </div>
           <div class="seekbar-item" id="spaceCountSeekbar" style="display: none;">
-            <label>Stars: <span id="spaceCountValue">1000</span></label>
-            <input type="range" id="spaceCountSlider" min="100" max="3000" step="100" value="1000">
+            <label>Stars: <span id="spaceCountValue">3000</span></label>
+            <input type="range" id="spaceCountSlider" min="100" max="3000" step="100" value="3000">
           </div>
           <div class="seekbar-item" id="spaceSizeSeekbar" style="display: none;">
             <label>Star Size: <span id="spaceSizeValue">2.0</span></label>
             <input type="range" id="spaceSizeSlider" min="0.5" max="10" step="0.5" value="2">
+          </div>
+          <div class="seekbar-item" id="spaceDistSeekbar" style="display: none;">
+            <label>Distance: <span id="spaceDistValue">450</span></label>
+            <input type="range" id="spaceDistSlider" min="50" max="600" step="10" value="450">
+          </div>
+          <div class="seekbar-item" id="spaceAutoShapeSeekbar" style="display: none;">
+            <label>Auto Shape: <span id="spaceAutoShapeValue">OFF</span></label>
+            <input type="range" id="spaceAutoShapeSlider" min="0" max="10" step="1" value="0">
           </div>
           <div class="seekbar-item" id="spaceShapeSeekbar" style="display: none;">
             <label style="justify-content:space-between;">
@@ -2030,8 +2038,11 @@
         const sm = () => mm.sceneManager;
 
         // ── 1. InstancedMesh ベースの高速星空 ────────────────────────
-        let _starSize       = 2;
-        let _starCount      = 1000;
+        let _starSize       = 2.0;
+        let _starCount      = 3000;
+        let _starSpread     = 450;
+        let _starAutoShapeSpeed = 0;  // 0=off, 1-10
+        let _starAutoShapeTimer = null;
         let _starMatIndex   = 0;
         let _starRotSpeed   = 0.0003;
         let _starRafId      = null;
@@ -2045,11 +2056,19 @@
         let _starSolidMat   = null;
         let _starWireMat    = null;
 
+        // Float32Array で位置を管理
+        let _starPositions = null;
+        let _starRotAngles = null;
+        let _starDummy     = null;
+        let _starCount_act = 0;
+
         // スライダー初期値同期
         const _sizeSliderEl  = document.getElementById('spaceSizeSlider');
         const _countSliderEl = document.getElementById('spaceCountSlider');
+        const _distSliderEl  = document.getElementById('spaceDistSlider');
         if (_sizeSliderEl)  { _sizeSliderEl.value  = _starSize;  document.getElementById('spaceSizeValue').textContent  = _starSize.toFixed(1); }
         if (_countSliderEl) { _countSliderEl.value = _starCount; document.getElementById('spaceCountValue').textContent = _starCount; }
+        if (_distSliderEl)  { _distSliderEl.value  = _starSpread; document.getElementById('spaceDistValue').textContent = _starSpread; }
         const _aiSliderEl = document.getElementById('aiSpeedSeekbar');
         if (_aiSliderEl)  _starRotSpeed = parseFloat(_aiSliderEl.value) * 0.00005;
 
@@ -2062,13 +2081,6 @@
           }
           return 1;
         }
-
-        // Float32Array で位置を管理（THREE.js Vector3 読み書きを回避）
-        let _starPositions = null; // [x,y,z] * count
-        let _starRotAngles = null; // [rx,ry,rz] * count
-        let _starIMesh     = null; // InstancedMesh (使える場合)
-        let _starDummy     = null; // Object3D dummy（行列計算用）
-        let _starCount_act = 0;   // 実際に生成した数
 
         // DOM参照キャッシュ（毎フレームgetElementById回避）
         const _domBpmAuto = document.getElementById('autoBpmBtn');
@@ -2084,11 +2096,35 @@
           return m;
         }
 
+        // SPACE ON中に非表示にしたシーンオブジェクトを記憶
+        let _hiddenSceneObjects = [];
+
+        function hideSceneObjects() {
+          const scene = sm()?.scene;
+          if (!scene) return;
+          _hiddenSceneObjects = [];
+          scene.traverse(obj => {
+            if (obj === scene) return;
+            if (obj.isLight || obj.isCamera) return;
+            if (obj.visible) {
+              obj.visible = false;
+              _hiddenSceneObjects.push(obj);
+            }
+          });
+        }
+
+        function restoreSceneObjects() {
+          _hiddenSceneObjects.forEach(obj => { try { obj.visible = true; } catch(e) {} });
+          _hiddenSceneObjects = [];
+        }
+
         function createStarField() {
           removeStarField();
           const scene = sm()?.scene;
           if (!scene || !window.MATERIALS?.length) return;
           _starScene = scene;
+          // 既存MANDALAオブジェクトを全て非表示（SPACE独立表示）
+          hideSceneObjects();
 
           const matDef = window.MATERIALS[_starMatIndex % window.MATERIALS.length];
           if (!matDef?.create3D) return;
@@ -2103,12 +2139,12 @@
           _starSolidMat = makeMat(baseMat, false);
           _starWireMat  = makeMat(baseMat, true);
 
-          const baseScale = mm.state?.sizeMultiplier ? Math.abs(mm.state.sizeMultiplier) * 0.15 : 0.15;
+          const baseScale = mm.state?.sizeMultiplier ? Math.abs(mm.state.sizeMultiplier) * 0.5 : 0.5;
           const scale     = baseScale * _starSize;
           _starBaseScale  = scale;
-          const count     = Math.min(_starCount, 1000);
+          const count     = Math.min(_starCount, 3000);
           _starCount_act  = count;
-          const spread    = 200;
+          const spread    = _starSpread;
 
           _starPositions = new Float32Array(count * 3);
           _starRotAngles = new Float32Array(count * 3);
@@ -2184,6 +2220,8 @@
           if (Array.isArray(_starGroup)) { _starGroup.forEach(m => scene?.remove(m)); _starGroup = null; }
           _starPositions = null; _starRotAngles = null; _starDummy = null;
           _starScene = null;
+          // 非表示にしていたMANDALAオブジェクトを復元
+          restoreSceneObjects();
         }
 
         function _getBpm() {
@@ -2285,7 +2323,7 @@
         document.getElementById('spaceSizeSlider')?.addEventListener('input', function() {
           _starSize = parseFloat(this.value);
           document.getElementById('spaceSizeValue').textContent = _starSize.toFixed(1);
-          const baseScale = mm.state?.sizeMultiplier ? Math.abs(mm.state.sizeMultiplier) * 0.15 : 0.15;
+          const baseScale = mm.state?.sizeMultiplier ? Math.abs(mm.state.sizeMultiplier) * 0.5 : 0.5;
           const scale = baseScale * _starSize;
           _starBaseScale = scale;
           if (Array.isArray(_starGroup)) _starGroup.forEach(m => m.scale.setScalar(scale));
@@ -2301,6 +2339,38 @@
         // ── 4. AI Speed → 回転速度 ──────────────────────────────────
         document.getElementById('aiSpeedSeekbar')?.addEventListener('input', function() {
           _starRotSpeed = parseFloat(this.value) * 0.00005;
+        });
+
+        // ── Distance スライダー ──────────────────────────────────────
+        document.getElementById('spaceDistSlider')?.addEventListener('input', function() {
+          _starSpread = parseInt(this.value);
+          document.getElementById('spaceDistValue').textContent = _starSpread;
+          removeStarField();
+          createStarField();
+        });
+
+        // ── Auto Shape スライダー ─────────────────────────────────────
+        function startAutoShapeTimer() {
+          if (_starAutoShapeTimer) clearInterval(_starAutoShapeTimer);
+          if (_starAutoShapeSpeed <= 0) return;
+          const interval = Math.round(6000 / _starAutoShapeSpeed); // speed1=6s, speed10=0.6s
+          _starAutoShapeTimer = setInterval(() => {
+            if (!_spaceEnabled) return;
+            const len = window.MATERIALS?.length || 48;
+            _starMatIndex = Math.floor(Math.random() * len);
+            const slider = document.getElementById('spaceShapeSlider');
+            if (slider) { slider.value = _starMatIndex + 1; document.getElementById('spaceShapeValue').textContent = slider.value; }
+            removeStarField();
+            createStarField();
+          }, interval);
+        }
+
+        document.getElementById('spaceAutoShapeSlider')?.addEventListener('input', function() {
+          _starAutoShapeSpeed = parseInt(this.value);
+          const label = _starAutoShapeSpeed === 0 ? 'OFF' : _starAutoShapeSpeed;
+          document.getElementById('spaceAutoShapeValue').textContent = label;
+          if (_starAutoShapeTimer) { clearInterval(_starAutoShapeTimer); _starAutoShapeTimer = null; }
+          startAutoShapeTimer();
         });
 
         // ── 5. Shape スライダー ──────────────────────────────────────
@@ -2351,34 +2421,40 @@
         function applySpaceToggle(enabling) {
           if (!enabling) {
             removeStarField();
-            document.getElementById('spaceCountSeekbar').style.display = 'none';
-            document.getElementById('spaceSizeSeekbar').style.display = 'none';
-            document.getElementById('spaceShapeSeekbar').style.display = 'none';
+            if (_starAutoShapeTimer) { clearInterval(_starAutoShapeTimer); _starAutoShapeTimer = null; }
+            ['spaceCountSeekbar','spaceSizeSeekbar','spaceDistSeekbar','spaceAutoShapeSeekbar','spaceShapeSeekbar']
+              .forEach(id => { document.getElementById(id).style.display = 'none'; });
+            // modeSeekbars コンテナ: 他のシークバーが全て非表示なら隠す
+            const sbContainer = document.getElementById('modeSeekbars');
+            if (sbContainer) {
+              const anyVisible = Array.from(sbContainer.querySelectorAll('.seekbar-item'))
+                .some(el => el.style.display !== 'none' && el.offsetParent !== null);
+              if (!anyVisible) sbContainer.style.display = 'none';
+            }
             return;
           }
-          // SPACE ON 時は MANDALA を強制オフ
-          if (mm.state && mm.state.mandalaMode) {
-            mm.state.mandalaMode = false;
-          }
-          if (typeof mm.toggleMandalaMode === 'function') {
-            try { mm.toggleMandalaMode(false); } catch(e) {}
-          }
+          // SPACE ON 時は MANDALA を完全オフ
+          try { mm.setMandalaMode(false); } catch(e) {}
+          mm.state.mandalaMode = false;
+          const mandalaCheckbox = document.getElementById('mandalaMode');
+          if (mandalaCheckbox) mandalaCheckbox.checked = false;
           const mandalaBtn = document.getElementById('topMandalaBtn');
-          if (mandalaBtn?.classList.contains('active')) {
-            mandalaBtn.classList.remove('active');
-          }
+          if (mandalaBtn) mandalaBtn.classList.remove('active');
           setTimeout(() => {
             // スライダー現在値を変数に同期
             _starSize  = parseFloat(document.getElementById('spaceSizeSlider').value);
             _starCount = parseInt(document.getElementById('spaceCountSlider').value);
+            _starSpread = parseInt(document.getElementById('spaceDistSlider')?.value || 200);
             document.getElementById('spaceSizeValue').textContent = _starSize.toFixed(1);
             document.getElementById('spaceCountValue').textContent = _starCount;
+            document.getElementById('spaceDistValue').textContent = _starSpread;
             // スライダー上限をマテリアル数に合わせる
             initShapeSlider();
-            // seekbar 表示
-            document.getElementById('spaceCountSeekbar').style.display = '';
-            document.getElementById('spaceSizeSeekbar').style.display = '';
-            document.getElementById('spaceShapeSeekbar').style.display = '';
+            // seekbar コンテナ + 各アイテム表示
+            const sbContainer = document.getElementById('modeSeekbars');
+            if (sbContainer) sbContainer.style.display = '';
+            ['spaceCountSeekbar','spaceSizeSeekbar','spaceDistSeekbar','spaceAutoShapeSeekbar','spaceShapeSeekbar']
+              .forEach(id => { document.getElementById(id).style.display = ''; });
             // 星空生成
             createStarField();
           }, 150);
@@ -2412,17 +2488,59 @@
         };
         mm.setSpaceMode = function(enabled) { setSpaceOnly(!!enabled); };
 
-        // ── 5. キーボード Space キーが MANDALA を起動する問題を修正 ────────
-        // アクセシビリティハンドラーが Space キー → topMandalaBtn.click() を実行するため上書き
+        // SPACEボタンに明示的にバインド（capture=trueで元のハンドラより先に実行）
+        const spaceTopBtn = document.getElementById('topAiBtn');
+        if (spaceTopBtn) {
+          spaceTopBtn.addEventListener('click', function(e) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            setSpaceOnly(!_spaceEnabled);
+          }, true);
+
+          // bundled JS が spaceMode=false を見て active クラスを消すのを MutationObserver で監視・復元
+          const spaceObserver = new MutationObserver(() => {
+            if (_spaceEnabled && !spaceTopBtn.classList.contains('active')) {
+              spaceTopBtn.classList.add('active');
+            }
+          });
+          spaceObserver.observe(spaceTopBtn, { attributes: true, attributeFilter: ['class'] });
+        }
+
+        // SPACE中はMANDALAボタンを押しても無効化
+        const mandalaBtn = document.getElementById('topMandalaBtn');
+        if (mandalaBtn) {
+          mandalaBtn.addEventListener('click', function(e) {
+            if (_spaceEnabled) {
+              e.stopImmediatePropagation();
+              e.preventDefault();
+              // MANDALAが再起動しないよう念押し
+              setTimeout(() => {
+                try { mm.setMandalaMode(false); } catch(err) {}
+                mm.state.mandalaMode = false;
+                this.classList.remove('active');
+              }, 0);
+            }
+          }, true);
+        }
+
+        // ── 5. スペースキー → SPACE モードトグル & ボタン点灯 ────────
         document.addEventListener('keydown', function(e) {
           if (e.code === 'Space' && !e.repeat &&
               !(e.target instanceof HTMLInputElement) &&
               !(e.target instanceof HTMLTextAreaElement)) {
-            // Space キーのデフォルト動作（MANDALA起動）を完全に無効化
             e.stopImmediatePropagation();
             e.preventDefault();
+            // SPACEトグル
+            const enabling = !_spaceEnabled;
+            setSpaceOnly(enabling);
+            // SPACEボタンを一瞬フラッシュ
+            const spaceBtn = document.getElementById('topAiBtn');
+            if (spaceBtn) {
+              spaceBtn.classList.add('star-beat-flash');
+              setTimeout(() => spaceBtn.classList.remove('star-beat-flash'), 150);
+            }
           }
-        }, true); // capture=true で他のハンドラーより先に実行
+        }, true);
       }
 
       if (document.readyState === 'loading') {
