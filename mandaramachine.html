@@ -801,10 +801,8 @@
         <input type="file" id="mediaUpload" accept="image/*,video/*" style="display: none;">
       </div>
       <div class="text-input-section">
-        <div style="display: flex; gap: 5px; margin-bottom: 5px;">
-          <input type="text" id="canvasText" placeholder="Enter DJ Name..." maxlength="50" style="flex: 1;">
-          <button id="sendTextBtn"
-            style="padding: 0 5px; background: none; border: 1px solid #444; border-radius: 2px; cursor: pointer;"></button>
+        <div style="margin-bottom: 5px;">
+          <input type="text" id="canvasText" placeholder="Enter DJ Name..." maxlength="50" style="width: 100%; box-sizing: border-box;">
         </div>
         <div class="dj-name-toggle-container" style="display: flex; gap: 4px; margin-top: 8px;">
           <button id="djNameOnBtn" class="mode-tag-btn">ON</button>
@@ -824,9 +822,28 @@
         </div>
       </div>
 
-
-
+      <!-- ── TIME TABLE ─────────────────────────────────────────── -->
       <div class="panel-header" style="margin-top: 20px;">
+        <h3>TIME TABLE</h3>
+      </div>
+      <div style="padding: 0 10px 12px; font-family: 'Courier New', monospace;">
+        <div id="ttPanelBody" style="font-size: 11px;"></div>
+        <!-- ボタン行 -->
+        <div style="display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap;">
+          <button id="ttOverlayToggleBtn" class="mode-tag-btn active" style="font-size: 9px; letter-spacing: 1px;">OVERLAY ON</button>
+          <button id="ttCsvExportBtn"     class="mode-tag-btn"        style="font-size: 9px; letter-spacing: 1px;">CSV OUT</button>
+          <button id="ttCsvImportBtn"     class="mode-tag-btn"        style="font-size: 9px; letter-spacing: 1px;">CSV IN</button>
+          <button id="ttClearBtn"         class="mode-tag-btn"        style="font-size: 9px; letter-spacing: 1px; color:#f66;">CLEAR</button>
+        </div>
+        <!-- CSV インポートエリア（隠し） -->
+        <div id="ttImportArea" style="display:none; margin-top:10px;">
+          <input type="file" id="ttCsvFile" accept=".csv,text/csv" style="display:none;">
+          <button id="ttCsvFileBtn" class="mode-tag-btn active" style="width:100%; font-size:9px; letter-spacing:2px;">ファイルを選択</button>
+          <p id="ttCsvFileName" style="font-size:9px; color:#555; margin:5px 0 0; text-align:center; letter-spacing:1px;">未選択</p>
+        </div>
+      </div>
+
+      <div class="panel-header" style="margin-top: 0px;">
         <h3 data-i18n="autoBg">AUTO BG</h3>
       </div>
       <div class="auto-bg-controls"
@@ -954,13 +971,7 @@
 
           <!-- ROW 2: エフェクト＋ツール -->
           <div class="top-row top-row--tools">
-            <button id="topGlitchBtn" class="mode-btn" title="GLITCH">
-              <span>GLITCH</span>
-            </button>
-            <button id="topNoiseBtn" class="mode-btn" title="NOISE">
-              <span>NOISE</span>
-            </button>
-            <button id="topMosaicBtn" class="mode-btn" title="MOSAIC">
+            <button id="topPixelateBtn" class="mode-btn" title="PIXELATE">
               <span>MOSAIC</span>
             </button>
 
@@ -998,6 +1009,12 @@
             </button>
             <button id="blackoutBtn" class="mode-btn" title="Blackout [B]" style="color:#ff4444;border-color:#ff4444;">
               <span>BLACKOUT</span>
+            </button>
+
+            <div class="top-row-divider"></div>
+
+            <button id="timetableBtn" class="mode-btn" title="TIME TABLE" style="min-width:56px;">
+              <span>TIME</span>
             </button>
 
             <div class="top-row-divider"></div>
@@ -1190,6 +1207,14 @@
         <div class="slider-wrapper">
           <input type="range" id="size" min="0.5" max="2" step="0.1" value="1">
           <span id="sizeValue">1.0×</span>
+        </div>
+      </div>
+
+      <div class="menu-section" id="rightAutoShapeSection">
+        <h3>AUTO SHAPE</h3>
+        <div class="slider-wrapper">
+          <input type="range" id="rightAutoShapeSlider" min="0" max="10" step="1" value="0">
+          <span id="rightAutoShapeValue">OFF</span>
         </div>
       </div>
 
@@ -1508,54 +1533,55 @@
           sm.clearMeshCache();
         };
 
-        // 2. 30秒ごとに自動GC（形状切り替え時の残骸を解放）
+        // 2. 60秒ごとに自動GC（setIntervalに変更 - RAFループ不要）
         setInterval(() => {
           if (!mm.state?.isPlaying) return;
-          const before = sm.renderer?.info?.memory?.geometries || 0;
           sm.clearMeshCache();
-          const after = sm.renderer?.info?.memory?.geometries || 0;
-          if (before > after) console.log('GC: ' + before + ' -> ' + after + ' geometries');
-        }, 30000);
+        }, 60000);
 
-        // 3. FPS監視 - 30FPS以下が3秒続いたら自動GC
+        // 3. FPS監視 → setIntervalで軽量化（RAFループを廃止）
         let lowFpsCount = 0;
-        let lastFpsCheck = performance.now();
-        let frameCount = 0;
+        setInterval(() => {
+          if (!mm.state?.isPlaying) return;
+          const fps = mm.sceneManager?.renderer?.info?.render?.frame || 0;
+          if (fps < 20) {
+            lowFpsCount++;
+            if (lowFpsCount >= 3) { sm.clearMeshCache(); lowFpsCount = 0; }
+          } else { lowFpsCount = 0; }
+        }, 1000);
 
-        const origRaf = requestAnimationFrame;
-        let monitorActive = true;
+        // 4. オブジェクト上限を50に設定
+        if (typeof mm.setMaxObjects === 'function') mm.setMaxObjects(50);
 
-        function fpsMonitor() {
-          if (!monitorActive) return;
-          frameCount++;
-          const now = performance.now();
-          if (now - lastFpsCheck >= 1000) {
-            const fps = frameCount;
-            frameCount = 0;
-            lastFpsCheck = now;
+        // 5. setCanvasText をデバウンス（毎キーストロークのp5.js再描画を防止）
+        if (typeof mm.setCanvasText === 'function') {
+          const _origSCT = mm.setCanvasText.bind(mm);
+          let _sctTimer = null;
+          mm.setCanvasText = function(val) {
+            clearTimeout(_sctTimer);
+            _sctTimer = setTimeout(() => _origSCT(val), 120);
+          };
+        }
 
-            if (fps < 30) {
-              lowFpsCount++;
-              if (lowFpsCount >= 3) {
-                // 3秒連続で30FPS以下 → 自動GC実行
-                sm.clearMeshCache();
-                lowFpsCount = 0;
-                console.log('Auto GC triggered (low FPS: ' + fps + ')');
-              }
-            } else {
-              lowFpsCount = 0;
+        // 6. EQバーのRAFを20fps上限に制限（常時60fps DOM更新を防止）
+        const _eqIds = ['eqBarHi', 'eqBarMid', 'eqBarLow'];
+        _eqIds.forEach(id => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          let _eqLast = '';
+          const _origStyle = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'style');
+          // style.height の書き込みをスロットル（16ms = ~60fps → 50ms = ~20fps）
+          let _eqThrottle = 0;
+          const _origSet = el.style.setProperty.bind(el.style);
+          el.style.setProperty = function(prop, val, priority) {
+            if (prop === 'height') {
+              const now = performance.now();
+              if (now - _eqThrottle < 50) return;
+              _eqThrottle = now;
             }
-          }
-          requestAnimationFrame(fpsMonitor);
-        }
-        requestAnimationFrame(fpsMonitor);
-
-        // 4. オブジェクト上限を50に設定（デフォルトが無制限の場合）
-        if (typeof mm.setMaxObjects === 'function') {
-          mm.setMaxObjects(50);
-        }
-
-        console.log('Performance manager ready');
+            _origSet(prop, val, priority);
+          };
+        });
       }
 
       if (document.readyState === 'loading') {
@@ -1917,36 +1943,65 @@
           [threeCanvas, p5Canvas].forEach(c => { if (c) c.style.filter = filters.join(' ') || 'none'; });
         }
 
-        const filterDefs = [
-          {
-            id: 'topGlitchBtn', key: 'glitch',
-            onEnable: () => { animateGlitch(); },
-            onDisable: () => { clearTimeout(glitchTimer); }
-          },
-          {
-            id: 'topNoiseBtn', key: 'noise',
-            onEnable: () => { animateNoise(); },
-            onDisable: () => { clearTimeout(noiseTimer); }
-          },
-          {
-            id: 'topMosaicBtn', key: 'mosaic',
-            onEnable: () => { },
-            onDisable: () => { }
-          },
-        ];
+        // ── MOSAIC（全画面ピクセレート）──────────────────────────────
+        let _pixelateCanvas = null;
+        let _pixelateCtx    = null;
+        let _pixelateRaf    = null;
+        let _pixelateActive = false;
 
-        filterDefs.forEach(({ id, key, onEnable, onDisable }) => {
-          const btn = document.getElementById(id);
-          if (!btn) return;
-          btn.addEventListener('click', () => {
-            state[key] = !state[key];
-            btn.classList.toggle('active', state[key]);
-            state[key] ? onEnable() : onDisable();
-            applyFilter();
-          });
+        function getThreeCanvas() {
+          return window.mandalaMachine?.sceneManager?.renderer?.domElement || null;
+        }
+
+        function syncOverlayToCanvas(el) {
+          const src = getThreeCanvas();
+          if (!src || !el) return;
+          const r = src.getBoundingClientRect();
+          el.style.left   = r.left + 'px';
+          el.style.top    = r.top  + 'px';
+          el.style.width  = r.width  + 'px';
+          el.style.height = r.height + 'px';
+        }
+
+        function startPixelate() {
+          if (_pixelateCanvas) return;
+          _pixelateCanvas = document.createElement('canvas');
+          _pixelateCanvas.style.cssText = 'position:fixed;z-index:9990;pointer-events:none;image-rendering:pixelated;';
+          document.body.appendChild(_pixelateCanvas);
+          syncOverlayToCanvas(_pixelateCanvas);
+          _pixelateCtx = _pixelateCanvas.getContext('2d');
+          _pixelateActive = true;
+          const blockSize = 14;
+          let _pxLastMs = 0;
+          function drawPixelate(now) {
+            if (!_pixelateActive) return;
+            _pixelateRaf = requestAnimationFrame(drawPixelate);
+            if (now - _pxLastMs < 50) return; // 20fps上限
+            _pxLastMs = now;
+            const src = getThreeCanvas();
+            if (!src) return;
+            syncOverlayToCanvas(_pixelateCanvas);
+            const w = Math.ceil(src.width  / blockSize);
+            const h = Math.ceil(src.height / blockSize);
+            if (_pixelateCanvas.width !== w)  _pixelateCanvas.width  = w;
+            if (_pixelateCanvas.height !== h) _pixelateCanvas.height = h;
+            _pixelateCtx.drawImage(src, 0, 0, w, h);
+          }
+          drawPixelate(0);
+        }
+
+        function stopPixelate() {
+          _pixelateActive = false;
+          if (_pixelateRaf) { cancelAnimationFrame(_pixelateRaf); _pixelateRaf = null; }
+          if (_pixelateCanvas) { _pixelateCanvas.remove(); _pixelateCanvas = null; _pixelateCtx = null; }
+        }
+
+        document.getElementById('topPixelateBtn')?.addEventListener('click', function() {
+          this.classList.toggle('active');
+          this.classList.contains('active') ? startPixelate() : stopPixelate();
         });
 
-        console.log('Filter buttons ready (CSS/SVG mode)');
+        console.log('MOSAIC ready');
       }
 
       if (document.readyState === 'loading') {
@@ -2056,11 +2111,8 @@
         let _starSolidMat   = null;
         let _starWireMat    = null;
 
-        // Float32Array で位置を管理
-        let _starPositions = null;
-        let _starRotAngles = null;
-        let _starDummy     = null;
-        let _starCount_act = 0;
+        let _starGroupObj   = null; // フィールド全体を包むObject3D（これだけ回す）
+        let _starCount_act  = 0;
 
         // スライダー初期値同期
         const _sizeSliderEl  = document.getElementById('spaceSizeSlider');
@@ -2143,58 +2195,51 @@
           const count     = Math.min(_starCount, 3000);
           _starCount_act  = count;
           const spread    = _starSpread;
+          const useMat    = _starWireMode === 'wire' ? _starWireMat : _starSolidMat;
 
-          _starPositions = new Float32Array(count * 3);
-          _starRotAngles = new Float32Array(count * 3);
-
-          // ── InstancedMesh があれば使う（1ドローコール）──
+          // ── 全星を包む親Object3D（これだけ回す → O(1) per frame）──
           let IMeshCtor = null;
           scene.traverse(o => { if (!IMeshCtor && o.isInstancedMesh) IMeshCtor = o.constructor; });
-
-          const useMat = _starWireMode === 'wire' ? _starWireMat : _starSolidMat;
+          const Object3DClass = Object.getPrototypeOf(MeshCtor);
+          _starGroupObj = new Object3DClass();
 
           if (IMeshCtor) {
-            const Object3DClass = Object.getPrototypeOf(MeshCtor);
-            _starDummy = new Object3DClass();
+            const dummy = new Object3DClass();
             _starIMesh = new IMeshCtor(geo, useMat, count);
             _starIMesh.frustumCulled = false;
-
+            // 生成時に1回だけmatrixをセット（以後は親グループを回すだけ）
             for (let i = 0; i < count; i++) {
-              const x = (Math.random() - 0.5) * spread;
-              const y = (Math.random() - 0.5) * spread;
-              const z = (Math.random() - 0.5) * spread;
-              _starPositions[i*3] = x; _starPositions[i*3+1] = y; _starPositions[i*3+2] = z;
+              dummy.position.set(
+                (Math.random()-0.5)*spread,
+                (Math.random()-0.5)*spread,
+                (Math.random()-0.5)*spread
+              );
               const r = Math.random() * Math.PI * 2;
-              _starRotAngles[i*3] = r; _starRotAngles[i*3+1] = r*0.7; _starRotAngles[i*3+2] = r*0.4;
-              _starDummy.position.set(x, y, z);
-              _starDummy.rotation.set(r, r*0.7, r*0.4);
-              _starDummy.scale.setScalar(scale);
-              _starDummy.updateMatrix();
-              _starIMesh.setMatrixAt(i, _starDummy.matrix);
+              dummy.rotation.set(r, r*0.7, r*0.4);
+              dummy.scale.setScalar(scale);
+              dummy.updateMatrix();
+              _starIMesh.setMatrixAt(i, dummy.matrix);
             }
             _starIMesh.instanceMatrix.needsUpdate = true;
-            scene.add(_starIMesh);
+            _starGroupObj.add(_starIMesh);
             _starGroup = null;
           } else {
-            // フォールバック: 個別Mesh（matrixAutoUpdate=false で描画負荷削減）
+            // フォールバック: 個別Mesh
             _starGroup = [];
             for (let i = 0; i < count; i++) {
               const mat = _starWireMode === 'mix' ? (i%2===0 ? _starWireMat : _starSolidMat) : useMat;
               const m = new MeshCtor(geo, mat);
-              const x = (Math.random()-0.5)*spread, y = (Math.random()-0.5)*spread, z = (Math.random()-0.5)*spread;
-              _starPositions[i*3] = x; _starPositions[i*3+1] = y; _starPositions[i*3+2] = z;
+              m.position.set((Math.random()-0.5)*spread,(Math.random()-0.5)*spread,(Math.random()-0.5)*spread);
               const r = Math.random() * Math.PI * 2;
-              _starRotAngles[i*3] = r; _starRotAngles[i*3+1] = r*0.7; _starRotAngles[i*3+2] = r*0.4;
-              m.position.set(x, y, z);
               m.rotation.set(r, r*0.7, r*0.4);
               m.scale.setScalar(scale);
               m.frustumCulled = false;
-              m.matrixAutoUpdate = false;
-              m.updateMatrix();
-              scene.add(m);
+              m.matrixAutoUpdate = true;
+              _starGroupObj.add(m);
               _starGroup.push(m);
             }
           }
+          scene.add(_starGroupObj);
           startStarAnimation();
         }
 
@@ -2214,10 +2259,30 @@
         function removeStarField() {
           stopStarAnimation();
           const scene = _starScene || sm()?.scene;
-          if (_starIMesh)              { scene?.remove(_starIMesh); _starIMesh = null; }
-          if (Array.isArray(_starGroup)) { _starGroup.forEach(m => scene?.remove(m)); _starGroup = null; }
-          _starPositions = null; _starRotAngles = null; _starDummy = null;
-          _starScene = null;
+          if (_starGroupObj) { scene?.remove(_starGroupObj); _starGroupObj = null; }
+          _starIMesh = null; _starGroup = null; _starScene = null;
+        }
+
+        // シェイプのみスワップ（シーン add/remove なし → ジャンクなし）
+        function swapStarShape() {
+          if (!_starIMesh) { createStarField(); return; }
+          const matDef = window.MATERIALS?.[_starMatIndex % (window.MATERIALS?.length || 1)];
+          if (!matDef?.create3D) return;
+          const sample = matDef.create3D(true);
+          if (!sample) return;
+          let newGeo = null, newBaseMat = null;
+          if (sample.isMesh) { newGeo = sample.geometry; newBaseMat = sample.material; }
+          else sample.traverse?.(c => { if (!newGeo && c.isMesh) { newGeo = c.geometry; newBaseMat = c.material; } });
+          if (!newGeo) return;
+          // 旧リソース解放
+          _starIMesh.geometry?.dispose();
+          _starSolidMat?.dispose();
+          _starWireMat?.dispose();
+          // 新geo/mat差し替え
+          _starSolidMat = makeMat(newBaseMat, false);
+          _starWireMat  = makeMat(newBaseMat, true);
+          _starIMesh.geometry = newGeo;
+          _starIMesh.material = _starWireMode === 'wire' ? _starWireMat : _starSolidMat;
         }
 
         function _getBpm() {
@@ -2227,17 +2292,18 @@
 
         function startStarAnimation() {
           stopStarAnimation();
-          let frame      = 0;
           let lastBeatMs = 0;
-          let lastScale  = _starBaseScale;
 
           function tick(now) {
             _starRafId = requestAnimationFrame(tick);
-            frame++;
-            if (frame % 3 !== 0) return; // 3フレームに1回更新（~20fps）
-            if (!_starPositions) return;
+            if (!_starGroupObj) return;
 
-            // ── BPM ビート（キャッシュ済みDOM参照）──────────────
+            // ── グループ全体を回転（O(1) — 星ごとのloop不要）──
+            _starGroupObj.rotation.y += _starRotSpeed * 0.8;
+            _starGroupObj.rotation.x += _starRotSpeed * 0.25;
+            _starGroupObj.rotation.z += _starRotSpeed * 0.1;
+
+            // ── BPMビートでスケールパルス ────────────────────────
             if (_domBpmAuto?.classList.contains('active')) {
               const bi = 60000 / _getBpm();
               if (now - lastBeatMs >= bi) {
@@ -2248,66 +2314,11 @@
                   setTimeout(() => _domAutoBtn.classList.remove('star-beat-flash'), 120);
                 }
               }
-            } else {
-              _starBeatPhase = 0;
-            }
-            if (_starBeatPhase > 0) _starBeatPhase = Math.max(0, _starBeatPhase - 0.18);
-            const s = _starBaseScale * (1 + _starBeatPhase * 0.5);
-            const scaleChanged = Math.abs(s - lastScale) > 0.0001;
-            if (scaleChanged) lastScale = s;
+            } else { _starBeatPhase = 0; }
 
-            // ── フィールド回転（三角関数はフレームに1回だけ計算）──
-            const spd  = _starRotSpeed;
-            const cosY = Math.cos(spd),        sinY = Math.sin(spd);
-            const cosX = Math.cos(spd * 0.4),  sinX = Math.sin(spd * 0.4);
-            const cosZ = Math.cos(spd * 0.15), sinZ = Math.sin(spd * 0.15);
-            const rotX = spd * 1.7, rotY = spd * 3.0, rotZ = spd * 0.9;
-
-            const pos  = _starPositions;
-            const rots = _starRotAngles;
-            const n    = _starCount_act;
-
-            if (_starIMesh && _starDummy) {
-              // ── InstancedMesh パス（1ドローコール）──────────────
-              const dummy = _starDummy;
-              for (let i = 0; i < n; i++) {
-                const i3 = i * 3;
-                let x = pos[i3], y = pos[i3+1], z = pos[i3+2];
-                const x1 = x*cosY + z*sinY,  z1 = -x*sinY + z*cosY;
-                const y2 = y*cosX - z1*sinX, z2 = y*sinX + z1*cosX;
-                const x3 = x1*cosZ - y2*sinZ, y3 = x1*sinZ + y2*cosZ;
-                pos[i3] = x3; pos[i3+1] = y3; pos[i3+2] = z2;
-
-                rots[i3]   += rotX; rots[i3+1] += rotY; rots[i3+2] += rotZ;
-
-                dummy.position.set(x3, y3, z2);
-                dummy.rotation.set(rots[i3], rots[i3+1], rots[i3+2]);
-                if (scaleChanged) dummy.scale.setScalar(s);
-                dummy.updateMatrix();
-                _starIMesh.setMatrixAt(i, dummy.matrix);
-              }
-              _starIMesh.instanceMatrix.needsUpdate = true;
-              if (scaleChanged) _starIMesh.instanceMatrix.needsUpdate = true;
-
-            } else if (Array.isArray(_starGroup)) {
-              // ── 個別Mesh フォールバック（matrixAutoUpdate=false）─
-              for (let i = 0; i < n; i++) {
-                const m  = _starGroup[i];
-                const i3 = i * 3;
-                let x = pos[i3], y = pos[i3+1], z = pos[i3+2];
-                const x1 = x*cosY + z*sinY,  z1 = -x*sinY + z*cosY;
-                const y2 = y*cosX - z1*sinX, z2 = y*sinX + z1*cosX;
-                const x3 = x1*cosZ - y2*sinZ, y3 = x1*sinZ + y2*cosZ;
-                pos[i3] = x3; pos[i3+1] = y3; pos[i3+2] = z2;
-
-                rots[i3] += rotX; rots[i3+1] += rotY; rots[i3+2] += rotZ;
-
-                m.position.x = x3; m.position.y = y3; m.position.z = z2;
-                m.rotation.x = rots[i3]; m.rotation.y = rots[i3+1]; m.rotation.z = rots[i3+2];
-                if (scaleChanged) { m.scale.x = s; m.scale.y = s; m.scale.z = s; }
-                m.updateMatrix();
-              }
-            }
+            if (_starBeatPhase > 0) _starBeatPhase = Math.max(0, _starBeatPhase - 0.12);
+            const s = _starBaseScale * (1 + _starBeatPhase * 0.4);
+            _starGroupObj.scale.setScalar(s);
           }
           tick(performance.now());
         }
@@ -2356,17 +2367,27 @@
             _starMatIndex = Math.floor(Math.random() * len);
             const slider = document.getElementById('spaceShapeSlider');
             if (slider) { slider.value = _starMatIndex + 1; document.getElementById('spaceShapeValue').textContent = slider.value; }
-            removeStarField();
-            createStarField();
+            swapStarShape();
           }, interval);
         }
 
-        document.getElementById('spaceAutoShapeSlider')?.addEventListener('input', function() {
-          _starAutoShapeSpeed = parseInt(this.value);
-          const label = _starAutoShapeSpeed === 0 ? 'OFF' : _starAutoShapeSpeed;
-          document.getElementById('spaceAutoShapeValue').textContent = label;
+        function setAutoShapeSpeed(val) {
+          _starAutoShapeSpeed = val;
+          const label = val === 0 ? 'OFF' : val;
+          const topSlider = document.getElementById('spaceAutoShapeSlider');
+          const rightSlider = document.getElementById('rightAutoShapeSlider');
+          if (topSlider) { topSlider.value = val; document.getElementById('spaceAutoShapeValue').textContent = label; }
+          if (rightSlider) { rightSlider.value = val; document.getElementById('rightAutoShapeValue').textContent = label; }
           if (_starAutoShapeTimer) { clearInterval(_starAutoShapeTimer); _starAutoShapeTimer = null; }
           startAutoShapeTimer();
+        }
+
+        document.getElementById('spaceAutoShapeSlider')?.addEventListener('input', function() {
+          setAutoShapeSpeed(parseInt(this.value));
+        });
+
+        document.getElementById('rightAutoShapeSlider')?.addEventListener('input', function() {
+          setAutoShapeSpeed(parseInt(this.value));
         });
 
         // ── 5. Shape スライダー ──────────────────────────────────────
@@ -2381,8 +2402,7 @@
         document.getElementById('spaceShapeSlider')?.addEventListener('input', function() {
           _starMatIndex = parseInt(this.value) - 1;
           document.getElementById('spaceShapeValue').textContent = this.value;
-          removeStarField();
-          createStarField();
+          swapStarShape();
         });
 
         // ── SOLID / WIRE / MIX ボタン ────────────────────────────────
@@ -2400,16 +2420,14 @@
           _starMatIndex = Math.floor(Math.random() * len);
           const slider = document.getElementById('spaceShapeSlider');
           if (slider) { slider.value = _starMatIndex + 1; document.getElementById('spaceShapeValue').textContent = slider.value; }
-          removeStarField();
-          createStarField();
+          swapStarShape();
         });
 
         // ── MIX ボタン ────────────────────────────────────────────────
         document.getElementById('spaceMixBtn')?.addEventListener('click', function() {
           _starMixMode = !_starMixMode;
           this.classList.toggle('active', _starMixMode);
-          removeStarField();
-          createStarField();
+          swapStarShape();
         });
 
         // ── 4. toggleSpaceMode を完全置き換え（他モードに一切干渉しない）────────
@@ -3238,19 +3256,29 @@
           }
         }
 
-        // ビート検出ループ
+        // ビート検出ループ（20fps throttle + Uint8Array使い回し）
+        let _detectData = null;
+        let _detectMaxBin = 0;
+        let _detectLastMs = 0;
         function detectLoop() {
           if (!isActive) return;
           rafId = requestAnimationFrame(detectLoop);
 
+          const now = performance.now();
+          if (now - _detectLastMs < 50) return; // ~20fps
+          _detectLastMs = now;
+
           const bufLen = analyser.frequencyBinCount;
-          const data   = new Uint8Array(bufLen);
-          analyser.getByteFrequencyData(data);
+          if (!_detectData || _detectData.length !== bufLen) {
+            _detectData = new Uint8Array(bufLen);
+            const binHz = audioCtx.sampleRate / analyser.fftSize;
+            _detectMaxBin = Math.min(Math.floor(200 / binHz), bufLen);
+          }
+          analyser.getByteFrequencyData(_detectData);
+          const data = _detectData;
+          const maxBin = _detectMaxBin;
 
           // 低音域 (0〜200Hz) のエネルギーを算出
-          const sampleRate = audioCtx.sampleRate;
-          const binHz      = sampleRate / (analyser.fftSize);
-          const maxBin     = Math.min(Math.floor(200 / binHz), bufLen);
           let energy = 0;
           for (let i = 0; i < maxBin; i++) energy += data[i] * data[i];
           energy /= maxBin;
@@ -3266,7 +3294,6 @@
 
           // 閾値 = 平均 × 1.3（感度調整）
           const threshold = avg * 1.3;
-          const now = performance.now();
 
 
 
@@ -3709,6 +3736,421 @@
         }
       }, 100);
     })();
+  </script>
+
+  <!-- ── TIME TABLE ──────────────────────────────────────────────── -->
+  <style>
+    .tt-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 0;
+      border-bottom: 1px solid #111;
+    }
+    .tt-row.tt-past { opacity: 0.3; }
+    .tt-indicator {
+      width: 10px;
+      font-size: 7px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    /* インライン編集 input */
+    .tt-editable {
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      padding: 3px 4px;
+      cursor: text;
+      color: #555;
+      letter-spacing: 1px;
+      -webkit-appearance: none;
+      box-sizing: border-box;
+    }
+    .tt-editable.tt-time {
+      width: 60px;
+      flex-shrink: 0;
+      min-width: 60px;
+    }
+    .tt-editable.tt-name {
+      flex: 1;
+      min-width: 0;
+    }
+    .tt-row.tt-current .tt-editable.tt-time { color: #888; }
+    .tt-row.tt-current .tt-editable.tt-name { color: #fff; font-weight: bold; letter-spacing: 2px; }
+    .tt-row.tt-past .tt-editable { color: #333; }
+    .tt-editable:focus {
+      color: #ccc !important;
+      background: #111;
+      border-radius: 2px;
+    }
+    .tt-row-btn {
+      background: none;
+      border: none;
+      color: #333;
+      font-size: 14px;
+      line-height: 1;
+      width: 16px;
+      padding: 0;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: color 0.15s;
+      font-family: monospace;
+    }
+    .tt-row-btn:hover { color: #aaa; }
+    .tt-del-btn:hover { color: #f55; }
+    #ttCsvInput {
+      width: 100%;
+      background: #111;
+      border: 1px solid #2a2a2a;
+      color: #aaa;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      padding: 6px;
+      box-sizing: border-box;
+      border-radius: 3px;
+      resize: vertical;
+      min-height: 80px;
+    }
+    #ttCsvApply {
+      margin-top: 6px;
+    }
+
+    /* ── DJ名オーバーレイ（キャンバス上） ── */
+    #ttDjOverlay {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 9500;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 2s ease;
+      text-align: center;
+    }
+    #ttDjOverlay.tt-visible { opacity: 1; }
+    #ttDjName {
+      font-family: 'Courier New', monospace;
+      font-size: clamp(24px, 3.5vw, 48px);
+      font-weight: bold;
+      color: #fff;
+      letter-spacing: 6px;
+      text-shadow: 0 0 30px rgba(255,255,255,0.25);
+      line-height: 1.1;
+      white-space: nowrap;
+    }
+    #ttDjTime {
+      font-family: 'Courier New', monospace;
+      font-size: clamp(10px, 1.2vw, 14px);
+      color: #555;
+      letter-spacing: 4px;
+      margin-top: 8px;
+    }
+  </style>
+
+  <!-- キャンバス上DJ名オーバーレイ -->
+  <div id="ttDjOverlay">
+    <div id="ttDjName"></div>
+    <div id="ttDjTime"></div>
+  </div>
+
+  <script>
+  (function() {
+    'use strict';
+
+    // ── データ ─────────────────────────────────────────────────────
+    let SCHEDULE = [
+      { name: '', start: '', end: '' },
+    ];
+
+    // 手動オーバーライド: null=自動, 数値=強制インデックス, -1=強制非表示
+    let manualOverride = null;
+    let djOverlayEnabled = true;
+    let lastDjIdx = null;
+
+    // 定期表示タイマー: 10分ごとに60秒表示
+    const OVERLAY_SHOW_DURATION = 60 * 1000;   // 60秒表示
+    const OVERLAY_CYCLE         = 10 * 60 * 1000; // 10分周期
+    let _overlayVisible  = false; // 現在表示中か
+    let _overlayCycleId  = null;
+    let _overlayHideId   = null;
+
+    function _startOverlayCycle() {
+      _stopOverlayCycle();
+      // 即座に1回表示開始
+      _showOverlayBurst();
+      // 以降10分周期
+      _overlayCycleId = setInterval(_showOverlayBurst, OVERLAY_CYCLE);
+    }
+
+    function _stopOverlayCycle() {
+      clearInterval(_overlayCycleId);
+      clearTimeout(_overlayHideId);
+      _overlayCycleId = null;
+      _overlayHideId  = null;
+    }
+
+    function _showOverlayBurst() {
+      const el = document.getElementById('ttDjOverlay');
+      if (!el || !djOverlayEnabled) return;
+      _overlayVisible = true;
+      el.classList.add('tt-visible');
+      clearTimeout(_overlayHideId);
+      _overlayHideId = setTimeout(() => {
+        _overlayVisible = false;
+        el.classList.remove('tt-visible');
+      }, OVERLAY_SHOW_DURATION);
+    }
+
+    // ── ユーティリティ ────────────────────────────────────────────
+    function toMinutes(t) {
+      const [h, m] = t.split(':').map(Number);
+      return (h < 4 ? h + 24 : h) * 60 + m;
+    }
+
+    function currentIdx() {
+      const now = new Date();
+      const h = now.getHours(), m = now.getMinutes();
+      const cur = (h < 4 ? h + 24 : h) * 60 + m;
+      for (let i = 0; i < SCHEDULE.length; i++) {
+        if (cur >= toMinutes(SCHEDULE[i].start) && cur < toMinutes(SCHEDULE[i].end)) return i;
+      }
+      return -1;
+    }
+
+    function nextIdx(ci) {
+      if (ci < 0) return -1;
+      return ci + 1 < SCHEDULE.length ? ci + 1 : -1;
+    }
+
+    // ── DJオーバーレイ（キャンバス上の大きなテキスト） ──────────
+    function updateDjOverlay() {
+      const el   = document.getElementById('ttDjOverlay');
+      const name = document.getElementById('ttDjName');
+      const time = document.getElementById('ttDjTime');
+      if (!el) return;
+
+      const idx = manualOverride !== null ? manualOverride : currentIdx();
+
+      if (!djOverlayEnabled || idx < 0 || idx >= SCHEDULE.length) {
+        _stopOverlayCycle();
+        el.classList.remove('tt-visible');
+        lastDjIdx = null;
+        return;
+      }
+
+      const dj = SCHEDULE[idx];
+      name.textContent = dj.name;
+      time.textContent = dj.start + ' – ' + dj.end;
+
+      // DJが切り替わったらサイクルをリセットして即表示
+      if (idx !== lastDjIdx) {
+        lastDjIdx = idx;
+        el.classList.remove('tt-visible');
+        setTimeout(() => _startOverlayCycle(), 100);
+      } else if (!_overlayCycleId) {
+        // サイクルが未起動なら開始
+        _startOverlayCycle();
+      }
+    }
+
+    // ── タイムテーブルリスト描画（インライン編集対応） ────────────
+    function renderList() {
+      const panel = document.getElementById('ttPanelBody');
+      if (!panel) return;
+
+      const ci  = currentIdx();
+      const now = new Date();
+      const cur = (now.getHours() < 4 ? now.getHours() + 24 : now.getHours()) * 60 + now.getMinutes();
+
+      panel.innerHTML = '';
+      SCHEDULE.forEach((row, i) => {
+        const end  = toMinutes(row.end);
+        const past = end <= cur && i !== ci;
+        const isCur = i === ci;
+
+        const div = document.createElement('div');
+        div.className = 'tt-row' + (isCur ? ' tt-current' : '') + (past ? ' tt-past' : '');
+
+        // ▶ インジケーター
+        const ind = document.createElement('span');
+        ind.className = 'tt-indicator';
+        ind.textContent = isCur ? '▶' : '';
+
+        // 時間 input
+        const timeEl = document.createElement('input');
+        timeEl.type = 'text';
+        timeEl.className = 'tt-editable tt-time';
+        timeEl.value = row.start;
+        timeEl.setAttribute('data-idx', i);
+        timeEl.setAttribute('data-field', 'start');
+
+        // DJ名 input
+        const nameEl = document.createElement('input');
+        nameEl.type = 'text';
+        nameEl.className = 'tt-editable tt-name';
+        nameEl.value = row.name;
+        nameEl.setAttribute('data-idx', i);
+        nameEl.setAttribute('data-field', 'name');
+
+        // + ボタン（この行の下に追加）
+        const addBtn = document.createElement('button');
+        addBtn.className = 'tt-row-btn';
+        addBtn.textContent = '+';
+        addBtn.title = '行を追加';
+        addBtn.addEventListener('click', () => {
+          SCHEDULE.splice(i + 1, 0, { name: 'DJ NAME', start: '00:00', end: '00:00' });
+          renderList();
+        });
+
+        // - ボタン（この行を削除）
+        const delBtn = document.createElement('button');
+        delBtn.className = 'tt-row-btn tt-del-btn';
+        delBtn.textContent = '−';
+        delBtn.title = '行を削除';
+        delBtn.addEventListener('click', () => {
+          if (SCHEDULE.length <= 1) return;
+          SCHEDULE.splice(i, 1);
+          lastDjIdx = null;
+          renderList();
+          updateDjOverlay();
+        });
+
+        div.appendChild(ind);
+        div.appendChild(timeEl);
+        div.appendChild(nameEl);
+        div.appendChild(addBtn);
+        div.appendChild(delBtn);
+        panel.appendChild(div);
+      });
+
+      // 編集イベント（blur/Enter で確定）
+      panel.querySelectorAll('.tt-editable').forEach(input => {
+        const commit = () => {
+          const idx   = parseInt(input.dataset.idx);
+          const field = input.dataset.field;
+          const val   = input.value.trim();
+          if (!val) return;
+          if (field === 'start') SCHEDULE[idx].start = val;
+          if (field === 'name')  SCHEDULE[idx].name  = val;
+          lastDjIdx = null;
+          updateDjOverlay();
+        };
+        input.addEventListener('blur', commit);
+        input.addEventListener('keydown', e => {
+          if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+        });
+      });
+    }
+
+    // ── CSVパース ─────────────────────────────────────────────────
+    function parseCsv(text) {
+      const rows = [];
+      text.trim().split('\n').forEach(line => {
+        const parts = line.split(',').map(s => s.trim());
+        if (parts.length >= 3) {
+          rows.push({ name: parts[0], start: parts[1], end: parts[2] });
+        }
+      });
+      return rows;
+    }
+
+    // ── UI イベント ───────────────────────────────────────────────
+    function init() {
+      const toggleBtn   = document.getElementById('ttOverlayToggleBtn');
+      const exportBtn   = document.getElementById('ttCsvExportBtn');
+      const importBtn   = document.getElementById('ttCsvImportBtn');
+      const importArea  = document.getElementById('ttImportArea');
+
+      // DJ OVERLAY トグル
+      toggleBtn?.addEventListener('click', () => {
+        djOverlayEnabled = !djOverlayEnabled;
+        toggleBtn.textContent = djOverlayEnabled ? 'OVERLAY ON' : 'OVERLAY OFF';
+        toggleBtn.classList.toggle('active', djOverlayEnabled);
+        updateDjOverlay();
+      });
+
+      // CSV OUT（ダウンロード）
+      exportBtn?.addEventListener('click', () => {
+        const csv = SCHEDULE.map(r => `${r.name},${r.start},${r.end}`).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'timetable.csv';
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+
+      // CSV IN（ファイル選択）
+      importBtn?.addEventListener('click', () => {
+        const open = importArea.style.display !== 'block';
+        importArea.style.display = open ? 'block' : 'none';
+        importBtn.classList.toggle('active', open);
+      });
+
+      document.getElementById('ttCsvFileBtn')?.addEventListener('click', () => {
+        document.getElementById('ttCsvFile').click();
+      });
+
+      document.getElementById('ttCsvFile')?.addEventListener('change', function() {
+        const file = this.files[0];
+        if (!file) return;
+        document.getElementById('ttCsvFileName').textContent = file.name;
+        const reader = new FileReader();
+        reader.onload = e => {
+          const rows = parseCsv(e.target.result);
+          if (!rows.length) return;
+          SCHEDULE = rows;
+          lastDjIdx = null;
+          manualOverride = null;
+          renderList();
+          updateDjOverlay();
+          importArea.style.display = 'none';
+          importBtn.classList.remove('active');
+        };
+        reader.readAsText(file);
+      });
+
+      // CLEAR
+      document.getElementById('ttClearBtn')?.addEventListener('click', () => {
+        SCHEDULE = [{ name: 'DJ NAME', start: '00:00', end: '00:00' }];
+        lastDjIdx = null;
+        manualOverride = null;
+        renderList();
+        updateDjOverlay();
+      });
+
+      // 30秒ごとに自動更新
+      setInterval(() => {
+        renderList();
+        if (manualOverride === null) updateDjOverlay();
+      }, 30000);
+
+      // 初回
+      renderList();
+      updateDjOverlay();
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+
+    // 外部から手動制御できるように公開
+    window.TIMETABLE = {
+      show:  (idx) => { manualOverride = idx; updateDjOverlay(); },
+      auto:  ()    => { manualOverride = null; updateDjOverlay(); },
+      hide:  ()    => { manualOverride = -1; updateDjOverlay(); },
+      next:  ()    => {
+        const ci = manualOverride !== null ? manualOverride : currentIdx();
+        manualOverride = nextIdx(ci);
+        updateDjOverlay();
+      },
+    };
+
+  })();
   </script>
 </body>
 
