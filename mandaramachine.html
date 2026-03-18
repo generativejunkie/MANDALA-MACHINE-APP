@@ -1317,8 +1317,8 @@
         </div>
         <div class="slider-wrapper" style="margin-top:6px;">
           <label style="font-size:9px;letter-spacing:1px;color:#555;width:64px;flex-shrink:0;">QUALITY</label>
-          <input type="range" id="simQualitySlider" min="1" max="4" step="1" value="2" style="flex:1;">
-          <span id="simQualityValue" style="width:28px;text-align:right;font-size:10px;">MED</span>
+          <input type="range" id="simQualitySlider" min="1" max="4" step="1" value="1" style="flex:1;">
+          <span id="simQualityValue" style="width:28px;text-align:right;font-size:10px;">LOW</span>
         </div>
       </div>
 
@@ -2215,10 +2215,10 @@
             if (vl) vl.textContent = parseFloat(def).toFixed(1);
           });
 
-          // QUALITY スライダーを MED (2) にリセット
+          // QUALITY スライダーを LOW (1) にリセット
           const qSlider = document.getElementById('simQualitySlider');
           const qLabel  = document.getElementById('simQualityValue');
-          if (qSlider) { qSlider.value = 2; qSlider.dispatchEvent(new Event('input', { bubbles: true })); }
+          if (qSlider) { qSlider.value = 1; qSlider.dispatchEvent(new Event('input', { bubbles: true })); }
           if (qLabel)  qLabel.textContent = 'MED';
 
           // ── 7. Liquid シェーダーをOFF・タイマーリセット ──────
@@ -4704,11 +4704,10 @@ float vnoise(vec2 p) {
              mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y);
 }
 float fbm(vec2 p) {
-  float v  = 0.500 * vnoise(p); p *= 2.0;
-         v += 0.250 * vnoise(p); p *= 2.0;
-         v += 0.125 * vnoise(p); p *= 2.0;
-         v += 0.0625* vnoise(p);
-  return v;
+  float v  = 0.5714 * vnoise(p); p *= 2.0;
+         v += 0.2857 * vnoise(p); p *= 2.0;
+         v += 0.1429 * vnoise(p);
+  return v;  // 3 octaves — 25% fewer ops vs 4, visually indistinguishable
 }
 
 uniform float u_elasticity;
@@ -4761,13 +4760,11 @@ void main() {
   vec4 densCol = texture(u_fbo, v_uv);
   float d = dot(densCol.rgb, vec3(0.2126, 0.7152, 0.0722));
 
-  // Sobel勾配 (sim解像度基準)
-  float e = texel.x * 2.0;
-  float dL = dot(texture(u_fbo, v_uv - vec2(e, 0.0)).rgb, vec3(0.2126,0.7152,0.0722));
+  // 前進差分グラジェント: centerサンプル(d)を再利用 → 追加2フェッチのみ (Sobel比50%削減)
+  float e = texel.x * 2.5;
   float dR = dot(texture(u_fbo, v_uv + vec2(e, 0.0)).rgb, vec3(0.2126,0.7152,0.0722));
-  float dD = dot(texture(u_fbo, v_uv - vec2(0.0, e)).rgb, vec3(0.2126,0.7152,0.0722));
   float dU = dot(texture(u_fbo, v_uv + vec2(0.0, e)).rgb, vec3(0.2126,0.7152,0.0722));
-  vec2 grad  = vec2(dR - dL, dU - dD);
+  vec2 grad  = vec2(dR - d, dU - d);
   float gradMag = length(grad);
   vec2 gradN = grad / (gradMag + 0.0001);
 
@@ -4956,6 +4953,7 @@ void main() {
     let startTime = performance.now();
     let active    = false;
     let rafId     = null;
+    let _srcTexW  = 0, _srcTexH = 0;  // texSubImage2D サイズ追跡
 
     // ── オーディオビート — プール済みバッファで GC ゼロ ────
     let _beatBuf = null;
@@ -5018,10 +5016,15 @@ void main() {
       const tension   = getSlider('elasticitySlider', 5);
       const beat      = getBeat();
 
-      // ソーステクスチャ更新
+      // ソーステクスチャ更新: サイズ変化時のみ texImage2D、通常は texSubImage2D（再確保なし）
       if (videoReady && vid.readyState >= 2) {
         gl.bindTexture(gl.TEXTURE_2D, srcTex);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, vid);
+        if (vid.videoWidth !== _srcTexW || vid.videoHeight !== _srcTexH) {
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, vid);
+          _srcTexW = vid.videoWidth; _srcTexH = vid.videoHeight;
+        } else {
+          gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, vid);
+        }
       }
 
       gl.bindVertexArray(vao);
