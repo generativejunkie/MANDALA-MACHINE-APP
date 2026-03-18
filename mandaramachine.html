@@ -1079,6 +1079,14 @@
                     <span class="swatch-circle" style="background:linear-gradient(135deg,#1affbe 50%,#0080ff 50%);"></span>
                     <span class="swatch-label">NEON INK</span>
                   </button>
+                  <button class="preset-swatch-btn vj-preset-item" data-preset="metallic" title="METALLIC">
+                    <span class="swatch-circle" style="background:linear-gradient(135deg,#e8eaec 40%,#8c9098 60%,#c0c4c8 100%);"></span>
+                    <span class="swatch-label">METALLIC</span>
+                  </button>
+                  <button class="preset-swatch-btn vj-preset-item" data-preset="smoke" title="SMOKE">
+                    <span class="swatch-circle" style="background:radial-gradient(circle,#b0b8c0 0%,#3a4048 60%,#111 100%);"></span>
+                    <span class="swatch-label">SMOKE</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -1319,6 +1327,12 @@
           <label style="font-size:9px;letter-spacing:1px;color:#555;width:64px;flex-shrink:0;">QUALITY</label>
           <input type="range" id="simQualitySlider" min="1" max="4" step="1" value="1" style="flex:1;">
           <span id="simQualityValue" style="width:28px;text-align:right;font-size:10px;">LOW</span>
+        </div>
+        <div class="slider-wrapper" style="margin-top:6px;align-items:center;">
+          <label style="font-size:9px;letter-spacing:1px;color:#555;width:64px;flex-shrink:0;">COLOR</label>
+          <input type="color" id="liquidColorPicker" value="#4d94ff"
+                 style="flex:1;height:22px;border:none;background:none;cursor:pointer;padding:0;">
+          <span id="liquidColorAuto" style="width:28px;text-align:right;font-size:8px;color:#555;letter-spacing:1px;">MAN</span>
         </div>
       </div>
 
@@ -4532,6 +4546,14 @@
       neon: {
         modes: { topAutoBtn: true, topBlinkBtn: true },
         params: { warp: 8,   viscosity: 2,   elasticity: 5,   audioReact: 8,   spacing: 6 }
+      },
+      metallic: {
+        modes: { topSpinBtn: true },
+        params: { warp: 5,   viscosity: 8,   elasticity: 10,  audioReact: 3,   spacing: 12 }
+      },
+      smoke: {
+        modes: { topGravityBtn: true, topAutoBtn: true },
+        params: { warp: 4,   viscosity: 7,   elasticity: 1,   audioReact: 5,   spacing: 20 }
       }
     };
 
@@ -4761,6 +4783,7 @@ uniform vec2  u_res;
 uniform vec3  u_tint;
 uniform float u_time;
 uniform float u_elasticity;
+uniform float u_smoke;    // 0=solid liquid, 1=smoke/vapor
 out vec4 fragColor;
 
 void main() {
@@ -4768,7 +4791,7 @@ void main() {
   vec4 densCol = texture(u_fbo, v_uv);
   float d = dot(densCol.rgb, vec3(0.2126, 0.7152, 0.0722));
 
-  // 前進差分グラジェント: centerサンプル(d)を再利用 → 追加2フェッチのみ (Sobel比50%削減)
+  // 前進差分グラジェント (Sobel比50%削減)
   float e = texel.x * 2.5;
   float dR = dot(texture(u_fbo, v_uv + vec2(e, 0.0)).rgb, vec3(0.2126,0.7152,0.0722));
   float dU = dot(texture(u_fbo, v_uv + vec2(0.0, e)).rgb, vec3(0.2126,0.7152,0.0722));
@@ -4776,51 +4799,56 @@ void main() {
   float gradMag = length(grad);
   vec2 gradN = grad / (gradMag + 0.0001);
 
-  float threshold = 0.22 + u_viscosity * 0.08;
-  // ── 黒背景向け: edgeW を詰めてパキッとした境界に ──
-  float edgeW = max(0.001, 0.030 - u_tension * 0.028);
-  float mask  = smoothstep(threshold - edgeW, threshold + edgeW * 0.15, d);
-  mask = pow(mask, 0.75);  // 中間域の不透明度を底上げ
+  // ── Edge: Smoke=ソフト拡散, Solid=パキッとエッジ (branchless mix) ──
+  float threshold  = mix(0.22 + u_viscosity * 0.08, 0.10, u_smoke);
+  float edgeW_base = max(0.001, 0.030 - u_tension * 0.028);
+  float edgeW      = mix(edgeW_base, 0.22, u_smoke);
+  float edgePow    = mix(0.75, 1.9, u_smoke);
+  float mask       = pow(smoothstep(threshold - edgeW, threshold + edgeW * mix(0.15, 1.0, u_smoke), d), edgePow);
 
-  float sharpness = 35.0 + u_tension * 260.0;
+  float sharpness = mix(35.0 + u_tension * 260.0, 4.0, u_smoke);
   float meniscus  = exp(-abs(d - threshold) * sharpness) * clamp(gradMag * 14.0, 0.0, 1.0);
-  meniscus = clamp(meniscus * (1.0 + u_beat * 0.8), 0.0, 1.0);
+  meniscus = clamp(meniscus * (1.0 + u_beat * 0.8) * (1.0 - u_smoke * 0.85), 0.0, 1.0);
 
   float refrStr = 0.018 * mask * (1.0 - mask * 0.6) * clamp(gradMag * 10.0, 0.0, 1.0)
                 + u_beat * 0.008 * mask;
-  vec4 refracted = texture(u_src, clamp(v_uv - gradN * refrStr, 0.001, 0.999));
+  vec4 refracted = texture(u_src, clamp(v_uv - gradN * refrStr * (1.0 - u_smoke), 0.001, 0.999));
 
-  // ── 黒背景: 液体内部を黒ベースで積み上げ ──
+  // ── 黒背景ベース合成 ──
   vec4 bgBlack  = vec4(0.0, 0.0, 0.0, 1.0);
-  vec4 liquidInner = mix(bgBlack, densCol, 0.45);
-  liquidInner  = mix(liquidInner, refracted, 0.28 * mask);
+  vec4 liquidInner = mix(bgBlack, densCol, mix(0.45, 0.30, u_smoke));
+  liquidInner  = mix(liquidInner, refracted, 0.28 * mask * (1.0 - u_smoke));
   liquidInner.rgb = mix(liquidInner.rgb, u_tint * 0.9, 0.22 * mask);
-  liquidInner.rgb *= 1.0 + mask * 0.18;
+  liquidInner.rgb *= 1.0 + mask * mix(0.18, 0.05, u_smoke);
 
   vec4 result = mix(bgBlack, liquidInner, mask);
   result.rgb   = mix(result.rgb, u_tint, meniscus * (0.50 + u_tension * 0.45));
-  result.rgb  += vec3(meniscus * mask * 0.28);
+  result.rgb  += vec3(meniscus * mask * 0.28 * (1.0 - u_smoke * 0.7));
   result.rgb  += vec3(u_beat * 0.04 * mask);
 
-  // ── Outer Glow — 縁の外側を tint色でにじませる (黒背景で光る) ──
-  float outerGlow = exp(-max(0.0, threshold - d) * 12.0)
+  // ── Outer Glow: Smoke は大きく柔らかい ──
+  float glowDecay = mix(12.0, 3.5, u_smoke);
+  float glowCap   = mix(0.65, 0.95, u_smoke);
+  float glowStr   = mix(0.40, 0.85, u_smoke);
+  float outerGlow = exp(-max(0.0, threshold - d) * glowDecay)
                   * (1.0 - mask)
-                  * clamp(gradMag * 10.0, 0.0, 1.0);
-  outerGlow = clamp(outerGlow * (1.0 + u_beat * 1.2), 0.0, 0.65);
-  result.rgb += u_tint * outerGlow * 0.40;
+                  * clamp(gradMag * mix(10.0, 4.0, u_smoke), 0.0, 1.0);
+  // Smokeは距離に比例した軟体グロー
+  outerGlow = mix(outerGlow, smoothstep(0.0, threshold, d) * (1.0 - mask), u_smoke * 0.5);
+  outerGlow = clamp(outerGlow * (1.0 + u_beat * mix(1.2, 2.5, u_smoke)), 0.0, glowCap);
+  result.rgb += u_tint * outerGlow * glowStr;
 
-  // ── Specular — 2.5D fake法線から Blinn-Phong ハイライト ──
-  vec3 fakeN   = normalize(vec3(gradN * clamp(gradMag * 3.0, 0.0, 1.0), 0.8));
+  // ── Specular: Smoke では無効 ──
+  vec3 fakeN    = normalize(vec3(gradN * clamp(gradMag * 3.0, 0.0, 1.0), 0.8));
   vec3 lightDir = normalize(vec3(-0.38, 0.70, 1.0));
-  float spec   = pow(max(0.0, dot(fakeN, lightDir)), 52.0 + u_tension * 90.0);
-  spec *= mask * clamp(gradMag * 9.0, 0.0, 1.0) * (1.0 + u_beat * 0.6);
+  float spec    = pow(max(0.0, dot(fakeN, lightDir)), 52.0 + u_tension * 90.0);
+  spec *= mask * clamp(gradMag * 9.0, 0.0, 1.0) * (1.0 + u_beat * 0.6) * (1.0 - u_smoke * 0.95);
   float specStr = 0.55 + u_tension * 0.42;
-  // Additive: tint色ハイライト + 白芯
   result.rgb += u_tint * spec * specStr * 0.70;
   result.rgb += vec3(spec * 0.32 * specStr);
 
-  // ── Chromatic Aberration ──
-  float caStr = 0.004 * mask * (1.0 + u_beat * 1.5) * u_elasticity;
+  // ── Chromatic Aberration: Smoke では縮小 ──
+  float caStr = 0.004 * mask * (1.0 + u_beat * 1.5) * u_elasticity * mix(1.0, 0.2, u_smoke);
   vec3 rgbSplit;
   rgbSplit.r = texture(u_src, clamp(v_uv + gradN * caStr,       0.001, 0.999)).r;
   rgbSplit.g = result.g;
@@ -4829,7 +4857,7 @@ void main() {
 
   // ── Film Grain ──
   float grain = fract(sin(dot(v_uv * 1000.0 + fract(u_time * 0.07), vec2(127.1, 311.7))) * 43758.5453) - 0.5;
-  result.rgb += grain * 0.016 * (1.0 - mask * 0.5);
+  result.rgb += grain * mix(0.016, 0.028, u_smoke) * (1.0 - mask * 0.5);
 
   fragColor = clamp(result, 0.0, 1.0);
 }`;
@@ -4945,14 +4973,17 @@ void main() {
       u_tint:       gl.getUniformLocation(progDisplay, 'u_tint'),
       u_time:       gl.getUniformLocation(progDisplay, 'u_time'),
       u_elasticity: gl.getUniformLocation(progDisplay, 'u_elasticity'),
+      u_smoke:      gl.getUniformLocation(progDisplay, 'u_smoke'),
     };
 
     // ── プリセット ──────────────────────────────────────────
     const PRESETS = {
-      liquid:  { tint: [0.30, 0.58, 1.00], viscosity: 5, tension: 5 },  // 深い青、黒背景で鮮明
-      mercury: { tint: [0.85, 0.93, 1.00], viscosity: 4, tension: 9 },  // 冷たい白銀、コントラスト最大
-      lava:    { tint: [1.00, 0.24, 0.00], viscosity: 9, tension: 2 },  // 純粋な赤橙、黒で燃え立つ
-      neon:    { tint: [0.00, 1.00, 0.62], viscosity: 2, tension: 5 },  // サイバーグリーン
+      liquid:   { tint: [0.30, 0.58, 1.00], viscosity: 5, tension: 5,  smoke: 0 },
+      mercury:  { tint: [0.85, 0.93, 1.00], viscosity: 4, tension: 9,  smoke: 0 },
+      lava:     { tint: [1.00, 0.24, 0.00], viscosity: 9, tension: 2,  smoke: 0 },
+      neon:     { tint: [0.00, 1.00, 0.62], viscosity: 2, tension: 5,  smoke: 0 },
+      metallic: { tint: [0.75, 0.78, 0.82], viscosity: 8, tension: 10, smoke: 0 }, // クロム銀
+      smoke:    { tint: [0.62, 0.68, 0.72], viscosity: 7, tension: 0,  smoke: 1 }, // 霧状拡散
     };
     let currentTint = PRESETS.liquid.tint;
 
@@ -4970,6 +5001,8 @@ void main() {
     let _targetTen   = 0.5;
     let _lerpVisc    = 0.5;
     let _lerpTen     = 0.5;
+    let _targetSmoke = 0.0;   // 0=solid, 1=smoke
+    let _lerpSmoke   = 0.0;
     let _prevRafTime = performance.now();
 
     // ── オーディオビート — プール済みバッファで GC ゼロ ────
@@ -5040,6 +5073,7 @@ void main() {
       _lerpTint[2] += (_targetTint[2] - _lerpTint[2]) * lerpK;
       _lerpVisc    += (_targetVisc    - _lerpVisc)    * lerpK;
       _lerpTen     += (_targetTen     - _lerpTen)     * lerpK;
+      _lerpSmoke   += (_targetSmoke   - _lerpSmoke)   * lerpK;
 
       const viscosity = _lerpVisc;
       const tension   = _lerpTen;
@@ -5091,6 +5125,7 @@ void main() {
       gl.uniform3f(uDisp.u_tint,       _lerpTint[0], _lerpTint[1], _lerpTint[2]);
       gl.uniform1f(uDisp.u_time,       t);
       gl.uniform1f(uDisp.u_elasticity, getSlider('warpIntensitySlider', 3));
+      gl.uniform1f(uDisp.u_smoke,      _lerpSmoke);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texFBO[pingPong]);
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, srcTex);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -5141,17 +5176,34 @@ void main() {
       const p = PRESETS[name] || PRESETS.liquid;
       // Lerp ターゲットをセット — DOM イベント・スライダー変更なし → ゼロラグ
       _targetTint[0] = p.tint[0]; _targetTint[1] = p.tint[1]; _targetTint[2] = p.tint[2];
-      _targetVisc = p.viscosity / 10.0;
-      _targetTen  = p.tension  / 10.0;
-      // スライダーUIの見た目のみ次フレームで更新 (レンダリングをブロックしない)
+      _targetVisc  = p.viscosity / 10.0;
+      _targetTen   = p.tension   / 10.0;
+      _targetSmoke = p.smoke || 0.0;
+      // スライダーUI + カラーピッカーの見た目のみ次フレームで更新
       requestAnimationFrame(() => {
         const vs = document.getElementById('liquidViscositySlider');
         const ts = document.getElementById('elasticitySlider');
-        if (vs) { vs.value = p.viscosity; }
-        if (ts) { ts.value = p.tension;   }
+        if (vs) vs.value = p.viscosity;
+        if (ts) ts.value = p.tension;
+        // カラーピッカーをプリセットカラーに同期
+        const cp = document.getElementById('liquidColorPicker');
+        if (cp) {
+          const r = Math.round(p.tint[0]*255).toString(16).padStart(2,'0');
+          const g = Math.round(p.tint[1]*255).toString(16).padStart(2,'0');
+          const b = Math.round(p.tint[2]*255).toString(16).padStart(2,'0');
+          cp.value = '#' + r + g + b;
+        }
       });
-      console.log('[LIQUID] Preset→', name);
+      console.log('[LIQUID] Preset→', name, p.smoke ? '(SMOKE)' : '');
     };
+
+    // ── カラーピッカー → リアルタイムに _targetTint を更新 ──
+    document.getElementById('liquidColorPicker')?.addEventListener('input', function() {
+      const hex = this.value;
+      _targetTint[0] = parseInt(hex.slice(1,3), 16) / 255;
+      _targetTint[1] = parseInt(hex.slice(3,5), 16) / 255;
+      _targetTint[2] = parseInt(hex.slice(5,7), 16) / 255;
+    });
 
     console.log('[LIQUID] Ready — HALF_FLOAT:', !!extHF, '| VAO | Resolution Scaling');
   })();
