@@ -647,6 +647,49 @@
       grid-template-rows: auto auto 1fr 72px !important;
     }
 
+    /* ===== VJ MOTION CONTROLS ===== */
+    /* PRESET dropdown — STROBEと同じquick-settings-menuスタイルを使用 */
+    #presetDropdown .quick-settings-menu { display: none; }
+    #presetDropdown:hover .quick-settings-menu,
+    #presetDropdown.open .quick-settings-menu { display: flex; }
+    .preset-swatch-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      background: transparent;
+      border: 1px solid transparent;
+      cursor: pointer;
+      border-radius: 4px;
+      padding: 4px;
+      transition: all 0.15s;
+    }
+    .preset-swatch-btn:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); }
+    .preset-swatch-btn.active .swatch-circle { border: 2px solid #fff; box-shadow: 0 0 10px rgba(255,255,255,0.6); }
+    .swatch-circle {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.25);
+      display: block;
+      flex-shrink: 0;
+    }
+    .swatch-label {
+      font-family: var(--font-ui);
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.55);
+      white-space: nowrap;
+    }
+    .preset-swatch-btn:hover .swatch-label,
+    .preset-swatch-btn.active .swatch-label { color: #fff; }
+    .vj-motion-btn.active {
+      border-color: #00ff88 !important;
+      color: #00ff88 !important;
+      box-shadow: 0 0 8px rgba(0,255,136,0.35), inset 0 -2px 4px rgba(0,255,136,0.1) !important;
+      animation: none !important;
+    }
     /* ===== SCENE BAR ===== */
     #sceneBar {
       display: flex;
@@ -995,10 +1038,58 @@
               <input type="color" id="objColorPicker" value="#ffffff"
                 style="position:absolute;opacity:0;width:100%;height:100%;top:0;left:0;cursor:pointer;">
             </label>
+
           </div>
 
-          <!-- ROW 2: エフェクト＋ツール -->
+          <!-- ROW 2: プリセット + モーション + エフェクト＋ツール -->
           <div class="top-row top-row--tools">
+
+            <!-- PRESET dropdown (STROBEと同スタイル) -->
+            <div class="dropdown-container" id="presetDropdown">
+              <button class="mode-btn" id="presetBtn" title="Load VJ Preset">PRESET</button>
+              <div class="quick-settings-menu minimal" style="left:50%;transform:translateX(-50%);min-width:210px;">
+                <div class="quick-row" style="flex-wrap:wrap;gap:4px;justify-content:center;">
+                  <button class="preset-swatch-btn vj-preset-item" data-preset="minimal" title="MINIMAL">
+                    <span class="swatch-circle" style="background:linear-gradient(135deg,#eee 50%,#222 50%);"></span>
+                    <span class="swatch-label">MINIMAL</span>
+                  </button>
+                  <button class="preset-swatch-btn vj-preset-item" data-preset="rave" title="RAVE">
+                    <span class="swatch-circle" style="background:linear-gradient(135deg,#ff00ff 50%,#00f0ff 50%);"></span>
+                    <span class="swatch-label">RAVE</span>
+                  </button>
+                  <button class="preset-swatch-btn vj-preset-item" data-preset="liquid" title="LIQUID">
+                    <span class="swatch-circle" style="background:linear-gradient(135deg,#80b3ff 50%,#1a3a6a 50%);"></span>
+                    <span class="swatch-label">LIQUID</span>
+                  </button>
+                  <button class="preset-swatch-btn vj-preset-item" data-preset="warp" title="WARP">
+                    <span class="swatch-circle" style="background:linear-gradient(135deg,#7b2fff 50%,#00d0d0 50%);"></span>
+                    <span class="swatch-label">WARP</span>
+                  </button>
+                </div>
+                <div class="quick-row speed-row" style="padding-top:6px;border-top:1px solid rgba(255,255,255,0.1);flex-wrap:wrap;gap:4px;justify-content:center;">
+                  <button class="preset-swatch-btn vj-preset-item" data-preset="mercury" title="MERCURY">
+                    <span class="swatch-circle" style="background:linear-gradient(135deg,#bcd0e1 50%,#8898a6 50%);"></span>
+                    <span class="swatch-label">MERCURY</span>
+                  </button>
+                  <button class="preset-swatch-btn vj-preset-item" data-preset="lava" title="LAVA">
+                    <span class="swatch-circle" style="background:linear-gradient(135deg,#ff5c1a 50%,#8b1a00 50%);"></span>
+                    <span class="swatch-label">LAVA</span>
+                  </button>
+                  <button class="preset-swatch-btn vj-preset-item" data-preset="neon" title="NEON INK">
+                    <span class="swatch-circle" style="background:linear-gradient(135deg,#1affbe 50%,#0080ff 50%);"></span>
+                    <span class="swatch-label">NEON INK</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- MOTION MODE -->
+            <button class="mode-btn vj-motion-btn" data-motion="kinetic" title="Kinetic Motion">KINETIC</button>
+            <button class="mode-btn vj-motion-btn" data-motion="organic" title="Organic Motion">ORGANIC</button>
+            <button class="mode-btn vj-motion-btn" data-motion="hyper"   title="Hyper Speed">HYPER</button>
+
+            <div class="top-row-divider"></div>
+
             <button id="topPixelateBtn" class="mode-btn" title="PIXELATE">
               <span>MOSAIC</span>
             </button>
@@ -1015,35 +1106,6 @@
               <span data-i18n="mix">MIX</span>
             </button>
 
-            <div class="top-row-divider"></div>
-
-            <button id="tapBpmBtn" class="mode-btn" title="Tap over time to set BPM">
-              <span>TAP</span>
-            </button>
-            <button id="autoBpmBtn" class="mode-btn" title="Auto BPM detection from audio input">
-              <span>BPM AUTO</span>
-            </button>
-            <button id="invertBtn" class="mode-btn" title="Invert Colors">
-              <span>INVERT</span>
-            </button>
-            <button id="glowBtn" class="mode-btn" title="Toggle Center Glow Visibility">
-              <span>GLOW</span>
-            </button>
-
-            <div class="top-row-divider"></div>
-
-            <button id="freezeBtn" class="mode-btn" title="Freeze canvas [F]">
-              <span>FREEZE</span>
-            </button>
-            <button id="blackoutBtn" class="mode-btn" title="Blackout [B]" style="color:#ff4444;border-color:#ff4444;">
-              <span>BLACKOUT</span>
-            </button>
-
-            <div class="top-row-divider"></div>
-
-            <button id="topResetBtn" class="mode-btn top-row--reset" title="RESET ALL">
-              <span>RESET</span>
-            </button>
           </div>
 
         </div>
@@ -1132,6 +1194,8 @@
       <div id="canvasWrapper">
         <div id="blackoutOverlay" class="blackout-overlay"></div>
         <div class="canvas-container" id="canvasContainer"></div>
+        <!-- Liquid shader overlay canvas -->
+        <canvas id="liquidCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:4;display:none;"></canvas>
         <div id="centerGlow" class="center-glow hidden"></div>
         <div id="p5-container"
           style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;">
@@ -1209,9 +1273,17 @@
         </div>
         </div><!-- /musicPanelRow1 -->
 
-        <!-- 2段目: 追加要素エリア -->
-        <div id="musicPanelRow2">
-          <!-- ここに追加要素を入れてください -->
+        <!-- 2段目: VJアクションバー (TAP/BPM AUTO/INVERT/GLOW/FREEZE/BLACKOUT/RESET) -->
+        <div id="musicPanelRow2" style="display:flex;align-items:center;gap:4px;padding:4px 8px;border-top:1px solid #1a1a1a;">
+          <button id="tapBpmBtn" class="mode-btn" title="Tap over time to set BPM"><span>TAP</span></button>
+          <button id="autoBpmBtn" class="mode-btn" title="Auto BPM detection from audio input"><span>BPM AUTO</span></button>
+          <button id="invertBtn" class="mode-btn" title="Invert Colors"><span>INVERT</span></button>
+          <button id="glowBtn" class="mode-btn" title="Toggle Center Glow Visibility"><span>GLOW</span></button>
+          <div class="top-row-divider"></div>
+          <button id="freezeBtn" class="mode-btn" title="Freeze canvas [F]"><span>FREEZE</span></button>
+          <button id="blackoutBtn" class="mode-btn" title="Blackout [B]" style="color:#ff4444;border-color:#ff4444;"><span>BLACKOUT</span></button>
+          <div class="top-row-divider"></div>
+          <button id="topResetBtn" class="mode-btn top-row--reset" title="RESET ALL"><span>RESET</span></button>
         </div>
       </div>
 
@@ -1219,6 +1291,36 @@
 
     <!-- 右パネル (Settings) -->
     <div id="rightPanel" class="panel-side">
+
+      <!-- VJ MOTION CONTROL -->
+      <div class="menu-section" id="vjMotionSection">
+        <h3>VJ MOTION</h3>
+        <div class="slider-wrapper" style="margin-bottom:6px;">
+          <label style="font-size:9px;letter-spacing:1px;color:#555;width:64px;flex-shrink:0;">VORTEX</label>
+          <input type="range" id="warpIntensitySlider" min="0" max="10" step="0.1" value="3" style="flex:1;">
+          <span id="warpIntensityValue" style="width:28px;text-align:right;font-size:10px;">3.0</span>
+        </div>
+        <div class="slider-wrapper" style="margin-bottom:6px;">
+          <label style="font-size:9px;letter-spacing:1px;color:#555;width:64px;flex-shrink:0;">LIQUID</label>
+          <input type="range" id="liquidViscositySlider" min="0" max="10" step="0.1" value="3" style="flex:1;">
+          <span id="liquidViscosityValue" style="width:28px;text-align:right;font-size:10px;">3.0</span>
+        </div>
+        <div class="slider-wrapper" style="margin-bottom:6px;">
+          <label style="font-size:9px;letter-spacing:1px;color:#555;width:64px;flex-shrink:0;">TENSION</label>
+          <input type="range" id="elasticitySlider" min="0" max="10" step="0.1" value="3" style="flex:1;">
+          <span id="elasticityValue" style="width:28px;text-align:right;font-size:10px;">3.0</span>
+        </div>
+        <div class="slider-wrapper">
+          <label style="font-size:9px;letter-spacing:1px;color:#555;width:64px;flex-shrink:0;">AUDIO RX</label>
+          <input type="range" id="audioReactSlider" min="0" max="10" step="0.1" value="2.5" style="flex:1;">
+          <span id="audioReactValue" style="width:28px;text-align:right;font-size:10px;">2.5</span>
+        </div>
+        <div class="slider-wrapper" style="margin-top:6px;">
+          <label style="font-size:9px;letter-spacing:1px;color:#555;width:64px;flex-shrink:0;">QUALITY</label>
+          <input type="range" id="simQualitySlider" min="1" max="4" step="1" value="2" style="flex:1;">
+          <span id="simQualityValue" style="width:28px;text-align:right;font-size:10px;">MED</span>
+        </div>
+      </div>
 
       <div class="menu-section">
         <h3 data-i18n="visualControl">VISUAL CONTROL</h3>
@@ -4305,6 +4407,624 @@
       },
     };
 
+  })();
+  </script>
+
+  <!-- ============================================================
+       VJ MOTION CONTROL — Preset / Motion Mode / Sliders
+       ============================================================ -->
+  <script>
+  (function initVJMotion() {
+    const mm = window.mandalaMachine;
+    if (!mm) { return setTimeout(initVJMotion, 300); }
+
+    // ── Helper: update existing slider + fire event ─────────
+    function fireSlider(id, val) {
+      const sl = document.getElementById(id);
+      if (!sl) return;
+      sl.value = val;
+      sl.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    // ── Parameter apply functions ───────────────────────────
+    function applyWarp(v) {
+      // #spread: 0.5→3.0
+      const spread = +(0.5 + v * 0.25).toFixed(2);
+      fireSlider('spread', spread);
+      mm.setSpreadMultiplier?.(spread);
+    }
+    function applyViscosity(v) {
+      // #speed: 2.5 (fluid) → -1.0 (viscous) mapped to slider range -3…3
+      const speed = +(2.5 - v * 0.35).toFixed(2);
+      fireSlider('speed', speed);
+      mm.setSpeedMultiplier?.(speed);
+    }
+    function applyElasticity(v) {
+      // #size: 0.5→2.0
+      const size = +(0.5 + v * 0.15).toFixed(2);
+      fireSlider('size', size);
+      mm.setSizeMultiplier?.(size);
+    }
+    function applyAudioReact(v) {
+      fireSlider('inputGainSlider', v);
+    }
+
+    function applyAll(p) {
+      const set = (sliderId, valId, applyFn, val) => {
+        if (val === undefined) return;
+        const sl = document.getElementById(sliderId);
+        const vl = document.getElementById(valId);
+        if (sl) sl.value = val;
+        if (vl) vl.textContent = parseFloat(val).toFixed(1);
+        applyFn(val);
+      };
+      set('warpIntensitySlider',  'warpIntensityValue',  applyWarp,       p.warp);
+      set('liquidViscositySlider','liquidViscosityValue', applyViscosity,  p.viscosity);
+      set('elasticitySlider',     'elasticityValue',      applyElasticity, p.elasticity);
+      set('audioReactSlider',     'audioReactValue',      applyAudioReact, p.audioReact);
+      if (p.spacing !== undefined) mm.setSpacingMultiplier(p.spacing);
+    }
+
+    // ── Presets ─────────────────────────────────────────────
+    const VJ_PRESETS = {
+      minimal: {
+        modes: {},
+        params: { warp: 1.5, viscosity: 6,   elasticity: 2,   audioReact: 2,   spacing: 16 }
+      },
+      rave: {
+        modes: { topBlinkBtn: true, topSpinBtn: true },
+        params: { warp: 7,   viscosity: 1,   elasticity: 8,   audioReact: 8,   spacing: 5 }
+      },
+      liquid: {
+        modes: { topGravityBtn: true },
+        params: { warp: 4,   viscosity: 8,   elasticity: 3,   audioReact: 5,   spacing: 14 }
+      },
+      warp: {
+        modes: { topQuantumBtn: true, topSpinBtn: true },
+        params: { warp: 9,   viscosity: 3,   elasticity: 6,   audioReact: 6,   spacing: 7 }
+      },
+      mercury: {
+        modes: { topSpinBtn: true, topOrbitBtn: true },
+        params: { warp: 7,   viscosity: 5,   elasticity: 9,   audioReact: 5,   spacing: 10 }
+      },
+      lava: {
+        modes: { topGravityBtn: true },
+        params: { warp: 3,   viscosity: 9,   elasticity: 2,   audioReact: 4,   spacing: 18 }
+      },
+      neon: {
+        modes: { topAutoBtn: true, topBlinkBtn: true },
+        params: { warp: 8,   viscosity: 2,   elasticity: 5,   audioReact: 8,   spacing: 6 }
+      }
+    };
+
+    // Preset dropdown toggle
+    const presetDropdown = document.getElementById('presetDropdown');
+    document.getElementById('presetBtn')?.addEventListener('click', e => {
+      e.stopPropagation();
+      presetDropdown?.classList.toggle('open');
+    });
+    document.addEventListener('click', () => presetDropdown?.classList.remove('open'));
+
+    document.querySelectorAll('.vj-preset-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cfg = VJ_PRESETS[btn.dataset.preset];
+        if (!cfg) return;
+        clearAllModes();
+        // Fluid/Liquid mode toggle
+        const fluidPresets = ['liquid', 'mercury', 'lava', 'neon'];
+        if (fluidPresets.includes(btn.dataset.preset)) {
+          window.toggleLiquidMode?.(true);
+          window.setFluidPreset?.(btn.dataset.preset);
+        } else {
+          window.toggleLiquidMode?.(false);
+        }
+        setTimeout(() => {
+          Object.entries(cfg.modes).forEach(([id, on]) => setModeBtn(id, on));
+          applyAll(cfg.params);
+          document.querySelectorAll('.vj-preset-item').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.vj-motion-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          presetDropdown?.classList.remove('open');
+        }, 80);
+      });
+    });
+
+    // ── Motion Mode helpers ──────────────────────────────────
+    // ボタンをアクティブ状態に合わせてclickする
+    function setModeBtn(id, on) {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      const isOn = btn.classList.contains('active');
+      if (on && !isOn) btn.click();
+      if (!on && isOn) btn.click();
+    }
+    function clearAllModes() {
+      ['topAiBtn','topMandalaBtn','topBlinkBtn','topGravityBtn',
+       'topRavenBtn','topQuantumBtn','topOrbitBtn','topSpinBtn','topBaryonBtn',
+       'topAutoBtn'].forEach(id => {
+        const b = document.getElementById(id);
+        if (b?.classList.contains('active')) b.click();
+      });
+    }
+
+    // ── Motion Modes ────────────────────────────────────────
+    const MOTION_CONFIGS = {
+      kinetic: {
+        modes: { topSpinBtn: true, topOrbitBtn: true },
+        params: { warp: 5, viscosity: 1, elasticity: 8, audioReact: 6 }
+      },
+      organic: {
+        modes: { topGravityBtn: true, topMandalaBtn: true },
+        params: { warp: 3, viscosity: 8, elasticity: 2, audioReact: 4 }
+      },
+      hyper: {
+        modes: { topAutoBtn: true, topRavenBtn: true, topBlinkBtn: true },
+        params: { warp: 9.5, viscosity: 0, elasticity: 9.5, audioReact: 9 }
+      }
+    };
+
+    document.querySelectorAll('.vj-motion-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const isActive = btn.classList.contains('active');
+        document.querySelectorAll('.vj-motion-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.vj-preset-item').forEach(b => b.classList.remove('active'));
+
+        if (isActive) {
+          // 2回目クリック → 全モードオフ
+          clearAllModes();
+          return;
+        }
+
+        const cfg = MOTION_CONFIGS[btn.dataset.motion];
+        if (!cfg) return;
+
+        // まず全モードクリア
+        clearAllModes();
+
+        // 少し遅延してモード有効化（clearの反映待ち）
+        setTimeout(() => {
+          Object.entries(cfg.modes).forEach(([id, on]) => setModeBtn(id, on));
+          applyAll(cfg.params);
+          btn.classList.add('active');
+        }, 80);
+      });
+    });
+
+    // ── Individual sliders ──────────────────────────────────
+    const mkSlider = (id, valId, applyFn) => {
+      const sl = document.getElementById(id);
+      const vl = document.getElementById(valId);
+      if (!sl) return;
+      sl.addEventListener('input', () => {
+        const v = parseFloat(sl.value);
+        if (vl) vl.textContent = v.toFixed(1);
+        applyFn(v);
+        // manual adjust → clear preset/motion active state
+        document.querySelectorAll('.vj-preset-item, .vj-motion-btn').forEach(b => b.classList.remove('active'));
+      });
+    };
+    mkSlider('warpIntensitySlider',  'warpIntensityValue',  applyWarp);
+    mkSlider('liquidViscositySlider','liquidViscosityValue', applyViscosity);
+    mkSlider('elasticitySlider',     'elasticityValue',      applyElasticity);
+    mkSlider('audioReactSlider',     'audioReactValue',      applyAudioReact);
+
+    // Apply defaults on init
+    applyAll({ warp: 3, viscosity: 3, elasticity: 3, audioReact: 2.5 });
+  })();
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════
+       LIQUID SHADER — Optimized: Resolution Scaling + HALF_FLOAT + VAO
+       LIQUID: base / MERCURY·LAVA·NEON: tint presets
+       ═══════════════════════════════════════════════════════ -->
+  <script>
+  (function initLiquidShader() {
+    const mm = window.mandalaMachine;
+    if (!mm) { return setTimeout(initLiquidShader, 300); }
+    const srcCanvas = document.querySelector('#canvasContainer canvas');
+    if (!srcCanvas) { return setTimeout(initLiquidShader, 200); }
+
+    const overlay = document.getElementById('liquidCanvas');
+    const gl = overlay.getContext('webgl2', { antialias: false, preserveDrawingBuffer: false, alpha: false });
+    if (!gl) { console.warn('[LIQUID] WebGL2 unavailable'); return; }
+
+    // ── HALF_FLOAT 対応チェック ──────────────────────────────
+    const extHF      = gl.getExtension('EXT_color_buffer_half_float');
+    const internalFmt = extHF ? gl.RGBA16F  : gl.RGBA8;
+    const dataType    = extHF ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE;
+    console.log('[LIQUID] HALF_FLOAT:', !!extHF);
+
+    // ── VERTEX SHADER (location=0 固定でVAO共有) ────────────
+    const VS = `#version 300 es
+layout(location=0) in vec2 a_pos;
+out vec2 v_uv;
+void main() {
+  v_uv = a_pos * 0.5 + 0.5;
+  gl_Position = vec4(a_pos, 0.0, 1.0);
+}`;
+
+    // ── PASS 1: ADVECT — mediump精度 + ループ展開 + branchless ──
+    const FS_ADVECT = `#version 300 es
+precision mediump float;
+in vec2 v_uv;
+uniform sampler2D u_src;
+uniform sampler2D u_prev;
+uniform float u_time;
+uniform float u_viscosity;
+uniform float u_beat;
+uniform vec2  u_res;
+out vec4 fragColor;
+
+float hash(vec2 p) {
+  p = fract(p * vec2(127.1, 311.7));
+  return fract(dot(p, p + 78.233));
+}
+float vnoise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i+vec2(1,0)), f.x),
+             mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y);
+}
+float fbm(vec2 p) {
+  float v  = 0.500 * vnoise(p); p *= 2.0;
+         v += 0.250 * vnoise(p); p *= 2.0;
+         v += 0.125 * vnoise(p); p *= 2.0;
+         v += 0.0625* vnoise(p);
+  return v;
+}
+
+void main() {
+  float flowSpeed = 0.025 + (1.0 - u_viscosity) * 0.055;
+  float flowAmp   = 0.0015 + (1.0 - u_viscosity) * 0.0055 + u_beat * 0.003;
+
+  float fx = fbm(v_uv * 2.2 + vec2(u_time * flowSpeed, 0.3)) - 0.5;
+  float fy = fbm(v_uv * 2.2 + vec2(0.7, u_time * flowSpeed * 0.85) + vec2(4.1, 2.3)) - 0.5;
+  vec2 flow = vec2(fx, fy) * flowAmp * 12.0;
+
+  // branchless: if (u_beat > 0.4) → max()
+  float beatPulse = max(0.0, u_beat - 0.4);
+  flow += (v_uv - 0.5) * beatPulse * 0.025;
+
+  vec2 prevUV = clamp(v_uv + flow, 0.001, 0.999);
+  float blurR = (0.5 + (1.0 - u_viscosity) * 1.5) / min(u_res.x, u_res.y);
+  vec4 nbSum =
+    texture(u_prev, clamp(prevUV + vec2( blurR, 0.0  ), 0.001, 0.999)) +
+    texture(u_prev, clamp(prevUV - vec2( blurR, 0.0  ), 0.001, 0.999)) +
+    texture(u_prev, clamp(prevUV + vec2( 0.0,   blurR), 0.001, 0.999)) +
+    texture(u_prev, clamp(prevUV - vec2( 0.0,   blurR), 0.001, 0.999));
+  vec4 prevMixed = mix(nbSum * 0.25, texture(u_prev, prevUV), 0.30 + u_viscosity * 0.60);
+  float persistence = clamp(0.78 + u_viscosity * 0.15 + u_beat * 0.015, 0.0, 0.95);
+  fragColor = mix(texture(u_src, v_uv), prevMixed, persistence);
+}`;
+
+    // ── PASS 2: DISPLAY — Metaball + exp()メニスカス + 屈折 + tint ──
+    const FS_DISPLAY = `#version 300 es
+precision mediump float;
+in vec2 v_uv;
+uniform sampler2D u_fbo;
+uniform sampler2D u_src;
+uniform float u_tension;
+uniform float u_viscosity;
+uniform float u_beat;
+uniform vec2  u_res;
+uniform vec3  u_tint;
+out vec4 fragColor;
+
+void main() {
+  vec2 texel = 1.0 / u_res;
+  vec4 densCol = texture(u_fbo, v_uv);
+  float d = dot(densCol.rgb, vec3(0.2126, 0.7152, 0.0722));
+
+  // Sobel勾配 (sim解像度基準)
+  float e = texel.x * 2.0;
+  float dL = dot(texture(u_fbo, v_uv - vec2(e, 0.0)).rgb, vec3(0.2126,0.7152,0.0722));
+  float dR = dot(texture(u_fbo, v_uv + vec2(e, 0.0)).rgb, vec3(0.2126,0.7152,0.0722));
+  float dD = dot(texture(u_fbo, v_uv - vec2(0.0, e)).rgb, vec3(0.2126,0.7152,0.0722));
+  float dU = dot(texture(u_fbo, v_uv + vec2(0.0, e)).rgb, vec3(0.2126,0.7152,0.0722));
+  vec2 grad  = vec2(dR - dL, dU - dD);
+  float gradMag = length(grad);
+  vec2 gradN = grad / (gradMag + 0.0001);
+
+  float threshold = 0.22 + u_viscosity * 0.08;
+  float edgeW = max(0.002, 0.065 - u_tension * 0.060);
+  float mask  = smoothstep(threshold - edgeW, threshold + edgeW * 0.4, d);
+
+  float sharpness = 25.0 + u_tension * 200.0;
+  float meniscus  = exp(-abs(d - threshold) * sharpness) * clamp(gradMag * 12.0, 0.0, 1.0);
+  meniscus = clamp(meniscus * (1.0 + u_beat * 0.8), 0.0, 1.0);
+
+  float refrStr = 0.018 * mask * (1.0 - mask * 0.6) * clamp(gradMag * 10.0, 0.0, 1.0)
+                + u_beat * 0.008 * mask;
+  vec4 refracted = texture(u_src, clamp(v_uv - gradN * refrStr, 0.001, 0.999));
+
+  vec4 liquidInner = mix(densCol, refracted, 0.30 * mask);
+  liquidInner.rgb  = mix(liquidInner.rgb, u_tint, 0.20 * mask);
+  liquidInner.rgb *= 1.0 + mask * 0.12;
+
+  vec4 result = mix(texture(u_src, v_uv), liquidInner, mask);
+  result.rgb   = mix(result.rgb, u_tint, meniscus * (0.45 + u_tension * 0.45));
+  result.rgb  += vec3(meniscus * mask * 0.22);
+  result.rgb  += vec3(u_beat * 0.035 * mask);
+  fragColor = clamp(result, 0.0, 1.0);
+}`;
+
+    // ── GL ユーティリティ ────────────────────────────────────
+    function compileShader(type, src) {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src); gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
+        console.error('[LIQUID shader]', gl.getShaderInfoLog(s));
+      return s;
+    }
+    function createProgram(vs, fs) {
+      const p = gl.createProgram();
+      gl.attachShader(p, compileShader(gl.VERTEX_SHADER, vs));
+      gl.attachShader(p, compileShader(gl.FRAGMENT_SHADER, fs));
+      gl.linkProgram(p);
+      if (!gl.getProgramParameter(p, gl.LINK_STATUS))
+        console.error('[LIQUID prog]', gl.getProgramInfoLog(p));
+      return p;
+    }
+
+    const progAdvect  = createProgram(VS, FS_ADVECT);
+    const progDisplay = createProgram(VS, FS_DISPLAY);
+
+    // ── VAO — 一度設定してフレームごとの再バインドを排除 ────
+    const quadBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.bindVertexArray(null);
+
+    // ── Ping-pong FBOs (シミュレーション解像度 simW×simH) ───
+    let W = 0, H = 0, simW = 0, simH = 0;
+    let fbos = [null, null], texFBO = [null, null];
+
+    function createFBO(w, h) {
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, internalFmt, w, h, 0, gl.RGBA, dataType, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      const fbo = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+      // HALF_FLOAT が不完全な場合 RGBA8 にフォールバック
+      if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      }
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      return { fbo, tex };
+    }
+
+    function resizeFBOs(w, h, sw, sh) {
+      W = w; H = h; simW = sw; simH = sh;
+      overlay.width = w; overlay.height = h;
+      for (let i = 0; i < 2; i++) {
+        if (fbos[i]) { gl.deleteFramebuffer(fbos[i]); gl.deleteTexture(texFBO[i]); }
+        const p = createFBO(sw, sh);
+        fbos[i] = p.fbo; texFBO[i] = p.tex;
+      }
+      for (let i = 0; i < 2; i++) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbos[i]);
+        gl.clearColor(0,0,0,1); gl.clear(gl.COLOR_BUFFER_BIT);
+      }
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
+
+    // ── ソーステクスチャ (captureStream → video → WebGL) ────
+    const srcTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, srcTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1,1,0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,255]));
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    const vid = document.createElement('video');
+    vid.muted = true; vid.playsInline = true; vid.autoplay = true;
+    let videoReady = false;
+    vid.addEventListener('playing',    () => { videoReady = true; });
+    vid.addEventListener('loadeddata', () => { videoReady = true; });
+    let stream = null;
+    function startStream() {
+      try {
+        stream = srcCanvas.captureStream(30);
+        vid.srcObject = stream;
+        vid.play().catch(()=>{});
+      } catch(e) { console.warn('[LIQUID] captureStream failed', e); }
+    }
+
+    // ── ユニフォームロケーション ────────────────────────────
+    const uAdv = {
+      u_src:       gl.getUniformLocation(progAdvect,  'u_src'),
+      u_prev:      gl.getUniformLocation(progAdvect,  'u_prev'),
+      u_time:      gl.getUniformLocation(progAdvect,  'u_time'),
+      u_viscosity: gl.getUniformLocation(progAdvect,  'u_viscosity'),
+      u_beat:      gl.getUniformLocation(progAdvect,  'u_beat'),
+      u_res:       gl.getUniformLocation(progAdvect,  'u_res'),
+    };
+    const uDisp = {
+      u_fbo:       gl.getUniformLocation(progDisplay, 'u_fbo'),
+      u_src:       gl.getUniformLocation(progDisplay, 'u_src'),
+      u_tension:   gl.getUniformLocation(progDisplay, 'u_tension'),
+      u_viscosity: gl.getUniformLocation(progDisplay, 'u_viscosity'),
+      u_beat:      gl.getUniformLocation(progDisplay, 'u_beat'),
+      u_res:       gl.getUniformLocation(progDisplay, 'u_res'),
+      u_tint:      gl.getUniformLocation(progDisplay, 'u_tint'),
+    };
+
+    // ── プリセット ──────────────────────────────────────────
+    const PRESETS = {
+      liquid:  { tint: [0.50, 0.70, 1.00], viscosity: 5, tension: 5 },
+      mercury: { tint: [0.74, 0.82, 0.88], viscosity: 4, tension: 9 },
+      lava:    { tint: [1.00, 0.36, 0.06], viscosity: 9, tension: 2 },
+      neon:    { tint: [0.10, 1.00, 0.74], viscosity: 2, tension: 5 },
+    };
+    let currentTint = PRESETS.liquid.tint;
+
+    // ── ステート ────────────────────────────────────────────
+    let pingPong  = 0;
+    let startTime = performance.now();
+    let active    = false;
+    let rafId     = null;
+
+    // ── オーディオビート — プール済みバッファで GC ゼロ ────
+    let _beatBuf = null;
+    function getBeat() {
+      try {
+        const am = mm.audioManager;
+        if (!am) return 0;
+        const bands = am.getFrequencyBands?.();
+        if (bands?.low !== undefined) return Math.min(bands.low / 255, 1.0);
+        const analyser = am.analyser || am._analyser;
+        if (analyser) {
+          if (!_beatBuf || _beatBuf.length !== analyser.frequencyBinCount)
+            _beatBuf = new Uint8Array(analyser.frequencyBinCount);
+          analyser.getByteFrequencyData(_beatBuf);
+          let s = 0; for (let i = 0; i < 8; i++) s += _beatBuf[i];
+          return Math.min(s / (8*255), 1.0);
+        }
+      } catch(e) {}
+      return 0;
+    }
+
+    function getSlider(id, def) {
+      return parseFloat(document.getElementById(id)?.value ?? def) / 10.0;
+    }
+
+    // QUALITYスライダー → シミュレーション解像度スケール
+    const QUALITY_SCALES = [0.25, 0.5, 0.75, 1.0];
+    const QUALITY_LABELS = ['LOW', 'MED', 'HI', 'MAX'];
+    function getSimScale() {
+      const v = parseInt(document.getElementById('simQualitySlider')?.value ?? 2);
+      return QUALITY_SCALES[v - 1] || 0.5;
+    }
+    // QUALITYスライダーのラベル更新
+    const qualSlider = document.getElementById('simQualitySlider');
+    const qualLabel  = document.getElementById('simQualityValue');
+    if (qualSlider && qualLabel) {
+      qualSlider.addEventListener('input', () => {
+        qualLabel.textContent = QUALITY_LABELS[(qualSlider.value | 0) - 1] || 'MED';
+        // 解像度変更時は強制再確保
+        W = 0;
+      });
+    }
+
+    // ── レンダーループ ──────────────────────────────────────
+    function render() {
+      if (!active) return;
+      rafId = requestAnimationFrame(render);
+      const cw = srcCanvas.width  || overlay.clientWidth;
+      const ch = srcCanvas.height || overlay.clientHeight;
+      if (!cw || !ch) return;
+
+      // シミュレーション解像度 = 表示解像度 × scale (0.25〜1.0)
+      const scale = getSimScale();
+      const sw = Math.max(1, Math.round(cw * scale));
+      const sh = Math.max(1, Math.round(ch * scale));
+      if (cw !== W || ch !== H || sw !== simW || sh !== simH) resizeFBOs(cw, ch, sw, sh);
+
+      const t         = (performance.now() - startTime) * 0.001;
+      const viscosity = getSlider('liquidViscositySlider', 5);
+      const tension   = getSlider('elasticitySlider', 5);
+      const beat      = getBeat();
+
+      // ソーステクスチャ更新
+      if (videoReady && vid.readyState >= 2) {
+        gl.bindTexture(gl.TEXTURE_2D, srcTex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, vid);
+      }
+
+      gl.bindVertexArray(vao);
+
+      // PASS 1: Advect → sim解像度 FBO (線形補間でアップスケール可能)
+      const writeFBO = fbos[pingPong];
+      const readTex  = texFBO[1 - pingPong];
+      gl.bindFramebuffer(gl.FRAMEBUFFER, writeFBO);
+      gl.viewport(0, 0, simW, simH);
+      gl.useProgram(progAdvect);
+      gl.uniform1i(uAdv.u_src,       0);
+      gl.uniform1i(uAdv.u_prev,      1);
+      gl.uniform1f(uAdv.u_time,      t);
+      gl.uniform1f(uAdv.u_viscosity, viscosity);
+      gl.uniform1f(uAdv.u_beat,      beat);
+      gl.uniform2f(uAdv.u_res,       simW, simH);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, srcTex);
+      gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, readTex);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      pingPong = 1 - pingPong;
+
+      // PASS 2: Display → フル解像度スクリーン (GL_LINEARでバイリニアアップスケール)
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, W, H);
+      gl.useProgram(progDisplay);
+      gl.uniform1i(uDisp.u_fbo,       0);
+      gl.uniform1i(uDisp.u_src,       1);
+      gl.uniform1f(uDisp.u_tension,   tension);
+      gl.uniform1f(uDisp.u_viscosity, viscosity);
+      gl.uniform1f(uDisp.u_beat,      beat);
+      gl.uniform2f(uDisp.u_res,       simW, simH);  // Sobel用にsim解像度を渡す
+      gl.uniform3f(uDisp.u_tint,      currentTint[0], currentTint[1], currentTint[2]);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texFBO[pingPong]);
+      gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, srcTex);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+      gl.bindVertexArray(null);
+    }
+
+    // ── スライダー値をセット ────────────────────────────────
+    function fireSliderVal(id, val) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.value = val;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      const disp = document.getElementById(id.replace('Slider','Value'));
+      if (disp) disp.textContent = parseFloat(val).toFixed(1);
+    }
+
+    // ── パブリック API ──────────────────────────────────────
+    window.toggleLiquidMode = function(on) {
+      if (on) {
+        if (active) return;
+        active = true;
+        startStream();
+        overlay.style.display = 'block';
+        startTime = performance.now();
+        pingPong = 0;
+        if (W > 0) {
+          for (let i = 0; i < 2; i++) {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, fbos[i]);
+            gl.clearColor(0,0,0,1); gl.clear(gl.COLOR_BUFFER_BIT);
+          }
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        }
+        render();
+        console.log('[LIQUID] ON — sim scale:', getSimScale());
+      } else {
+        if (!active) return;
+        active = false;
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+        overlay.style.display = 'none';
+        if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+        vid.srcObject = null; videoReady = false;
+        console.log('[LIQUID] OFF');
+      }
+    };
+
+    window.setFluidPreset = function(name) {
+      const p = PRESETS[name] || PRESETS.liquid;
+      currentTint = p.tint;
+      fireSliderVal('liquidViscositySlider', p.viscosity);
+      fireSliderVal('elasticitySlider', p.tension);
+      console.log('[LIQUID] Preset:', name, '— tint:', p.tint);
+    };
+
+    console.log('[LIQUID] Ready — HALF_FLOAT:', !!extHF, '| VAO | Resolution Scaling');
   })();
   </script>
 </body>
