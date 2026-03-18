@@ -4547,23 +4547,31 @@
       btn.addEventListener('click', () => {
         const cfg = VJ_PRESETS[btn.dataset.preset];
         if (!cfg) return;
-        clearAllModes();
-        // Fluid/Liquid mode toggle
+
         const fluidPresets = ['liquid', 'mercury', 'lava', 'neon'];
-        if (fluidPresets.includes(btn.dataset.preset)) {
+        const isFluid = fluidPresets.includes(btn.dataset.preset);
+
+        if (isFluid) {
+          // ── Zero-Lag Fluid Path: DOM イベント一切なし、Uniform のみ更新 ──
           window.toggleLiquidMode?.(true);
           window.setFluidPreset?.(btn.dataset.preset);
-        } else {
-          window.toggleLiquidMode?.(false);
-        }
-        setTimeout(() => {
-          Object.entries(cfg.modes).forEach(([id, on]) => setModeBtn(id, on));
-          applyAll(cfg.params);
           document.querySelectorAll('.vj-preset-item').forEach(b => b.classList.remove('active'));
           document.querySelectorAll('.vj-motion-btn').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
           presetDropdown?.classList.remove('open');
-        }, 80);
+        } else {
+          // ── 非 Fluid: 従来パス (clearAllModes + setTimeout) ──
+          clearAllModes();
+          window.toggleLiquidMode?.(false);
+          setTimeout(() => {
+            Object.entries(cfg.modes).forEach(([id, on]) => setModeBtn(id, on));
+            applyAll(cfg.params);
+            document.querySelectorAll('.vj-preset-item').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.vj-motion-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            presetDropdown?.classList.remove('open');
+          }, 80);
+        }
       });
     });
 
@@ -4955,6 +4963,15 @@ void main() {
     let rafId     = null;
     let _srcTexW  = 0, _srcTexH = 0;  // texSubImage2D サイズ追跡
 
+    // ── Preset Lerp — DOM イベントなしで 0.25s かけてスムーズ遷移 ──
+    let _targetTint  = [0.30, 0.58, 1.00];
+    let _lerpTint    = [0.30, 0.58, 1.00];
+    let _targetVisc  = 0.5;   // normalized 0-1
+    let _targetTen   = 0.5;
+    let _lerpVisc    = 0.5;
+    let _lerpTen     = 0.5;
+    let _prevRafTime = performance.now();
+
     // ── オーディオビート — プール済みバッファで GC ゼロ ────
     let _beatBuf = null;
     function getBeat() {
@@ -5011,9 +5028,21 @@ void main() {
       const sh = Math.max(1, Math.round(ch * scale));
       if (cw !== W || ch !== H || sw !== simW || sh !== simH) resizeFBOs(cw, ch, sw, sh);
 
-      const t         = (performance.now() - startTime) * 0.001;
-      const viscosity = getSlider('liquidViscositySlider', 5);
-      const tension   = getSlider('elasticitySlider', 5);
+      const now       = performance.now();
+      const dt        = Math.min((now - _prevRafTime) * 0.001, 0.05);
+      _prevRafTime    = now;
+      const t         = (now - startTime) * 0.001;
+
+      // Preset Lerp: ~0.25s で targetに到達 (exp decay)
+      const lerpK = 1.0 - Math.exp(-dt * 14.0);
+      _lerpTint[0] += (_targetTint[0] - _lerpTint[0]) * lerpK;
+      _lerpTint[1] += (_targetTint[1] - _lerpTint[1]) * lerpK;
+      _lerpTint[2] += (_targetTint[2] - _lerpTint[2]) * lerpK;
+      _lerpVisc    += (_targetVisc    - _lerpVisc)    * lerpK;
+      _lerpTen     += (_targetTen     - _lerpTen)     * lerpK;
+
+      const viscosity = _lerpVisc;
+      const tension   = _lerpTen;
       const beat      = getBeat();
 
       // ソーステクスチャ更新: サイズ変化時のみ texImage2D、通常は texSubImage2D（再確保なし）
@@ -5059,7 +5088,7 @@ void main() {
       gl.uniform1f(uDisp.u_viscosity,  viscosity);
       gl.uniform1f(uDisp.u_beat,       beat);
       gl.uniform2f(uDisp.u_res,        simW, simH);  // Sobel用にsim解像度を渡す
-      gl.uniform3f(uDisp.u_tint,       currentTint[0], currentTint[1], currentTint[2]);
+      gl.uniform3f(uDisp.u_tint,       _lerpTint[0], _lerpTint[1], _lerpTint[2]);
       gl.uniform1f(uDisp.u_time,       t);
       gl.uniform1f(uDisp.u_elasticity, getSlider('warpIntensitySlider', 3));
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texFBO[pingPong]);
@@ -5110,10 +5139,18 @@ void main() {
 
     window.setFluidPreset = function(name) {
       const p = PRESETS[name] || PRESETS.liquid;
-      currentTint = p.tint;
-      fireSliderVal('liquidViscositySlider', p.viscosity);
-      fireSliderVal('elasticitySlider', p.tension);
-      console.log('[LIQUID] Preset:', name, '— tint:', p.tint);
+      // Lerp ターゲットをセット — DOM イベント・スライダー変更なし → ゼロラグ
+      _targetTint[0] = p.tint[0]; _targetTint[1] = p.tint[1]; _targetTint[2] = p.tint[2];
+      _targetVisc = p.viscosity / 10.0;
+      _targetTen  = p.tension  / 10.0;
+      // スライダーUIの見た目のみ次フレームで更新 (レンダリングをブロックしない)
+      requestAnimationFrame(() => {
+        const vs = document.getElementById('liquidViscositySlider');
+        const ts = document.getElementById('elasticitySlider');
+        if (vs) { vs.value = p.viscosity; }
+        if (ts) { ts.value = p.tension;   }
+      });
+      console.log('[LIQUID] Preset→', name);
     };
 
     console.log('[LIQUID] Ready — HALF_FLOAT:', !!extHF, '| VAO | Resolution Scaling');
