@@ -16,6 +16,17 @@
 
   <link rel="icon" href="data:,">
   <!-- FREEZE: requestAnimationFrame patch (must be before any JS loads) -->
+  <!-- captureStream FPS 安定化パッチ: 60fps → 30fps 固定でカクカクを解消 -->
+  <script>
+    (function patchCaptureStreamFPS() {
+      const _origCS = HTMLCanvasElement.prototype.captureStream;
+      HTMLCanvasElement.prototype.captureStream = function(fps) {
+        // 指定 fps を 30 以下に制限（高解像度でも安定したフレームレートを維持）
+        const targetFps = (fps && fps > 30) ? 30 : (fps || 30);
+        return _origCS.call(this, targetFps);
+      };
+    })();
+  </script>
   <script>
     (function patchRAFForFreeze() {
       const _origRAF = window.requestAnimationFrame.bind(window);
@@ -44,6 +55,25 @@
           pausedCallbacks.clear();
           cbs.forEach(cb => _origRAF(cb));
         }
+      };
+    })();
+  </script>
+  <!-- MIC STREAM SHARING: getUserMedia interceptor (must be before compiled JS) -->
+  <script>
+    (function patchGetUserMediaForSharedAudio() {
+      if (!navigator.mediaDevices) return;
+      const _origGUM = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+      window.__sharedMicStream = null;
+      navigator.mediaDevices.getUserMedia = async function(constraints) {
+        const stream = await _origGUM(constraints);
+        if (constraints && constraints.audio && stream.getAudioTracks().length > 0) {
+          window.__sharedMicStream = stream;
+          // ストリームが終了したらクリア
+          stream.getAudioTracks()[0].addEventListener('ended', () => {
+            if (window.__sharedMicStream === stream) window.__sharedMicStream = null;
+          });
+        }
+        return stream;
       };
     })();
   </script>
@@ -113,6 +143,7 @@
       background: #0f0f0f !important;
       border-color: #2a2a2a !important
     }
+    #audioDeviceSelect { display: none !important; }
 
     .panel-header {
       border-color: #1e1e1e !important
@@ -140,6 +171,24 @@
       background: #1e1e1e !important;
       color: #fff !important;
       border-color: #fff !important
+    }
+
+    @keyframes starBeatFlash {
+      0%   { box-shadow: 0 0 0px #fff; background: #1e1e1e !important; }
+      30%  { box-shadow: 0 0 18px 4px #fff; background: #383838 !important; }
+      100% { box-shadow: 0 0 0px #fff; background: #1e1e1e !important; }
+    }
+    .star-beat-flash {
+      animation: starBeatFlash 0.12s ease-out forwards !important;
+    }
+
+    @keyframes startupBtnFlash {
+      0%   { box-shadow: none; color: #555 !important; }
+      40%  { box-shadow: 0 0 14px 3px #fff; color: #fff !important; background: #2a2a2a !important; }
+      100% { box-shadow: none; color: #555 !important; }
+    }
+    .startup-flash {
+      animation: startupBtnFlash 0.35s ease-out forwards !important;
     }
 
     .transition-btn,
@@ -240,6 +289,10 @@
 
     .preset-item {
       background: #111 !important
+    }
+    /* panel-headerが透明でサムネイルに重なるのを防ぐ */
+    #leftPanel .panel-header {
+      background: #0f0f0f !important;
     }
 
     .icon {
@@ -458,6 +511,7 @@
       display: flex;
       flex-direction: row;
       align-items: center;
+      justify-content: center;
       gap: 2px;
       padding: 3px 6px;
       width: 100%;
@@ -693,7 +747,7 @@
       box-shadow: 0 0 8px rgba(255, 51, 51, 0.4);
     }
     /* FREEZEはアクティブ時に青く光る */
-    .vj-action-btn#freezeBtn.active {
+    #freezeBtn.active, .vj-action-btn#freezeBtn.active {
       background: #00001a;
       color: #3399ff;
       border-color: #3399ff;
@@ -893,6 +947,9 @@
             <button id="topBaryonBtn" class="mode-btn" title="Baryon Mode">
               <span>BARYON</span>
             </button>
+            <button id="topBgToggleBtn" class="mode-btn" title="Background: Black / White" style="min-width:48px;">
+              <span id="topBgToggleLabel">BG●</span>
+            </button>
           </div>
 
           <!-- ROW 2: エフェクト＋ツール -->
@@ -905,9 +962,6 @@
             </button>
             <button id="topMosaicBtn" class="mode-btn" title="MOSAIC">
               <span>MOSAIC</span>
-            </button>
-            <button id="topResetBtn" class="mode-btn top-row--reset" title="RESET ALL">
-              <span>RESET</span>
             </button>
 
             <div class="top-row-divider"></div>
@@ -927,11 +981,29 @@
             <button id="tapBpmBtn" class="mode-btn" title="Tap over time to set BPM">
               <span>TAP</span>
             </button>
+            <button id="autoBpmBtn" class="mode-btn" title="Auto BPM detection from audio input">
+              <span>BPM AUTO</span>
+            </button>
             <button id="invertBtn" class="mode-btn" title="Invert Colors">
               <span>INVERT</span>
             </button>
-            <button id="glowBtn" class="mode-btn active" title="Toggle Center Glow Visibility">
+            <button id="glowBtn" class="mode-btn" title="Toggle Center Glow Visibility">
               <span>GLOW</span>
+            </button>
+
+            <div class="top-row-divider"></div>
+
+            <button id="freezeBtn" class="mode-btn" title="Freeze canvas [F]">
+              <span>FREEZE</span>
+            </button>
+            <button id="blackoutBtn" class="mode-btn" title="Blackout [B]" style="color:#ff4444;border-color:#ff4444;">
+              <span>BLACKOUT</span>
+            </button>
+
+            <div class="top-row-divider"></div>
+
+            <button id="topResetBtn" class="mode-btn top-row--reset" title="RESET ALL">
+              <span>RESET</span>
             </button>
           </div>
 
@@ -954,6 +1026,24 @@
           <div class="seekbar-item" id="antigravitySeekbar">
             <label>Float Speed: <span id="gravitySpeedValue">0.1</span></label>
             <input type="range" id="gravitySpeedSeekbar" min="0.1" max="3" step="0.1" value="0.1">
+          </div>
+          <div class="seekbar-item" id="spaceCountSeekbar" style="display: none;">
+            <label>Stars: <span id="spaceCountValue">1000</span></label>
+            <input type="range" id="spaceCountSlider" min="100" max="3000" step="100" value="1000">
+          </div>
+          <div class="seekbar-item" id="spaceSizeSeekbar" style="display: none;">
+            <label>Star Size: <span id="spaceSizeValue">2.0</span></label>
+            <input type="range" id="spaceSizeSlider" min="0.5" max="10" step="0.5" value="2">
+          </div>
+          <div class="seekbar-item" id="spaceShapeSeekbar" style="display: none;">
+            <label style="justify-content:space-between;">
+              <span>Shape: <span id="spaceShapeValue">1</span></span>
+              <span style="display:inline-flex;gap:2px;">
+                <button id="spaceRandomBtn" class="mode-btn" style="padding:0 4px;font-size:9px;min-width:unset;height:13px;line-height:13px;border-radius:2px;">R</button>
+                <button id="spaceMixBtn"    class="mode-btn" style="padding:0 4px;font-size:9px;min-width:unset;height:13px;line-height:13px;border-radius:2px;">M</button>
+              </span>
+            </label>
+            <input type="range" id="spaceShapeSlider" min="1" max="48" step="1" value="1">
           </div>
           <div class="seekbar-item" id="brainHackSeekbar" style="display: none;">
             <label><span data-i18n="mode">Mode</span>: <span id="brainHackModeValue">Phantom</span></label>
@@ -991,7 +1081,7 @@
       <div id="canvasWrapper">
         <div id="blackoutOverlay" class="blackout-overlay"></div>
         <div class="canvas-container" id="canvasContainer"></div>
-        <div id="centerGlow" class="center-glow"></div>
+        <div id="centerGlow" class="center-glow hidden"></div>
         <div id="p5-container"
           style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;">
         </div>
@@ -1027,7 +1117,8 @@
           <input type="file" id="musicUpload" accept=".mp3,.wav,.ogg,.m4a,.aac,.flac,.aiff,.wma" style="display: none;">
           <button id="musicAddBtn" class="music-icon-btn" title="Open File"></button>
           <button id="musicPlayBtn" class="music-icon-btn" title="Play/Pause">▶</button>
-          <button id="topMicBtn" class="music-icon-btn" title="Mic Input" style="margin-left: 8px;">
+          <!-- MIC INPUT: 非表示。BPM AUTOが自動制御する -->
+          <button id="topMicBtn" class="music-icon-btn" title="Mic Input" style="display:none;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
@@ -1036,6 +1127,7 @@
               <line x1="8" y1="23" x2="16" y2="23"></line>
             </svg>
           </button>
+
           <span id="midiStatus"
             style="font-size: 14px; opacity: 0.3; transition: opacity 0.3s; display:flex; align-items:center; margin-left: 4px;"
             title="MIDI Not Connected">⌬</span>
@@ -1070,10 +1162,8 @@
         </div>
 
         <div class="music-stats-right">
-          <span class="stat-item">BPM: <span id="bpmValue">--</span></span>
+          <span class="stat-item">BPM: <span id="bpmValue" style="color:#ff4d6d;font-size:1.3em;font-weight:700;letter-spacing:0.05em;">--</span></span>
           <span class="stat-item">FPS: <span id="fpsValue">60</span></span>
-          <button id="freezeBtn" class="vj-action-btn" title="Freeze canvas [F]">FREEZE</button>
-          <button id="blackoutBtn" class="vj-action-btn vj-action-btn--blackout" title="Blackout [B]">BLACKOUT</button>
           <button id="vOutBtn" class="v-out-btn" title="Projector Output">V-OUT</button>
         </div>
       </div>
@@ -1505,6 +1595,29 @@
     })();
   </script>
 
+  <!-- RENDER RESOLUTION OPTIMIZER: 1920x1080 → 1280x720 で GPU 負荷を削減 -->
+  <script>
+    (function optimizeRenderResolution() {
+      function apply() {
+        const mm = window.mandalaMachine;
+        if (!mm) return setTimeout(apply, 500);
+        const sm = mm.sceneManager;
+        if (!sm) return setTimeout(apply, 500);
+        const renderer = sm.getRenderer?.() || sm.renderer;
+        if (!renderer) return setTimeout(apply, 500);
+
+        // 1920x1080 → 1280x720 (GPU負荷を約44%削減)
+        renderer.setSize(1280, 720, false);
+
+        // aiSpeedMultiplier を下げてハンドラー呼び出しを減らす
+        if (mm.state.aiSpeedMultiplier > 3) {
+          mm.state.aiSpeedMultiplier = 3;
+        }
+      }
+      setTimeout(apply, 1000);
+    })();
+  </script>
+
   <!-- CAMERA INPUT -->
   <script>
     (function setupCameraInput() {
@@ -1907,6 +2020,484 @@
       }
     })();
   </script>
+  <!-- SPACE MODE: 独立した星空レイヤー（BARYONと干渉しない） -->
+  <script>
+    (function patchSpaceMode() {
+      function apply() {
+        const mm = window.mandalaMachine;
+        if (!mm) return setTimeout(apply, 300);
+
+        const sm = () => mm.sceneManager;
+
+        // ── 1. InstancedMesh ベースの高速星空 ────────────────────────
+        let _starSize       = 2;
+        let _starCount      = 1000;
+        let _starMatIndex   = 0;
+        let _starRotSpeed   = 0.0003;
+        let _starRafId      = null;
+        let _starGroup      = null;
+        let _starIMesh      = null;
+        let _starScene      = null;
+        let _starBeatPhase  = 0;      // 0-1 ビートパルス
+        let _starBaseScale  = 0.3;    // createStarField で更新
+        let _starWireMode   = 'solid'; // solid / wire / mix
+        let _starMixMode    = false;  // 複数形状ミックス
+        let _starSolidMat   = null;
+        let _starWireMat    = null;
+
+        // スライダー初期値同期
+        const _sizeSliderEl  = document.getElementById('spaceSizeSlider');
+        const _countSliderEl = document.getElementById('spaceCountSlider');
+        if (_sizeSliderEl)  { _sizeSliderEl.value  = _starSize;  document.getElementById('spaceSizeValue').textContent  = _starSize.toFixed(1); }
+        if (_countSliderEl) { _countSliderEl.value = _starCount; document.getElementById('spaceCountValue').textContent = _starCount; }
+        const _aiSliderEl = document.getElementById('aiSpeedSeekbar');
+        if (_aiSliderEl)  _starRotSpeed = parseFloat(_aiSliderEl.value) * 0.00005;
+
+        // 既存曼荼羅オブジェクトからスケール基準を取得
+        function getRefScale() {
+          const insts = mm.instanceManager?.getAllInstances?.() || [];
+          if (insts.length > 0) {
+            const obj = mm.sceneManager?.scene?.getObjectByProperty?.('uuid', insts[0].uuid);
+            if (obj) return obj.scale?.x || 1;
+          }
+          return 1;
+        }
+
+        // Float32Array で位置を管理（THREE.js Vector3 読み書きを回避）
+        let _starPositions = null; // [x,y,z] * count
+        let _starRotAngles = null; // [rx,ry,rz] * count
+        let _starIMesh     = null; // InstancedMesh (使える場合)
+        let _starDummy     = null; // Object3D dummy（行列計算用）
+        let _starCount_act = 0;   // 実際に生成した数
+
+        // DOM参照キャッシュ（毎フレームgetElementById回避）
+        const _domBpmAuto = document.getElementById('autoBpmBtn');
+        const _domAutoBtn = document.getElementById('topAutoBtn');
+        const _domBpmVal  = document.getElementById('bpmValue');
+
+        function makeMat(base, wire) {
+          const m = base.clone();
+          if (m.color)    m.color.setHex(0xffffff);
+          if (m.emissive) m.emissive.setHex(0x888888);
+          m.metalness = 0.3; m.roughness = 0.4;
+          m.side = base.side; m.wireframe = wire;
+          return m;
+        }
+
+        function createStarField() {
+          removeStarField();
+          const scene = sm()?.scene;
+          if (!scene || !window.MATERIALS?.length) return;
+          _starScene = scene;
+
+          const matDef = window.MATERIALS[_starMatIndex % window.MATERIALS.length];
+          if (!matDef?.create3D) return;
+          const sample = matDef.create3D(true);
+          if (!sample) return;
+
+          let geo = null, baseMat = null, MeshCtor = null;
+          if (sample.isMesh) { geo = sample.geometry; baseMat = sample.material; MeshCtor = sample.constructor; }
+          else sample.traverse?.(c => { if (!geo && c.isMesh) { geo = c.geometry; baseMat = c.material; MeshCtor = c.constructor; } });
+          if (!geo || !MeshCtor) return;
+
+          _starSolidMat = makeMat(baseMat, false);
+          _starWireMat  = makeMat(baseMat, true);
+
+          const baseScale = mm.state?.sizeMultiplier ? Math.abs(mm.state.sizeMultiplier) * 0.15 : 0.15;
+          const scale     = baseScale * _starSize;
+          _starBaseScale  = scale;
+          const count     = Math.min(_starCount, 1000);
+          _starCount_act  = count;
+          const spread    = 200;
+
+          _starPositions = new Float32Array(count * 3);
+          _starRotAngles = new Float32Array(count * 3);
+
+          // ── InstancedMesh があれば使う（1ドローコール）──
+          let IMeshCtor = null;
+          scene.traverse(o => { if (!IMeshCtor && o.isInstancedMesh) IMeshCtor = o.constructor; });
+
+          const useMat = _starWireMode === 'wire' ? _starWireMat : _starSolidMat;
+
+          if (IMeshCtor) {
+            const Object3DClass = Object.getPrototypeOf(MeshCtor);
+            _starDummy = new Object3DClass();
+            _starIMesh = new IMeshCtor(geo, useMat, count);
+            _starIMesh.frustumCulled = false;
+
+            for (let i = 0; i < count; i++) {
+              const x = (Math.random() - 0.5) * spread;
+              const y = (Math.random() - 0.5) * spread;
+              const z = (Math.random() - 0.5) * spread;
+              _starPositions[i*3] = x; _starPositions[i*3+1] = y; _starPositions[i*3+2] = z;
+              const r = Math.random() * Math.PI * 2;
+              _starRotAngles[i*3] = r; _starRotAngles[i*3+1] = r*0.7; _starRotAngles[i*3+2] = r*0.4;
+              _starDummy.position.set(x, y, z);
+              _starDummy.rotation.set(r, r*0.7, r*0.4);
+              _starDummy.scale.setScalar(scale);
+              _starDummy.updateMatrix();
+              _starIMesh.setMatrixAt(i, _starDummy.matrix);
+            }
+            _starIMesh.instanceMatrix.needsUpdate = true;
+            scene.add(_starIMesh);
+            _starGroup = null;
+          } else {
+            // フォールバック: 個別Mesh（matrixAutoUpdate=false で描画負荷削減）
+            _starGroup = [];
+            for (let i = 0; i < count; i++) {
+              const mat = _starWireMode === 'mix' ? (i%2===0 ? _starWireMat : _starSolidMat) : useMat;
+              const m = new MeshCtor(geo, mat);
+              const x = (Math.random()-0.5)*spread, y = (Math.random()-0.5)*spread, z = (Math.random()-0.5)*spread;
+              _starPositions[i*3] = x; _starPositions[i*3+1] = y; _starPositions[i*3+2] = z;
+              const r = Math.random() * Math.PI * 2;
+              _starRotAngles[i*3] = r; _starRotAngles[i*3+1] = r*0.7; _starRotAngles[i*3+2] = r*0.4;
+              m.position.set(x, y, z);
+              m.rotation.set(r, r*0.7, r*0.4);
+              m.scale.setScalar(scale);
+              m.frustumCulled = false;
+              m.matrixAutoUpdate = false;
+              m.updateMatrix();
+              scene.add(m);
+              _starGroup.push(m);
+            }
+          }
+          startStarAnimation();
+        }
+
+        function applyStarWireMode(mode) {
+          _starWireMode = mode;
+          if (_starIMesh) {
+            _starIMesh.material = mode === 'wire' ? _starWireMat : _starSolidMat;
+          } else if (Array.isArray(_starGroup)) {
+            _starGroup.forEach((m, i) => {
+              m.material = mode === 'wire' ? _starWireMat
+                         : mode === 'mix'  ? (i%2===0 ? _starWireMat : _starSolidMat)
+                         : _starSolidMat;
+            });
+          }
+        }
+
+        function removeStarField() {
+          stopStarAnimation();
+          const scene = _starScene || sm()?.scene;
+          if (_starIMesh)              { scene?.remove(_starIMesh); _starIMesh = null; }
+          if (Array.isArray(_starGroup)) { _starGroup.forEach(m => scene?.remove(m)); _starGroup = null; }
+          _starPositions = null; _starRotAngles = null; _starDummy = null;
+          _starScene = null;
+        }
+
+        function _getBpm() {
+          const v = parseInt(_domBpmVal?.textContent?.trim());
+          return (v && v > 20) ? Math.min(300, v) : 120;
+        }
+
+        function startStarAnimation() {
+          stopStarAnimation();
+          let frame      = 0;
+          let lastBeatMs = 0;
+          let lastScale  = _starBaseScale;
+
+          function tick(now) {
+            _starRafId = requestAnimationFrame(tick);
+            frame++;
+            if (frame % 3 !== 0) return; // 3フレームに1回更新（~20fps）
+            if (!_starPositions) return;
+
+            // ── BPM ビート（キャッシュ済みDOM参照）──────────────
+            if (_domBpmAuto?.classList.contains('active')) {
+              const bi = 60000 / _getBpm();
+              if (now - lastBeatMs >= bi) {
+                lastBeatMs     = now;
+                _starBeatPhase = 1.0;
+                if (_domAutoBtn?.classList.contains('active')) {
+                  _domAutoBtn.classList.add('star-beat-flash');
+                  setTimeout(() => _domAutoBtn.classList.remove('star-beat-flash'), 120);
+                }
+              }
+            } else {
+              _starBeatPhase = 0;
+            }
+            if (_starBeatPhase > 0) _starBeatPhase = Math.max(0, _starBeatPhase - 0.18);
+            const s = _starBaseScale * (1 + _starBeatPhase * 0.5);
+            const scaleChanged = Math.abs(s - lastScale) > 0.0001;
+            if (scaleChanged) lastScale = s;
+
+            // ── フィールド回転（三角関数はフレームに1回だけ計算）──
+            const spd  = _starRotSpeed;
+            const cosY = Math.cos(spd),        sinY = Math.sin(spd);
+            const cosX = Math.cos(spd * 0.4),  sinX = Math.sin(spd * 0.4);
+            const cosZ = Math.cos(spd * 0.15), sinZ = Math.sin(spd * 0.15);
+            const rotX = spd * 1.7, rotY = spd * 3.0, rotZ = spd * 0.9;
+
+            const pos  = _starPositions;
+            const rots = _starRotAngles;
+            const n    = _starCount_act;
+
+            if (_starIMesh && _starDummy) {
+              // ── InstancedMesh パス（1ドローコール）──────────────
+              const dummy = _starDummy;
+              for (let i = 0; i < n; i++) {
+                const i3 = i * 3;
+                let x = pos[i3], y = pos[i3+1], z = pos[i3+2];
+                const x1 = x*cosY + z*sinY,  z1 = -x*sinY + z*cosY;
+                const y2 = y*cosX - z1*sinX, z2 = y*sinX + z1*cosX;
+                const x3 = x1*cosZ - y2*sinZ, y3 = x1*sinZ + y2*cosZ;
+                pos[i3] = x3; pos[i3+1] = y3; pos[i3+2] = z2;
+
+                rots[i3]   += rotX; rots[i3+1] += rotY; rots[i3+2] += rotZ;
+
+                dummy.position.set(x3, y3, z2);
+                dummy.rotation.set(rots[i3], rots[i3+1], rots[i3+2]);
+                if (scaleChanged) dummy.scale.setScalar(s);
+                dummy.updateMatrix();
+                _starIMesh.setMatrixAt(i, dummy.matrix);
+              }
+              _starIMesh.instanceMatrix.needsUpdate = true;
+              if (scaleChanged) _starIMesh.instanceMatrix.needsUpdate = true;
+
+            } else if (Array.isArray(_starGroup)) {
+              // ── 個別Mesh フォールバック（matrixAutoUpdate=false）─
+              for (let i = 0; i < n; i++) {
+                const m  = _starGroup[i];
+                const i3 = i * 3;
+                let x = pos[i3], y = pos[i3+1], z = pos[i3+2];
+                const x1 = x*cosY + z*sinY,  z1 = -x*sinY + z*cosY;
+                const y2 = y*cosX - z1*sinX, z2 = y*sinX + z1*cosX;
+                const x3 = x1*cosZ - y2*sinZ, y3 = x1*sinZ + y2*cosZ;
+                pos[i3] = x3; pos[i3+1] = y3; pos[i3+2] = z2;
+
+                rots[i3] += rotX; rots[i3+1] += rotY; rots[i3+2] += rotZ;
+
+                m.position.x = x3; m.position.y = y3; m.position.z = z2;
+                m.rotation.x = rots[i3]; m.rotation.y = rots[i3+1]; m.rotation.z = rots[i3+2];
+                if (scaleChanged) { m.scale.x = s; m.scale.y = s; m.scale.z = s; }
+                m.updateMatrix();
+              }
+            }
+          }
+          tick(performance.now());
+        }
+        function stopStarAnimation() {
+          if (_starRafId !== null) { cancelAnimationFrame(_starRafId); _starRafId = null; }
+        }
+
+        // ── 2. Star Size スライダー ──────────────────────────────────
+        document.getElementById('spaceSizeSlider')?.addEventListener('input', function() {
+          _starSize = parseFloat(this.value);
+          document.getElementById('spaceSizeValue').textContent = _starSize.toFixed(1);
+          const baseScale = mm.state?.sizeMultiplier ? Math.abs(mm.state.sizeMultiplier) * 0.15 : 0.15;
+          const scale = baseScale * _starSize;
+          _starBaseScale = scale;
+          if (Array.isArray(_starGroup)) _starGroup.forEach(m => m.scale.setScalar(scale));
+        });
+
+        // ── 3. Stars Count スライダー ────────────────────────────────
+        document.getElementById('spaceCountSlider')?.addEventListener('input', function() {
+          _starCount = parseInt(this.value);
+          document.getElementById('spaceCountValue').textContent = _starCount;
+          if (_starGroup) { removeStarField(); createStarField(); }
+        });
+
+        // ── 4. AI Speed → 回転速度 ──────────────────────────────────
+        document.getElementById('aiSpeedSeekbar')?.addEventListener('input', function() {
+          _starRotSpeed = parseFloat(this.value) * 0.00005;
+        });
+
+        // ── 5. Shape スライダー ──────────────────────────────────────
+        function initShapeSlider() {
+          const slider = document.getElementById('spaceShapeSlider');
+          if (!slider || !window.MATERIALS) return;
+          slider.max   = window.MATERIALS.length;
+          slider.value = _starMatIndex + 1;
+          document.getElementById('spaceShapeValue').textContent = slider.value;
+        }
+
+        document.getElementById('spaceShapeSlider')?.addEventListener('input', function() {
+          _starMatIndex = parseInt(this.value) - 1;
+          document.getElementById('spaceShapeValue').textContent = this.value;
+          removeStarField();
+          createStarField();
+        });
+
+        // ── SOLID / WIRE / MIX ボタン ────────────────────────────────
+        ['topSolidBtn', 'topWireBtn', 'topMixBtn'].forEach(id => {
+          document.getElementById(id)?.addEventListener('click', () => {
+            if (!_spaceEnabled) return;
+            const mode = id === 'topSolidBtn' ? 'solid' : id === 'topWireBtn' ? 'wire' : 'mix';
+            applyStarWireMode(mode);
+          });
+        });
+
+        // ── RAND ボタン ───────────────────────────────────────────────
+        document.getElementById('spaceRandomBtn')?.addEventListener('click', () => {
+          const len = window.MATERIALS?.length || 48;
+          _starMatIndex = Math.floor(Math.random() * len);
+          const slider = document.getElementById('spaceShapeSlider');
+          if (slider) { slider.value = _starMatIndex + 1; document.getElementById('spaceShapeValue').textContent = slider.value; }
+          removeStarField();
+          createStarField();
+        });
+
+        // ── MIX ボタン ────────────────────────────────────────────────
+        document.getElementById('spaceMixBtn')?.addEventListener('click', function() {
+          _starMixMode = !_starMixMode;
+          this.classList.toggle('active', _starMixMode);
+          removeStarField();
+          createStarField();
+        });
+
+        // ── 4. toggleSpaceMode を完全置き換え（他モードに一切干渉しない）────────
+
+        function applySpaceToggle(enabling) {
+          if (!enabling) {
+            removeStarField();
+            document.getElementById('spaceCountSeekbar').style.display = 'none';
+            document.getElementById('spaceSizeSeekbar').style.display = 'none';
+            document.getElementById('spaceShapeSeekbar').style.display = 'none';
+            return;
+          }
+          // SPACE ON 時は MANDALA を強制オフ
+          if (mm.state && mm.state.mandalaMode) {
+            mm.state.mandalaMode = false;
+          }
+          if (typeof mm.toggleMandalaMode === 'function') {
+            try { mm.toggleMandalaMode(false); } catch(e) {}
+          }
+          const mandalaBtn = document.getElementById('topMandalaBtn');
+          if (mandalaBtn?.classList.contains('active')) {
+            mandalaBtn.classList.remove('active');
+          }
+          setTimeout(() => {
+            // スライダー現在値を変数に同期
+            _starSize  = parseFloat(document.getElementById('spaceSizeSlider').value);
+            _starCount = parseInt(document.getElementById('spaceCountSlider').value);
+            document.getElementById('spaceSizeValue').textContent = _starSize.toFixed(1);
+            document.getElementById('spaceCountValue').textContent = _starCount;
+            // スライダー上限をマテリアル数に合わせる
+            initShapeSlider();
+            // seekbar 表示
+            document.getElementById('spaceCountSeekbar').style.display = '';
+            document.getElementById('spaceSizeSeekbar').style.display = '';
+            document.getElementById('spaceShapeSeekbar').style.display = '';
+            // 星空生成
+            createStarField();
+          }, 150);
+        }
+
+        // ── SPACE モードは独自フラグで管理 ────────────────────────────────
+        // アニメーションループが spaceMode=true を検知すると強制的に mandalaMode=true に
+        // するため、Object.defineProperty で spaceMode への書き込みを完全ブロックする。
+        let _spaceEnabled = false;
+
+        // mm.state.spaceMode への書き込みを永続的に無効化（どのコードパスからでも）
+        try {
+          Object.defineProperty(mm.state, 'spaceMode', {
+            get() { return false; },
+            set(_v) { /* 常に false を維持 — mandalaMode強制起動を防ぐ */ },
+            configurable: true
+          });
+        } catch(e) {}
+
+        function setSpaceOnly(enabling) {
+          _spaceEnabled = enabling;
+          // UIボタンだけ手動で更新
+          const btn = document.getElementById('topAiBtn');
+          if (btn) btn.classList.toggle('active', enabling);
+          applySpaceToggle(enabling);
+        }
+
+        mm.toggleSpaceMode = function(t) {
+          const enabling = t !== undefined ? !!t : !_spaceEnabled;
+          setSpaceOnly(enabling);
+        };
+        mm.setSpaceMode = function(enabled) { setSpaceOnly(!!enabled); };
+
+        // ── 5. キーボード Space キーが MANDALA を起動する問題を修正 ────────
+        // アクセシビリティハンドラーが Space キー → topMandalaBtn.click() を実行するため上書き
+        document.addEventListener('keydown', function(e) {
+          if (e.code === 'Space' && !e.repeat &&
+              !(e.target instanceof HTMLInputElement) &&
+              !(e.target instanceof HTMLTextAreaElement)) {
+            // Space キーのデフォルト動作（MANDALA起動）を完全に無効化
+            e.stopImmediatePropagation();
+            e.preventDefault();
+          }
+        }, true); // capture=true で他のハンドラーより先に実行
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => setTimeout(apply, 500));
+      } else {
+        setTimeout(apply, 500);
+      }
+    })();
+  </script>
+  <!-- BG COLOR TOGGLE: デフォルト黒、ボタンで黒/白切り替え -->
+  <script>
+    (function setupBgToggle() {
+      function apply() {
+        const mm = window.mandalaMachine;
+        if (!mm) return setTimeout(apply, 300);
+
+        // デフォルト背景色を黒に設定
+        let _bgIsBlack = true;
+        const BLACK = { r: 0,   g: 0,   b: 0   };
+        const WHITE = { r: 255, g: 255, b: 255 };
+
+        function applyBg(isBlack) {
+          _bgIsBlack = isBlack;
+          const bgCol  = isBlack ? BLACK : WHITE;
+          const objCol = isBlack ? WHITE : BLACK; // 背景と逆色
+          // 背景色
+          mm.setBackgroundColor?.(bgCol);
+          if (mm.sceneManager?.setBackgroundColor) mm.sceneManager.setBackgroundColor(bgCol);
+          // オブジェクト色（新規オブジェクト用）
+          mm.setDefaultObjectColor?.(objCol);
+          // 既存オブジェクトにも即時適用: scene.traverse でマテリアル色を更新
+          const scene = mm.sceneManager?.scene;
+          if (scene) {
+            const r = objCol.r / 255, g = objCol.g / 255, b = objCol.b / 255;
+            scene.traverse(obj => {
+              if (!obj.isMesh) return;
+              const mat = obj.material;
+              if (!mat) return;
+              const mats = Array.isArray(mat) ? mat : [mat];
+              mats.forEach(m => {
+                if (m.color) m.color.setRGB(r, g, b);
+              });
+            });
+          }
+          const lbl = document.getElementById('topBgToggleLabel');
+          if (lbl) lbl.textContent = isBlack ? 'BG●' : 'BG○';
+          const btn = document.getElementById('topBgToggleBtn');
+          if (btn) btn.classList.toggle('active', !isBlack);
+        }
+
+        // resetBackgroundIfManual を上書きして黒をデフォルトに
+        if (mm.resetBackgroundIfManual) {
+          mm.resetBackgroundIfManual = function() {
+            if (!mm.state.autoMode && !mm.state.blinkingMode) {
+              applyBg(_bgIsBlack);
+            }
+          };
+        }
+
+        // 初期化: 黒を適用
+        applyBg(true);
+
+        // ボタンのクリックイベント
+        document.getElementById('topBgToggleBtn')?.addEventListener('click', () => {
+          applyBg(!_bgIsBlack);
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => setTimeout(apply, 600));
+      } else {
+        setTimeout(apply, 600);
+      }
+    })();
+  </script>
   <!-- AUTO FULL MODE -->
   <script>
     (function setupAutoFullMode() {
@@ -2037,8 +2628,8 @@
           mm.setSpeedMultiplier?.(0.2 + Math.random() * 2.0);
           mm.setSpreadMultiplier?.(0.3 + Math.random() * 1.5); // spread上限を抑えて画面内に
           mm.setSpacingMultiplier?.(rand(2, 12));
-          // 背景は黒か白のみ
-          const isDark = Math.random() < 0.5;
+          // 背景は黒か白のみ（黒:白 = 8:2）
+          const isDark = Math.random() < 0.8;
           const bg = isDark ? { r: 0, g: 0, b: 0 } : { r: 255, g: 255, b: 255 };
           mm.setBackgroundColor?.(bg);
           // オブジェクトカラー: 背景と被らない色を必ず選ぶ
@@ -2436,63 +3027,7 @@
       }
     })();
 
-    // ===== V-OUT: Projector Window (Electron IPC) =====
-    (function initVOut() {
-      const isElectron = typeof require !== 'undefined';
-      if (!isElectron) return;
-      const { ipcRenderer } = require('electron');
-      const vOutBtn = document.getElementById('vOutBtn');
-      let vOutActive = false;
-      let captureInterval = null;
-
-      function getMainCanvas() {
-        return document.querySelector('canvas') || document.getElementById('mainCanvas');
-      }
-
-      // Dark Mode (INVERT) の状態を取得
-      function isDarkMode() {
-        return document.body.classList.contains('dark-mode');
-      }
-
-      // フレームキャプチャ + Dark Mode状態を一緒に送信
-      function startCapture() {
-        if (captureInterval) return;
-        captureInterval = setInterval(() => {
-          const canvas = getMainCanvas();
-          if (!canvas) return;
-          try {
-            const dataURL = canvas.toDataURL('image/jpeg', 0.85);
-            ipcRenderer.send('canvas-frame', { dataURL, darkMode: isDarkMode() });
-          } catch (e) { }
-        }, 1000 / 30);
-      }
-
-      function stopCapture() {
-        if (captureInterval) { clearInterval(captureInterval); captureInterval = null; }
-      }
-
-      if (vOutBtn) {
-        vOutBtn.addEventListener('click', () => {
-          if (!vOutActive) {
-            ipcRenderer.send('open-projector');
-            startCapture();
-            vOutActive = true;
-            vOutBtn.classList.add('active');
-          } else {
-            ipcRenderer.send('close-projector');
-            stopCapture();
-            vOutActive = false;
-            vOutBtn.classList.remove('active');
-          }
-        });
-        ipcRenderer.on('projector-closed', () => {
-          stopCapture();
-          vOutActive = false;
-          vOutBtn.style.color = '';
-        });
-      }
-    })();
-    // ===== V-OUT END =====
+    // V-OUTはコンパイル済みコード(UIController)が vOutBtn に直接ハンドラを設定済み
     // ===== VJ Controls (TAP, INVERT, GLOW) =====
     (function initVjControls() {
       const tapBtn = document.getElementById('tapBpmBtn');
@@ -2566,6 +3101,186 @@
       }
     })();
     // ===== VJ Controls END =====
+  </script>
+
+  <!-- ===== BPM AUTO DETECTION ===== -->
+  <script>
+    (function setupAutoBpm() {
+      function apply() {
+        const btn = document.getElementById('autoBpmBtn');
+        if (!btn) return setTimeout(apply, 200);
+
+        let isActive    = false;
+        let audioCtx    = null;
+        let analyser    = null;
+        let source      = null;
+        let processor   = null;
+        let rafId       = null;
+
+        // ビート検出用バッファ
+        const HISTORY   = 43;   // ~1秒分のサンプル (43 @ 60fps)
+        const energyHistory = new Float32Array(HISTORY);
+        let histIdx     = 0;
+
+        // BPM算出用
+        const BEAT_LOG  = 8;    // 直近8ビートで平均
+        const beatTimes = [];
+        let lastBeat    = 0;
+        const MIN_INTERVAL = 300;  // 200BPM上限
+        const MAX_INTERVAL = 2000; // 30BPM下限
+
+        // BPMをアプリに反映
+        function applyBpm(bpm) {
+          const bpmEl = document.getElementById('bpmValue');
+          if (bpmEl) bpmEl.innerText = bpm;
+          const mm = window.mandalaMachine;
+          if (!mm) return;
+          if (mm.audioManager) {
+            if (typeof mm.audioManager.setBpm === 'function') {
+              mm.audioManager.setBpm(bpm);
+            } else {
+              mm.audioManager.bpm = bpm;
+              if (mm.audioManager.onBpmChange) mm.audioManager.onBpmChange(bpm);
+            }
+          } else if (typeof mm.setBpm === 'function') {
+            mm.setBpm(bpm);
+          }
+        }
+
+        // ビート検出ループ
+        function detectLoop() {
+          if (!isActive) return;
+          rafId = requestAnimationFrame(detectLoop);
+
+          const bufLen = analyser.frequencyBinCount;
+          const data   = new Uint8Array(bufLen);
+          analyser.getByteFrequencyData(data);
+
+          // 低音域 (0〜200Hz) のエネルギーを算出
+          const sampleRate = audioCtx.sampleRate;
+          const binHz      = sampleRate / (analyser.fftSize);
+          const maxBin     = Math.min(Math.floor(200 / binHz), bufLen);
+          let energy = 0;
+          for (let i = 0; i < maxBin; i++) energy += data[i] * data[i];
+          energy /= maxBin;
+
+          // 履歴更新
+          energyHistory[histIdx % HISTORY] = energy;
+          histIdx++;
+
+          // 平均エネルギーを算出
+          let avg = 0;
+          for (let i = 0; i < HISTORY; i++) avg += energyHistory[i];
+          avg /= HISTORY;
+
+          // 閾値 = 平均 × 1.3（感度調整）
+          const threshold = avg * 1.3;
+          const now = performance.now();
+
+
+
+          if (energy > threshold && energy > 20 && (now - lastBeat) > MIN_INTERVAL) {
+            lastBeat = now;
+            beatTimes.push(now);
+            if (beatTimes.length > BEAT_LOG + 1) beatTimes.shift();
+
+            // 直近ビート間隔からBPMを算出
+            if (beatTimes.length >= 3) {
+              const intervals = [];
+              for (let i = 1; i < beatTimes.length; i++) {
+                const iv = beatTimes[i] - beatTimes[i - 1];
+                if (iv >= MIN_INTERVAL && iv <= MAX_INTERVAL) intervals.push(iv);
+              }
+              if (intervals.length >= 2) {
+                const avgIv = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+                let bpm = Math.round(60000 / avgIv);
+                // ハーフタイム補正
+                if (bpm < 60) bpm *= 2;
+                if (bpm > 200) bpm = Math.round(bpm / 2);
+                bpm = Math.max(60, Math.min(200, bpm));
+                applyBpm(bpm);
+              }
+            }
+          }
+        }
+
+        // マイク入力を取得してスタート
+        async function start() {
+          try {
+            // topMicBtnをONにして既存のオーディオリアクティビティを維持
+            const micBtn = document.getElementById('topMicBtn');
+            if (micBtn && !micBtn.classList.contains('active')) {
+              micBtn.click();
+              // コンパイル済みコードがgetUserMediaを呼ぶまで少し待つ
+              await new Promise(r => setTimeout(r, 300));
+            }
+
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+            // 既存のMIC INPUTストリームがあればそれを使う（競合防止）
+            let stream = window.__sharedMicStream;
+            const isShared = stream && stream.getAudioTracks().some(t => t.readyState === 'live');
+            if (!isShared) {
+              console.log('[BPM AUTO] 新規getUserMedia');
+              stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            } else {
+              console.log('[BPM AUTO] 既存MICストリームを共有');
+            }
+
+            source   = audioCtx.createMediaStreamSource(stream);
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 1024;
+            analyser.smoothingTimeConstant = 0.8;
+
+            // Web Audio APIはpull型: destinationまで繋がっているノードしか処理されない。
+            // source → analyser → processor → destination の直列チェーンにする
+            processor = audioCtx.createScriptProcessor(4096, 1, 1);
+            processor.onaudioprocess = function() {};
+            source.connect(analyser);
+            analyser.connect(processor);
+            processor.connect(audioCtx.destination);
+
+            // 履歴リセット
+            energyHistory.fill(0);
+            histIdx  = 0;
+            beatTimes.length = 0;
+            lastBeat = 0;
+
+            isActive = true;
+            btn.classList.add('active');
+            detectLoop();
+            console.log('[BPM AUTO] 開始 shared:', isShared, ' ctx:', audioCtx.state);
+          } catch(e) {
+            console.error('BPM AUTO: 失敗', e.name, e.message);
+            isActive = false;
+            btn.classList.remove('active');
+          }
+        }
+
+        function stop() {
+          isActive = false;
+          if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+          if (processor) { try { processor.disconnect(); } catch(e) {} processor = null; }
+          if (source) { try { source.disconnect(); } catch(e) {} source = null; }
+          if (audioCtx) { try { audioCtx.close(); } catch(e) {} audioCtx = null; }
+          analyser = null;
+          btn.classList.remove('active');
+          // topMicBtnもOFFにする
+          const micBtn = document.getElementById('topMicBtn');
+          if (micBtn && micBtn.classList.contains('active')) micBtn.click();
+        }
+
+        btn.addEventListener('click', () => {
+          console.log('[BPM AUTO] clicked, isActive:', isActive);
+          if (isActive) { stop(); } else { start(); }
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', apply);
+      } else { apply(); }
+    })();
   </script>
 
   <!-- ===== SCENE SAVE / RECALL ===== -->
@@ -2769,7 +3484,8 @@
             window.__vjFreeze?.resume();
           }
           freezeBtn.classList.toggle('active', isFreeze);
-          freezeBtn.textContent = isFreeze ? 'FROZEN' : 'FREEZE';
+          const freezeSpan = freezeBtn.querySelector('span') || freezeBtn;
+          freezeSpan.textContent = isFreeze ? 'FROZEN' : 'FREEZE';
         }
 
         blackoutBtn.addEventListener('click', toggleBlackout);
@@ -2787,6 +3503,120 @@
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', apply);
       } else { apply(); }
+    })();
+  </script>
+
+  <!-- ===== PIX TEXT CENTER FIX ===== -->
+  <script>
+    (function() {
+      function applyPixFix() {
+        const mm = window.mandalaMachine;
+        if (!mm?.processingLayer) return setTimeout(applyPixFix, 200);
+
+        // キャッシュ: テキストが変わった時だけ再計算
+        let _pixCache = null;
+        window.clearPixCache = () => { _pixCache = null; };
+        document.querySelector('.mode-tag-btn[data-effect="pixel"]')
+          ?.addEventListener('click', () => { _pixCache = null; });
+
+        mm.processingLayer.drawPixelText = function(t, n, r) {
+          const s = this.canvasText.toUpperCase();
+          t.textStyle(t.BOLD); t.noStroke();
+
+          // テキストが変わった時だけドット座標を再計算
+          if (!_pixCache || _pixCache.text !== s) {
+            // 固定サイズの Canvas2D で描画（t.width/pixelDensity に一切依存しない）
+            const BW = 900, BH = 180;
+            const cv = document.createElement('canvas');
+            cv.width = BW; cv.height = BH;
+            const ctx = cv.getContext('2d');
+
+            // フォントサイズをバッファ幅95%・高さ85%に自動フィット
+            let fs = 140;
+            ctx.font = `bold ${fs}px Inter, sans-serif`;
+            const mw = ctx.measureText(s).width;
+            if (mw > BW * 0.95) fs = Math.floor(fs * (BW * 0.95) / mw);
+            fs = Math.min(fs, Math.floor(BH * 0.85));
+
+            ctx.clearRect(0, 0, BW, BH);
+            ctx.font = `bold ${fs}px Inter, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#fff';
+            ctx.fillText(s, BW / 2, BH / 2);
+
+            const imgData = ctx.getImageData(0, 0, BW, BH).data;
+            const step = 5;
+            const dots = []; // 正規化座標 [-0.5, 0.5]
+
+            for (let py = 0; py < BH; py += step) {
+              for (let px = 0; px < BW; px += step) {
+                // alpha チャンネルで判定（fillStyle='#fff' なので alpha が正確）
+                if (imgData[(py * BW + px) * 4 + 3] > 100) {
+                  dots.push([px / BW - 0.5, py / BH - 0.5]);
+                }
+              }
+            }
+            _pixCache = { text: s, dots };
+          }
+
+          // 毎フレーム: 正規化座標をキャンバスサイズにスケールして描画
+          const W = t.width, H = t.height;
+          const scaleX = W * 0.95;
+          const scaleY = H * 0.38;
+          const c = 2 + r * 1.5;
+          const { dots } = _pixCache;
+
+          for (let i = 0; i < dots.length; i++) {
+            const [nx, ny] = dots[i];
+            const bx = Math.sin(n * 0.003 + nx * 8 + ny * 8) * (1 + r * 2);
+            const alpha = t.random() < 0.02 + r * 0.08 ? 0 : 255;
+            t.fill(255, alpha);
+            t.circle(nx * scaleX + bx, ny * scaleY, c * 2);
+          }
+        };
+      }
+      applyPixFix();
+    })();
+  </script>
+
+  <!-- ===== STARTUP FLASH ===== -->
+  <script>
+    (function() {
+      // 上部の全モードボタンを起動完了時に順番に点滅させる
+      const BTN_IDS = [
+        'topAutoBtn', 'topAiBtn', 'topMandalaBtn', 'topBlinkBtn',
+        'topGravityBtn', 'topBrainHackBtn', 'topRavenBtn', 'topQuantumBtn',
+        'topOrbitBtn', 'topSpinBtn', 'topBaryonBtn', 'topBgToggleBtn',
+        'topGlitchBtn', 'topNoiseBtn', 'topMosaicBtn',
+        'topSolidBtn', 'topWireBtn', 'topMixBtn',
+        'tapBpmBtn', 'autoBpmBtn', 'invertBtn', 'glowBtn',
+        'freezeBtn', 'blackoutBtn', 'topResetBtn'
+      ];
+
+      const STAGGER = 55; // ボタン間の遅延(ms)
+
+      function runFlash() {
+        BTN_IDS.forEach((id, i) => {
+          const btn = document.getElementById(id);
+          if (!btn) return;
+          setTimeout(() => {
+            btn.classList.add('startup-flash');
+            btn.addEventListener('animationend', () => btn.classList.remove('startup-flash'), { once: true });
+          }, i * STAGGER);
+        });
+      }
+
+      // window.mandalaMachine が準備完了するまでポーリング
+      let attempts = 0;
+      const timer = setInterval(() => {
+        attempts++;
+        if (window.mandalaMachine || attempts > 100) {
+          clearInterval(timer);
+          // 少し待ってから点滅（レンダリング安定後）
+          setTimeout(runFlash, 300);
+        }
+      }, 100);
     })();
   </script>
 </body>

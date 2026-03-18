@@ -1,5 +1,13 @@
-const { app, BrowserWindow, ipcMain, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, session } = require('electron');
 const path = require('path');
+
+// GPU パフォーマンス最適化（高解像度 V-OUT 用）
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-zero-copy');
+app.commandLine.appendSwitch('ignore-gpu-blocklist');
+app.commandLine.appendSwitch('enable-hardware-overlays', 'single-fullscreen,single-on-top,underlay');
+app.commandLine.appendSwitch('enable-accelerated-video-decode');
+app.commandLine.appendSwitch('disable-frame-rate-limit');
 
 let mainWindow;
 let projectorWindow;
@@ -16,7 +24,54 @@ function createWindow() {
     }
   });
 
+  // マイク・カメラのアクセス許可
+  mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
+    const allowed = ['media', 'microphone', 'camera', 'audioCapture', 'videoCapture'];
+    callback(allowed.includes(permission));
+  });
+
   mainWindow.loadFile('mandaramachine.html');
+  mainWindow.webContents.on('console-message', (e, level, msg) => {
+    if (msg.includes('[STAR]')) console.log('[R]', msg);
+  });
+
+
+  // window.open() で開く "Mandala Output" ポップアップを捕捉
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    return {
+      action: 'allow',
+      overrideBrowserWindowOptions: {
+        fullscreenable: true,
+        backgroundColor: '#000000',
+        webPreferences: {
+          nodeIntegration: true,
+          contextIsolation: false,
+          hardwareAcceleration: true
+        }
+      }
+    };
+  });
+
+  // ポップアップ生成後: requestFullscreen をネイティブ IPC に差し替え
+  mainWindow.webContents.on('did-create-window', (childWindow) => {
+    childWindow.webContents.on('dom-ready', () => {
+      childWindow.webContents.executeJavaScript(`
+        (function() {
+          const _orig = document.body.requestFullscreen
+            ? document.body.requestFullscreen.bind(document.body)
+            : null;
+          document.body.requestFullscreen = function() {
+            try {
+              const { ipcRenderer } = require('electron');
+              ipcRenderer.send('popup-request-fullscreen');
+            } catch(e) {}
+            return Promise.resolve();
+          };
+          document.documentElement.requestFullscreen = document.body.requestFullscreen;
+        })();
+      `).catch(() => {});
+    });
+  });
 
   mainWindow.on('closed', function () {
     mainWindow = null;
@@ -80,6 +135,12 @@ ipcMain.on('projector-fullscreen', (event, flag) => {
   if (projectorWindow && !projectorWindow.isDestroyed()) {
     projectorWindow.setFullScreen(flag);
   }
+});
+
+// Mandala Output ポップアップからのフルスクリーン要求
+ipcMain.on('popup-request-fullscreen', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win) win.setFullScreen(true);
 });
 
 app.on('ready', createWindow);
