@@ -4772,37 +4772,59 @@ void main() {
   vec2 gradN = grad / (gradMag + 0.0001);
 
   float threshold = 0.22 + u_viscosity * 0.08;
-  float edgeW = max(0.002, 0.065 - u_tension * 0.060);
-  float mask  = smoothstep(threshold - edgeW, threshold + edgeW * 0.4, d);
+  // ── 黒背景向け: edgeW を詰めてパキッとした境界に ──
+  float edgeW = max(0.001, 0.030 - u_tension * 0.028);
+  float mask  = smoothstep(threshold - edgeW, threshold + edgeW * 0.15, d);
+  mask = pow(mask, 0.75);  // 中間域の不透明度を底上げ
 
-  float sharpness = 25.0 + u_tension * 200.0;
-  float meniscus  = exp(-abs(d - threshold) * sharpness) * clamp(gradMag * 12.0, 0.0, 1.0);
+  float sharpness = 35.0 + u_tension * 260.0;
+  float meniscus  = exp(-abs(d - threshold) * sharpness) * clamp(gradMag * 14.0, 0.0, 1.0);
   meniscus = clamp(meniscus * (1.0 + u_beat * 0.8), 0.0, 1.0);
 
   float refrStr = 0.018 * mask * (1.0 - mask * 0.6) * clamp(gradMag * 10.0, 0.0, 1.0)
                 + u_beat * 0.008 * mask;
   vec4 refracted = texture(u_src, clamp(v_uv - gradN * refrStr, 0.001, 0.999));
 
-  vec4 liquidInner = mix(densCol, refracted, 0.30 * mask);
-  liquidInner.rgb  = mix(liquidInner.rgb, u_tint, 0.20 * mask);
-  liquidInner.rgb *= 1.0 + mask * 0.12;
+  // ── 黒背景: 液体内部を黒ベースで積み上げ ──
+  vec4 bgBlack  = vec4(0.0, 0.0, 0.0, 1.0);
+  vec4 liquidInner = mix(bgBlack, densCol, 0.45);
+  liquidInner  = mix(liquidInner, refracted, 0.28 * mask);
+  liquidInner.rgb = mix(liquidInner.rgb, u_tint * 0.9, 0.22 * mask);
+  liquidInner.rgb *= 1.0 + mask * 0.18;
 
-  vec4 result = mix(texture(u_src, v_uv), liquidInner, mask);
-  result.rgb   = mix(result.rgb, u_tint, meniscus * (0.45 + u_tension * 0.45));
-  result.rgb  += vec3(meniscus * mask * 0.22);
-  result.rgb  += vec3(u_beat * 0.035 * mask);
+  vec4 result = mix(bgBlack, liquidInner, mask);
+  result.rgb   = mix(result.rgb, u_tint, meniscus * (0.50 + u_tension * 0.45));
+  result.rgb  += vec3(meniscus * mask * 0.28);
+  result.rgb  += vec3(u_beat * 0.04 * mask);
 
-  // Chromatic Aberration — beat + elasticity でRGBチャンネルを勾配法線方向にずらす
+  // ── Outer Glow — 縁の外側を tint色でにじませる (黒背景で光る) ──
+  float outerGlow = exp(-max(0.0, threshold - d) * 12.0)
+                  * (1.0 - mask)
+                  * clamp(gradMag * 10.0, 0.0, 1.0);
+  outerGlow = clamp(outerGlow * (1.0 + u_beat * 1.2), 0.0, 0.65);
+  result.rgb += u_tint * outerGlow * 0.40;
+
+  // ── Specular — 2.5D fake法線から Blinn-Phong ハイライト ──
+  vec3 fakeN   = normalize(vec3(gradN * clamp(gradMag * 3.0, 0.0, 1.0), 0.8));
+  vec3 lightDir = normalize(vec3(-0.38, 0.70, 1.0));
+  float spec   = pow(max(0.0, dot(fakeN, lightDir)), 52.0 + u_tension * 90.0);
+  spec *= mask * clamp(gradMag * 9.0, 0.0, 1.0) * (1.0 + u_beat * 0.6);
+  float specStr = 0.55 + u_tension * 0.42;
+  // Additive: tint色ハイライト + 白芯
+  result.rgb += u_tint * spec * specStr * 0.70;
+  result.rgb += vec3(spec * 0.32 * specStr);
+
+  // ── Chromatic Aberration ──
   float caStr = 0.004 * mask * (1.0 + u_beat * 1.5) * u_elasticity;
   vec3 rgbSplit;
-  rgbSplit.r = texture(u_src, clamp(v_uv + gradN * caStr,        0.001, 0.999)).r;
+  rgbSplit.r = texture(u_src, clamp(v_uv + gradN * caStr,       0.001, 0.999)).r;
   rgbSplit.g = result.g;
-  rgbSplit.b = texture(u_src, clamp(v_uv - gradN * caStr * 0.7,  0.001, 0.999)).b;
-  result.rgb = mix(result.rgb, rgbSplit, meniscus * 0.6 + mask * 0.15);
+  rgbSplit.b = texture(u_src, clamp(v_uv - gradN * caStr * 0.7, 0.001, 0.999)).b;
+  result.rgb = mix(result.rgb, rgbSplit, meniscus * 0.55 + mask * 0.12);
 
-  // Film Grain — u_time でアニメーションするノイズ
+  // ── Film Grain ──
   float grain = fract(sin(dot(v_uv * 1000.0 + fract(u_time * 0.07), vec2(127.1, 311.7))) * 43758.5453) - 0.5;
-  result.rgb += grain * 0.018 * (1.0 - mask * 0.5);
+  result.rgb += grain * 0.016 * (1.0 - mask * 0.5);
 
   fragColor = clamp(result, 0.0, 1.0);
 }`;
@@ -4922,10 +4944,10 @@ void main() {
 
     // ── プリセット ──────────────────────────────────────────
     const PRESETS = {
-      liquid:  { tint: [0.50, 0.70, 1.00], viscosity: 5, tension: 5 },
-      mercury: { tint: [0.74, 0.82, 0.88], viscosity: 4, tension: 9 },
-      lava:    { tint: [1.00, 0.36, 0.06], viscosity: 9, tension: 2 },
-      neon:    { tint: [0.10, 1.00, 0.74], viscosity: 2, tension: 5 },
+      liquid:  { tint: [0.30, 0.58, 1.00], viscosity: 5, tension: 5 },  // 深い青、黒背景で鮮明
+      mercury: { tint: [0.85, 0.93, 1.00], viscosity: 4, tension: 9 },  // 冷たい白銀、コントラスト最大
+      lava:    { tint: [1.00, 0.24, 0.00], viscosity: 9, tension: 2 },  // 純粋な赤橙、黒で燃え立つ
+      neon:    { tint: [0.00, 1.00, 0.62], viscosity: 2, tension: 5 },  // サイバーグリーン
     };
     let currentTint = PRESETS.liquid.tint;
 
@@ -5025,6 +5047,8 @@ void main() {
       // PASS 2: Display → フル解像度スクリーン (GL_LINEARでバイリニアアップスケール)
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.viewport(0, 0, W, H);
+      gl.clearColor(0.0, 0.0, 0.0, 1.0);  // 黒背景を保証
+      gl.clear(gl.COLOR_BUFFER_BIT);
       gl.useProgram(progDisplay);
       gl.uniform1i(uDisp.u_fbo,       0);
       gl.uniform1i(uDisp.u_src,       1);
