@@ -2123,8 +2123,6 @@
           const scene = sm()?.scene;
           if (!scene || !window.MATERIALS?.length) return;
           _starScene = scene;
-          // 既存MANDALAオブジェクトを全て非表示（SPACE独立表示）
-          hideSceneObjects();
 
           const matDef = window.MATERIALS[_starMatIndex % window.MATERIALS.length];
           if (!matDef?.create3D) return;
@@ -2220,8 +2218,6 @@
           if (Array.isArray(_starGroup)) { _starGroup.forEach(m => scene?.remove(m)); _starGroup = null; }
           _starPositions = null; _starRotAngles = null; _starDummy = null;
           _starScene = null;
-          // 非表示にしていたMANDALAオブジェクトを復元
-          restoreSceneObjects();
         }
 
         function _getBpm() {
@@ -2433,13 +2429,6 @@
             }
             return;
           }
-          // SPACE ON 時は MANDALA を完全オフ
-          try { mm.setMandalaMode(false); } catch(e) {}
-          mm.state.mandalaMode = false;
-          const mandalaCheckbox = document.getElementById('mandalaMode');
-          if (mandalaCheckbox) mandalaCheckbox.checked = false;
-          const mandalaBtn = document.getElementById('topMandalaBtn');
-          if (mandalaBtn) mandalaBtn.classList.remove('active');
           setTimeout(() => {
             // スライダー現在値を変数に同期
             _starSize  = parseFloat(document.getElementById('spaceSizeSlider').value);
@@ -2506,22 +2495,6 @@
           spaceObserver.observe(spaceTopBtn, { attributes: true, attributeFilter: ['class'] });
         }
 
-        // SPACE中はMANDALAボタンを押しても無効化
-        const mandalaBtn = document.getElementById('topMandalaBtn');
-        if (mandalaBtn) {
-          mandalaBtn.addEventListener('click', function(e) {
-            if (_spaceEnabled) {
-              e.stopImmediatePropagation();
-              e.preventDefault();
-              // MANDALAが再起動しないよう念押し
-              setTimeout(() => {
-                try { mm.setMandalaMode(false); } catch(err) {}
-                mm.state.mandalaMode = false;
-                this.classList.remove('active');
-              }, 0);
-            }
-          }, true);
-        }
 
         // ── 5. スペースキー → SPACE モードトグル & ボタン点灯 ────────
         document.addEventListener('keydown', function(e) {
