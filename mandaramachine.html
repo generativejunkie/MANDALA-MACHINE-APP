@@ -1077,6 +1077,65 @@
       background: #000000 !important;
     }
 
+    /* RAVEN: キャンバスをスケールアップしてキャンバス全体を埋める */
+    #canvasWrapper.raven-fill-mode #canvasContainer {
+      overflow: hidden !important;
+    }
+    #canvasWrapper.raven-fill-mode #canvasContainer canvas {
+      transform: scale(1.6) !important;
+      transform-origin: center center !important;
+    }
+
+    /* シークバー: 複数表示時に収まるよう幅を縮小 */
+    .mode-seekbars {
+      gap: 8px !important;
+    }
+    .seekbar-item {
+      width: 100px !important;
+      min-width: 0 !important;
+    }
+
+    /* ── MASTER FLASH: WHT / BLK ── */
+    .dj-wht-btn {
+      background: #ffffff !important;
+      color: #000000 !important;
+      border-color: #ffffff !important;
+      font-weight: 700 !important;
+    }
+    .dj-wht-btn:hover { opacity: 0.8 !important; box-shadow: none !important; }
+    .dj-wht-btn.active {
+      border-color: #00ffcc !important;
+      outline: 2px solid #00ffcc !important;
+      box-shadow: none !important;
+    }
+    .dj-blk-btn {
+      background: #000000 !important;
+      color: #ffffff !important;
+      border: 1px solid #ffffff !important;
+      font-weight: 700 !important;
+    }
+    .dj-blk-btn:hover { opacity: 0.8 !important; box-shadow: none !important; }
+    .dj-blk-btn.active {
+      border-color: #00ffcc !important;
+      outline: 2px solid #00ffcc !important;
+      box-shadow: none !important;
+    }
+
+    /* ── Sub-toggle: NEG / STR ── */
+    .dj-sub-btn {
+      font-size: 8px !important;
+      padding: 2px 5px !important;
+      height: 22px !important;
+      opacity: 0.55;
+      border-style: dashed !important;
+      letter-spacing: 0.5px;
+    }
+    .dj-sub-btn.active {
+      opacity: 1 !important;
+      border-style: solid !important;
+      box-shadow: 0 0 8px var(--accent-color), 0 0 16px var(--accent-color) !important;
+    }
+
     /* INVERT Effect: Default White Canvas, INVERT = Black Canvas */
     body.dark-mode #canvasWrapper {
       filter: invert(1) hue-rotate(180deg);
@@ -1232,26 +1291,25 @@
         <div style="margin-bottom: 5px;">
           <input type="text" id="canvasText" placeholder="Enter DJ Name..." maxlength="50" style="width: 100%; box-sizing: border-box;">
         </div>
-        <div class="dj-name-toggle-container" style="display: flex; gap: 4px; margin-top: 8px;">
-          <button id="djNameOnBtn" class="mode-tag-btn">ON</button>
-          <button id="djNameOffBtn" class="mode-tag-btn active">OFF</button>
+        <!-- ── MASTER FLASH ROW: ON / OFF / WHT / BLK ── -->
+        <div class="dj-name-toggle-container" style="display:flex; gap:4px; margin-top:8px;">
+          <button id="djNameOnBtn"     class="mode-tag-btn">ON</button>
+          <button id="djNameOffBtn"    class="mode-tag-btn active">OFF</button>
+          <button id="djTextWhiteBtn"  class="mode-tag-btn dj-wht-btn active" title="White Text">WHT</button>
+          <button id="djTextBlackBtn"  class="mode-tag-btn dj-blk-btn"        title="Black Text">BLK</button>
         </div>
-        <div class="dj-name-effects" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px;">
-          <button class="mode-tag-btn active" data-effect="mosaic">MOS</button>
+        <!-- ── EFFECTS ROW ── -->
+        <div class="dj-name-effects" style="display:flex; flex-wrap:wrap; gap:4px; margin-top:8px;">
           <button class="mode-tag-btn" data-effect="warp">WRP</button>
           <button class="mode-tag-btn" data-effect="none">MIN</button>
           <button class="mode-tag-btn" data-effect="neon">FLT</button>
-          <button class="mode-tag-btn" data-effect="glitch">GLT</button>
           <button class="mode-tag-btn" data-effect="plasma">LIQ</button>
           <button class="mode-tag-btn" data-effect="scanline">SCN</button>
           <button class="mode-tag-btn" data-effect="hex">HEX</button>
           <button class="mode-tag-btn" data-effect="pixel">PIX</button>
+          <button id="pixNegBtn"    class="mode-tag-btn dj-sub-btn">NEG</button>
           <button class="mode-tag-btn" data-effect="data">DAT</button>
-          <label class="mode-tag-btn" style="margin-left:4px; position:relative; cursor:pointer; padding:0 6px;" title="Text Color">
-            <span>TXT</span>
-            <input type="color" id="djTextColorPicker" value="#ffffff"
-              style="position:absolute;opacity:0;width:100%;height:100%;top:0;left:0;cursor:pointer;">
-          </label>
+          <button id="datStrobeBtn" class="mode-tag-btn dj-sub-btn">STR</button>
         </div>
       </div>
 
@@ -1389,6 +1447,9 @@
             <button id="topBaryonBtn" class="mode-btn" title="Baryon Mode">
               <span>BARYON</span>
             </button>
+            <button id="topReverseBtn" class="mode-btn" title="Reverse: Implosion Flow">
+              <span>REVERSE</span>
+            </button>
             <button id="topBgToggleBtn" class="mode-btn" title="Background: Black / White" style="min-width:48px;">
               <span id="topBgToggleLabel">BG●</span>
             </button>
@@ -1461,9 +1522,6 @@
 
             <div class="top-row-divider"></div>
 
-            <button id="topPixelateBtn" class="mode-btn" title="PIXELATE">
-              <span>MOSAIC</span>
-            </button>
 
             <div class="top-row-divider"></div>
 
@@ -1571,6 +1629,8 @@
         <div class="canvas-container" id="canvasContainer"></div>
         <!-- Liquid shader overlay canvas -->
         <canvas id="liquidCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:4;display:none;"></canvas>
+        <!-- Advanced overlay canvases -->
+        <canvas id="reverseCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:3;display:none;"></canvas>
         <div id="centerGlow" class="center-glow hidden"></div>
         <div id="p5-container"
           style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;">
@@ -1719,10 +1779,28 @@
             <div id="bassBarFill" style="height:100%;width:0%;background:linear-gradient(90deg,#660000,#ff0000);border-radius:2px;transition:width 0.04s;"></div>
           </div>
         </div>
-        <div class="slider-wrapper">
+        <div class="slider-wrapper" style="margin-bottom:8px;">
           <label style="font-size:9px;color:#555;width:48px;flex-shrink:0;">TREBLE</label>
           <div id="trebleBar" style="flex:1;height:6px;background:#1a1a1a;border-radius:2px;overflow:hidden;">
             <div id="trebleBarFill" style="height:100%;width:0%;background:linear-gradient(90deg,#000066,#0000ff);border-radius:2px;transition:width 0.04s;"></div>
+          </div>
+        </div>
+
+        <!-- Color Matrix: BG / OBJ -->
+        <div style="border-top:1px solid #1a1a1a;padding-top:6px;">
+          <div class="slider-wrapper" style="margin-bottom:5px;gap:6px;">
+            <label style="font-size:9px;color:#555;width:48px;flex-shrink:0;">BG COLOR</label>
+            <input type="color" id="bgColorPickerSync" value="#000000"
+              style="width:26px;height:18px;border:1px solid #333;border-radius:2px;background:none;cursor:pointer;padding:0;flex-shrink:0;">
+            <button id="bgColorAutoBtn" class="mode-tag-btn"
+              style="font-size:8px;padding:1px 6px;letter-spacing:0.5px;flex-shrink:0;">AUTO</button>
+          </div>
+          <div class="slider-wrapper" style="gap:6px;">
+            <label style="font-size:9px;color:#555;width:48px;flex-shrink:0;">OBJ COLOR</label>
+            <input type="color" id="objColorPickerSync" value="#ffffff"
+              style="width:26px;height:18px;border:1px solid #333;border-radius:2px;background:none;cursor:pointer;padding:0;flex-shrink:0;">
+            <button id="objColorAutoBtn" class="mode-tag-btn"
+              style="font-size:8px;padding:1px 6px;letter-spacing:0.5px;flex-shrink:0;">AUTO</button>
           </div>
         </div>
       </div>
@@ -1999,7 +2077,6 @@
       <h3 data-i18n="effects">GLOBAL EFFECTS</h3>
       <div class="vj-controls" style="margin-top: 10px;">
         <button class="vj-pro-btn" id="sideNoiseBtn">NOISE</button>
-        <button class="vj-pro-btn" id="sideMosaicBtn">MOSAIC</button>
       </div>
     </div>
 
@@ -2432,14 +2509,6 @@
         <feBlend in="SourceGraphic" in2="grayNoise" mode="overlay" result="blend" />
         <feComposite in="blend" in2="SourceGraphic" operator="in" />
       </filter>
-      <filter id="filter-mosaic">
-        <feMorphology operator="erode" radius="4" result="erode" />
-        <feMorphology operator="dilate" radius="4" in="erode" />
-      </filter>
-      <filter id="filter-glitch">
-        <feTurbulence type="turbulence" baseFrequency="0.02 0.8" numOctaves="1" result="turb" seed="2" />
-        <feDisplacementMap in="SourceGraphic" in2="turb" scale="12" xChannelSelector="R" yChannelSelector="G" />
-      </filter>
     </defs>
   </svg>
   <script>
@@ -2449,23 +2518,7 @@
         if (!container) return setTimeout(applyFilters, 200);
 
         // フィルター状態管理
-        const state = { glitch: false, noise: false, mosaic: false };
-
-        // アニメーションするGLITCH用
-        let glitchTimer = null;
-        function animateGlitch() {
-          if (!state.glitch) return;
-          const filter = document.getElementById('filter-glitch');
-          const turb = filter?.querySelector('feTurbulence');
-          if (turb) {
-            const seed = Math.floor(Math.random() * 100);
-            turb.setAttribute('seed', seed);
-            turb.setAttribute('baseFrequency', (0.01 + Math.random() * 0.04) + ' ' + (0.5 + Math.random() * 0.6));
-            const disp = filter.querySelector('feDisplacementMap');
-            if (disp) disp.setAttribute('scale', 8 + Math.random() * 20);
-          }
-          glitchTimer = setTimeout(animateGlitch, 150 + Math.random() * 250);
-        }
+        const state = { noise: false };
 
         // NOISE アニメーション
         let noiseTimer = null;
@@ -2478,77 +2531,14 @@
 
         function applyFilter() {
           const filters = [];
-          if (state.glitch) filters.push('url(#filter-glitch)');
           if (state.noise) filters.push('url(#filter-noise)');
-          if (state.mosaic) filters.push('url(#filter-mosaic)');
           // Three.jsとp5のcanvasにのみfilterをかける（video背景を除外）
           const threeCanvas = window.mandalaMachine?.sceneManager?.renderer?.domElement;
           const p5Canvas = document.querySelector('#p5-container canvas');
           [threeCanvas, p5Canvas].forEach(c => { if (c) c.style.filter = filters.join(' ') || 'none'; });
         }
 
-        // ── MOSAIC（全画面ピクセレート）──────────────────────────────
-        let _pixelateCanvas = null;
-        let _pixelateCtx    = null;
-        let _pixelateRaf    = null;
-        let _pixelateActive = false;
-
-        function getThreeCanvas() {
-          return window.mandalaMachine?.sceneManager?.renderer?.domElement || null;
-        }
-
-        let _cachedCanvasRect = null;
-        window.addEventListener('resize', () => { _cachedCanvasRect = null; }, { passive: true });
-        function syncOverlayToCanvas(el) {
-          const src = getThreeCanvas();
-          if (!src || !el) return;
-          if (!_cachedCanvasRect) _cachedCanvasRect = src.getBoundingClientRect();
-          const r = _cachedCanvasRect;
-          el.style.left   = r.left + 'px';
-          el.style.top    = r.top  + 'px';
-          el.style.width  = r.width  + 'px';
-          el.style.height = r.height + 'px';
-        }
-
-        function startPixelate() {
-          if (_pixelateCanvas) return;
-          _pixelateCanvas = document.createElement('canvas');
-          _pixelateCanvas.style.cssText = 'position:fixed;z-index:9990;pointer-events:none;image-rendering:pixelated;';
-          document.body.appendChild(_pixelateCanvas);
-          syncOverlayToCanvas(_pixelateCanvas);
-          _pixelateCtx = _pixelateCanvas.getContext('2d');
-          _pixelateActive = true;
-          const blockSize = 14;
-          let _pxLastMs = 0;
-          function drawPixelate(now) {
-            if (!_pixelateActive) return;
-            _pixelateRaf = requestAnimationFrame(drawPixelate);
-            if (now - _pxLastMs < 50) return; // 20fps上限
-            _pxLastMs = now;
-            const src = getThreeCanvas();
-            if (!src) return;
-            syncOverlayToCanvas(_pixelateCanvas);
-            const w = Math.ceil(src.width  / blockSize);
-            const h = Math.ceil(src.height / blockSize);
-            if (_pixelateCanvas.width !== w)  _pixelateCanvas.width  = w;
-            if (_pixelateCanvas.height !== h) _pixelateCanvas.height = h;
-            _pixelateCtx.drawImage(src, 0, 0, w, h);
-          }
-          drawPixelate(0);
-        }
-
-        function stopPixelate() {
-          _pixelateActive = false;
-          if (_pixelateRaf) { cancelAnimationFrame(_pixelateRaf); _pixelateRaf = null; }
-          if (_pixelateCanvas) { _pixelateCanvas.remove(); _pixelateCanvas = null; _pixelateCtx = null; }
-        }
-
-        document.getElementById('topPixelateBtn')?.addEventListener('click', function() {
-          this.classList.toggle('active');
-          this.classList.contains('active') ? startPixelate() : stopPixelate();
-        });
-
-        console.log('MOSAIC ready');
+        console.log('Filter setup ready');
       }
 
       if (document.readyState === 'loading') {
@@ -2576,26 +2566,51 @@
     // Smoothed values (EMA)
     let _sBass = 0, _sTreble = 0;
     const SMOOTH = 0.82;
+    // Color auto mode state
+    let _bgAuto = false, _objAuto = false;
+    let _bgHue = 0, _objHue = 180;
+
+    // HSV→RGB helper
+    function hsvToRgb(h, s, v) {
+      h = h % 360; const c = v * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = v - c;
+      let r=0,g=0,b=0;
+      if      (h < 60)  { r=c; g=x; }
+      else if (h < 120) { r=x; g=c; }
+      else if (h < 180) { g=c; b=x; }
+      else if (h < 240) { g=x; b=c; }
+      else if (h < 300) { r=x; b=c; }
+      else              { r=c; b=x; }
+      return { r: Math.round((r+m)*255), g: Math.round((g+m)*255), b: Math.round((b+m)*255) };
+    }
 
     async function start() {
       try {
+        toggleBtn.textContent = '...';
+        toggleBtn.style.color = '#888';
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        _ctx     = new (window.AudioContext || window.webkitAudioContext)();
+        _ctx = new (window.AudioContext || window.webkitAudioContext)();
+        // Chromium autoplay policy: always resume on user interaction
+        if (_ctx.state === 'suspended') await _ctx.resume();
         _analyser = _ctx.createAnalyser();
-        _analyser.fftSize = 1024;
+        _analyser.fftSize = 2048;  // higher resolution for better freq separation
         _analyser.smoothingTimeConstant = 0.80;
+        _analyser.minDecibels = -90;
+        _analyser.maxDecibels = -10;
         _buf = new Uint8Array(_analyser.frequencyBinCount);
         const src = _ctx.createMediaStreamSource(stream);
         src.connect(_analyser);
         _active = true;
         toggleBtn.textContent = 'ON';
-        toggleBtn.style.color  = '#00ff88';
-        toggleBtn.style.borderColor = '#00ff88';
-        console.log('[AUDIO SYNC] Started — Bass→RED, Treble→BLUE');
+        toggleBtn.classList.add('active');
+        toggleBtn.style.color  = '';
+        toggleBtn.style.borderColor = '';
+        console.log('[AUDIO SYNC] Started sampleRate=' + _ctx.sampleRate + ' bins=' + _analyser.frequencyBinCount);
         loop();
       } catch(e) {
         console.warn('[AUDIO SYNC] mic access denied:', e.message);
         toggleBtn.textContent = 'ERR';
+        toggleBtn.style.color = '#ff4444';
+        toggleBtn.style.borderColor = '#ff4444';
       }
     }
 
@@ -2604,11 +2619,11 @@
       if (_raf) { cancelAnimationFrame(_raf); _raf = null; }
       if (_ctx) { _ctx.close(); _ctx = null; }
       toggleBtn.textContent = 'OFF';
-      toggleBtn.style.color = '#555';
-      toggleBtn.style.borderColor = '#333';
+      toggleBtn.classList.remove('active');
+      toggleBtn.style.color = '';
+      toggleBtn.style.borderColor = '';
       if (bassBarFill)   bassBarFill.style.width   = '0%';
       if (trebleBarFill) trebleBarFill.style.width = '0%';
-      // Reset shader to time-driven mode
       window._liquidAudioSync       = 0;
       window._liquidBassIntensity   = 0;
       window._liquidTrebleIntensity = 0;
@@ -2652,6 +2667,27 @@
       // Update meter bars (show raw boosted values for clear feedback)
       if (bassBarFill)   bassBarFill.style.width   = Math.round(bassBoost   * 100) + '%';
       if (trebleBarFill) trebleBarFill.style.width = Math.round(trebleBoost * 100) + '%';
+
+      // COLOR GAIN multiplier
+      const gain = parseFloat(document.getElementById('colorGainSlider')?.value || 1);
+
+      // BG AUTO: treble drives hue cycling
+      if (_bgAuto && window.mandalaMachine?.setBackgroundColor) {
+        _bgHue = (_bgHue + trebleBoost * gain * 2.5) % 360;
+        const sat = 0.7 + trebleBoost * 0.3;
+        const val = 0.15 + trebleBoost * gain * 0.25;
+        const col = hsvToRgb(_bgHue, sat, Math.min(1, val));
+        window.mandalaMachine.setBackgroundColor(col);
+      }
+
+      // OBJ AUTO: bass drives hue cycling (offset from BG)
+      if (_objAuto && window.mandalaMachine?.setDefaultObjectColor) {
+        _objHue = (_objHue + bassBoost * gain * 3.0) % 360;
+        const sat = 0.85 + bassBoost * 0.15;
+        const val = 0.5 + bassBoost * gain * 0.4;
+        const col = hsvToRgb(_objHue, sat, Math.min(1, val));
+        window.mandalaMachine.setDefaultObjectColor(col);
+      }
     }
 
     // COLOR GAIN slider label sync
@@ -2663,8 +2699,240 @@
 
     toggleBtn.addEventListener('click', () => _active ? stop() : start());
 
+    // BG COLOR picker (manual)
+    document.getElementById('bgColorPickerSync')?.addEventListener('input', function() {
+      if (_bgAuto) return;
+      const hex = this.value;
+      window.mandalaMachine?.setBackgroundColor({
+        r: parseInt(hex.slice(1,3),16),
+        g: parseInt(hex.slice(3,5),16),
+        b: parseInt(hex.slice(5,7),16)
+      });
+    });
+
+    // BG AUTO toggle
+    document.getElementById('bgColorAutoBtn')?.addEventListener('click', function() {
+      _bgAuto = !_bgAuto;
+      this.classList.toggle('active', _bgAuto);
+      if (!_bgAuto) {
+        // restore manual color from picker
+        const hex = document.getElementById('bgColorPickerSync')?.value || '#000000';
+        window.mandalaMachine?.setBackgroundColor({
+          r: parseInt(hex.slice(1,3),16), g: parseInt(hex.slice(3,5),16), b: parseInt(hex.slice(5,7),16)
+        });
+      }
+    });
+
+    // OBJ COLOR picker (manual)
+    document.getElementById('objColorPickerSync')?.addEventListener('input', function() {
+      if (_objAuto) return;
+      const hex = this.value;
+      window.mandalaMachine?.setDefaultObjectColor({
+        r: parseInt(hex.slice(1,3),16),
+        g: parseInt(hex.slice(3,5),16),
+        b: parseInt(hex.slice(5,7),16)
+      });
+    });
+
+    // OBJ AUTO toggle
+    document.getElementById('objColorAutoBtn')?.addEventListener('click', function() {
+      _objAuto = !_objAuto;
+      this.classList.toggle('active', _objAuto);
+      if (!_objAuto) {
+        const hex = document.getElementById('objColorPickerSync')?.value || '#ffffff';
+        window.mandalaMachine?.setDefaultObjectColor({
+          r: parseInt(hex.slice(1,3),16), g: parseInt(hex.slice(3,5),16), b: parseInt(hex.slice(5,7),16)
+        });
+      }
+    });
+
+    // Expose for RESET
+    window.resetColorMatrix = function() {
+      _bgAuto = false; _objAuto = false; _bgHue = 0; _objHue = 180;
+      document.getElementById('bgColorAutoBtn')?.classList.remove('active');
+      document.getElementById('objColorAutoBtn')?.classList.remove('active');
+      document.getElementById('bgColorPickerSync') && (document.getElementById('bgColorPickerSync').value = '#000000');
+      document.getElementById('objColorPickerSync') && (document.getElementById('objColorPickerSync').value = '#ffffff');
+    };
+
     // Public API for RESET
     window.stopAudioSync = stop;
+  })();
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       ADVANCED OVERLAYS: REVERSE
+       ═══════════════════════════════════════════════════════════════ -->
+  <script>
+  (function setupAdvancedOverlays() {
+    'use strict';
+
+    // ──────────────────────────────────────────────────────────────
+    // RAVEN: CSS scale(1.6) でキャンバス全体を埋める
+    // ──────────────────────────────────────────────────────────────
+    (function setupRavenFill(){
+      const wrapper = document.getElementById('canvasWrapper');
+      if(!wrapper) return;
+
+      function setFill(on){
+        wrapper.classList.toggle('raven-fill-mode', on);
+      }
+
+      document.getElementById('topRavenBtn')?.addEventListener('click', function(){
+        requestAnimationFrame(()=> setFill(this.classList.contains('active')));
+      });
+
+      window._ravenZoomOff = ()=> setFill(false);
+    })();
+
+    // ──────────────────────────────────────────────────────────────
+    // REVERSE MODE  (Perimeter-to-Center Implosion)
+    // ──────────────────────────────────────────────────────────────
+    const revCanvas = document.getElementById('reverseCanvas');
+    const revCtx    = revCanvas?.getContext('2d');
+    let revRaf=null, _revOn=false, revParticles=[], _revLastBass=0;
+    const REV_COLS=['#00e5ff','#ff00ff','#ffaa00','#00ff88','#ffffff','#ff4466'];
+
+    // Spawn from OUTSIDE the visible canvas boundary
+    function spawnRevPerimeter(n, speedMult=1.0){
+      if(!revCanvas) return;
+      const W=revCanvas.width||revCanvas.clientWidth;
+      const H=revCanvas.height||revCanvas.clientHeight;
+      const cx=W/2, cy=H/2;
+      // Spawn radius: just beyond the canvas diagonal
+      const outerR = Math.sqrt(cx*cx+cy*cy) * 1.25;
+      for(let i=0;i<n;i++){
+        const angle = Math.random() * Math.PI * 2;
+        const r     = outerR * (1.0 + Math.random() * 0.25);
+        const x     = cx + Math.cos(angle) * r;
+        const y     = cy + Math.sin(angle) * r;
+        // Direction: toward center with slight angular noise
+        const nx    = cx - x + (Math.random()-0.5) * 60;
+        const ny    = cy - y + (Math.random()-0.5) * 60;
+        const d     = Math.sqrt(nx*nx+ny*ny) || 1;
+        const spd   = (4.0 + Math.random() * 5.5) * speedMult;
+        revParticles.push({
+          x, y,
+          vx: nx/d*spd, vy: ny/d*spd,
+          life: 1.0,
+          decay: 0.003 + Math.random() * 0.005,
+          sz: 2.0 + Math.random() * 4.5,
+          col: REV_COLS[Math.floor(Math.random()*REV_COLS.length)],
+          trail: []
+        });
+      }
+    }
+
+    function revLoop(){
+      if(!_revOn||!revCtx) return;
+      revRaf = requestAnimationFrame(revLoop);
+
+      const W=revCanvas.clientWidth, H=revCanvas.clientHeight;
+      if(revCanvas.width!==W||revCanvas.height!==H){
+        revCanvas.width=W; revCanvas.height=H;
+      }
+
+      // Soft fade trail
+      revCtx.fillStyle='rgba(0,0,0,0.13)';
+      revCtx.fillRect(0,0,W,H);
+
+      // Continuous trickle from perimeter
+      if(Math.random()<0.5) spawnRevPerimeter(3);
+
+      // BASS rising-edge → massive wave burst
+      const bass = window._liquidBassIntensity || 0;
+      if(bass > 0.65 && _revLastBass <= 0.65){
+        spawnRevPerimeter(Math.floor(25 + bass*45), 1.0 + bass*1.5);
+      }
+      _revLastBass = bass;
+
+      const cx=W/2, cy=H/2;
+      revParticles = revParticles.filter(p=>p.life>0.01);
+
+      revCtx.save();
+      revCtx.globalCompositeOperation = 'lighter';
+
+      revParticles.forEach(p=>{
+        const dx=cx-p.x, dy=cy-p.y;
+        const dist=Math.sqrt(dx*dx+dy*dy)||1;
+
+        // Pull force: scales with distance (farther = stronger pull)
+        const pull = 0.07 + (dist / Math.max(W,H)) * 0.28;
+        p.vx += dx/dist * pull;
+        p.vy += dy/dist * pull;
+
+        // Damping: settle near center, mild drag elsewhere
+        if(dist < 80){
+          p.vx *= 0.80;
+          p.vy *= 0.80;
+        } else {
+          p.vx *= 0.978;
+          p.vy *= 0.978;
+        }
+
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= p.decay;
+
+        // Trail accumulation
+        p.trail.push({x:p.x, y:p.y});
+        if(p.trail.length > 30) p.trail.shift();
+
+        // Draw trail as single polyline (fast)
+        if(p.trail.length > 2){
+          revCtx.shadowBlur = 10;
+          revCtx.shadowColor = p.col;
+          revCtx.beginPath();
+          revCtx.moveTo(p.trail[0].x, p.trail[0].y);
+          for(let i=1;i<p.trail.length;i++) revCtx.lineTo(p.trail[i].x, p.trail[i].y);
+          revCtx.strokeStyle = p.col + Math.floor(p.life*150).toString(16).padStart(2,'0');
+          revCtx.lineWidth   = p.sz * 0.5;
+          revCtx.stroke();
+        }
+
+        // Particle core with glow
+        revCtx.shadowBlur  = 20;
+        revCtx.shadowColor = p.col;
+        revCtx.beginPath();
+        revCtx.arc(p.x, p.y, Math.max(0.5, p.sz*p.life), 0, Math.PI*2);
+        revCtx.fillStyle = p.col + Math.floor(p.life*220).toString(16).padStart(2,'0');
+        revCtx.fill();
+      });
+
+      revCtx.restore();
+    }
+
+    function setReverse(on){
+      _revOn = on;
+      if(!revCanvas) return;
+      revCanvas.style.display = on ? 'block' : 'none';
+      if(on){
+        revParticles = [];
+        _revLastBass = 0;
+        spawnRevPerimeter(70, 1.2); // Big-bang opening burst
+        if(!revRaf) revLoop();
+      } else {
+        if(revRaf){ cancelAnimationFrame(revRaf); revRaf=null; }
+        revParticles = [];
+        if(revCtx) revCtx.clearRect(0,0,revCanvas.width,revCanvas.height);
+      }
+    }
+
+    document.getElementById('topReverseBtn')?.addEventListener('click', function(){
+      const isNow=this.classList.contains('active');
+      setReverse(isNow);
+    });
+
+    // ──────────────────────────────────────────────────────────────
+    // Public RESET API
+    // ──────────────────────────────────────────────────────────────
+    window.resetAdvancedOverlays = function(){
+      if(_revOn) setReverse(false);
+      window._ravenZoomOff?.();
+      document.getElementById('topReverseBtn')?.classList.remove('active');
+    };
+
+    console.log('[ADVANCED OVERLAYS] Ready: REVERSE');
   })();
   </script>
 
@@ -2688,6 +2956,7 @@
           window._liquidTrebleIntensity = 0;
           window._liquidAudioSync       = 0;
           window.stopAudioSync?.();
+          window.resetColorMatrix?.();
 
           // T=0ms: Button — Vivid Red Pulse (3× / 0.5s)
           btn.style.transition = 'box-shadow 0.08s ease, color 0.08s ease';
@@ -2772,18 +3041,27 @@
             }
 
             // ─── STEP 7: Mandala core reset ───────────────────────────────
-            document.querySelectorAll('.mode-btn.active').forEach(b => b.classList.remove('active'));
+            // 1) Click active mode buttons to trigger each mode's internal cleanup/RAF stop
+            ['topAiBtn','topMandalaBtn','topBlinkBtn','topGravityBtn',
+             'topRavenBtn','topQuantumBtn','topOrbitBtn','topSpinBtn',
+             'topBaryonBtn','topAutoBtn'].forEach(id => {
+              const b = document.getElementById(id);
+              if (b?.classList.contains('active')) b.click();
+            });
             document.querySelectorAll('.vj-preset-item, .vj-motion-btn').forEach(b => b.classList.remove('active'));
 
+            // 2) Force-deactivate all modes via API (after button clicks)
             mm.toggleAutoMode(false);
             mm.setSpaceMode(false);
-            mm.clearAll();
             mm.toggleBaryonMode(false);
             mm.setMandalaMode(false);
             mm.setReflectMode(false);
             mm.toggleAntigravityMode(false);
             mm.toggleSpinMode(false);
             mm.toggleOrbitMode(false);
+
+            // 3) Clear objects LAST — after all modes are deactivated to prevent re-add
+            mm.clearAll();
             mm.setWireframeMode('solid');
             mm.setDefaultObjectColor({ r: 0, g: 0, b: 0 });
             mm.setSizeMultiplier(1);
@@ -2833,15 +3111,8 @@
               document.getElementById('blackoutBtn')?.classList.remove('active');
             }
 
-            // ─── STEP 9: Restart render loop (clean Mercury, black FBOs) ─
-            window.toggleLiquidMode?.(true);
-
-            // Color picker sync (next RAF, after loop starts)
-            requestAnimationFrame(() => {
-              const cp = document.getElementById('liquidColorPicker');
-              if (cp) cp.value = '#d9eeff';
-              window.setLiquidColor?.('#d9eeff');
-            });
+            // ─── STEP 9: Leave liquid OFF after reset → pure black canvas ─
+            // (液体シェーダーは OFF のまま。ユーザーが明示的に有効化する)
 
             // ─── STEP 10: localStorage (CSV TimeTable protected) ──────────
             const PRESERVE_KEYS = new Set(['vjSceneSlots_v1']);
@@ -2863,13 +3134,21 @@
               mm.toggleAutoMode(false);
               mm.setMandalaMode(false);
               mm.setSpaceMode(false);
+              mm.toggleAntigravityMode(false);
               mm.state.autoMode    = false;
               mm.state.mandalaMode = false;
               mm.state.spaceMode   = false;
-              document.querySelectorAll('.mode-btn.active').forEach(b => b.classList.remove('active'));
+              ['topAiBtn','topMandalaBtn','topBlinkBtn','topGravityBtn',
+               'topRavenBtn','topQuantumBtn','topOrbitBtn','topSpinBtn',
+               'topBaryonBtn','topAutoBtn'].forEach(id => {
+                const b = document.getElementById(id);
+                if (b?.classList.contains('active')) b.click();
+              });
+              mm.clearAll();  // 2nd pass: mop up any async-added objects
               mm.setBackgroundColor({ r: 0, g: 0, b: 0 });
             }, 150);
 
+            window.resetAdvancedOverlays?.();
             console.log('[HARD RESET] ✓ toggleOFF → Mercury → FBO purge × 2 → uFadeOut=1 → toggleON. CSV preserved.');
           }
         });
@@ -3736,7 +4015,6 @@
             const shuffled = [...MODES].sort(() => Math.random() - 0.5);
             shuffled.slice(0, rand(3, 4)).forEach(m => m.on());
             // エフェクト爆発
-            mm.setGlobalEffect?.('glitch', true);
             mm.setGlobalEffect?.('noise', true);
             mm.setBlinkingMode?.(true);
             mm.setBlinkingSpeed?.(10);
@@ -3746,7 +4024,6 @@
             const t = setTimeout(() => {
               if (!isActive) return;
               climaxActive = false;
-              mm.setGlobalEffect?.('glitch', false);
               mm.setGlobalEffect?.('noise', false);
               mm.setBlinkingMode?.(false);
               currentPhase = 'RESET';
@@ -3840,9 +4117,7 @@
 
           // ---- エフェクトスケジューラー（フェーズ連動） ----
           const FX_SLOTS = [
-            { key: 'glitch', apply: v => mm.setGlobalEffect?.('glitch', v) },
             { key: 'noise', apply: v => mm.setGlobalEffect?.('noise', v) },
-            { key: 'mosaic', apply: v => mm.setGlobalEffect?.('mosaic', v) },
           ];
 
           function scheduleFx() {
@@ -3925,9 +4200,7 @@
           if (fxRafId) { cancelAnimationFrame(fxRafId); fxRafId = null; }
           btn.classList.remove('active');
           MODES.forEach(m => m.off());
-          mm.setGlobalEffect?.('glitch', false);
           mm.setGlobalEffect?.('noise', false);
-          mm.setGlobalEffect?.('mosaic', false);
           mm.setBlinkingMode?.(false);
           ['topGlitchBtn', 'topNoiseBtn', 'topMosaicBtn', 'topBlinkBtn'].forEach(id => {
             document.getElementById(id)?.classList.remove('active');
@@ -4504,15 +4777,18 @@
       window._djTextColor = [255, 255, 255];
       const _CODE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*<>?/';
 
-      // テキストカラーピッカー
-      document.getElementById('djTextColorPicker')?.addEventListener('input', function() {
-        const hex = this.value;
-        window._djTextColor = [
-          parseInt(hex.slice(1,3),16),
-          parseInt(hex.slice(3,5),16),
-          parseInt(hex.slice(5,7),16)
-        ];
-        _p5FillPatched = false; // 再パッチ
+      // テキストカラー: WHITE / BLACK ボタン
+      document.getElementById('djTextWhiteBtn')?.addEventListener('click', function() {
+        window._djTextColor = [255, 255, 255];
+        _p5FillPatched = false;
+        this.classList.add('active');
+        document.getElementById('djTextBlackBtn')?.classList.remove('active');
+      });
+      document.getElementById('djTextBlackBtn')?.addEventListener('click', function() {
+        window._djTextColor = [0, 0, 0];
+        _p5FillPatched = false;
+        this.classList.add('active');
+        document.getElementById('djTextWhiteBtn')?.classList.remove('active');
       });
 
       // p5 fill patch: fill(255,alpha) → fill(r,g,b,alpha) with chosen color
@@ -4547,7 +4823,6 @@
             t.fill = function() {
               const args = arguments;
               const [cr, cg, cb] = window._djTextColor || [255,255,255];
-              // 白テキスト fill(255) または fill(255,alpha) を選択色に置換
               if (args.length <= 2 && args[0] === 255 && (cr !== 255 || cg !== 255 || cb !== 255)) {
                 return args.length === 2 ? _origFill(cr, cg, cb, args[1]) : _origFill(cr, cg, cb);
               }
@@ -4557,27 +4832,27 @@
 
           // テキストが変わった時だけドット座標を再計算
           if (!_pixCache || _pixCache.text !== s) {
-            const BW = 900, BH = 180;
+            const BW = 1000, BH = 200;
             const cv = document.createElement('canvas');
             cv.width = BW; cv.height = BH;
-            const ctx = cv.getContext('2d');
-            let fs = 140;
-            ctx.font = `bold ${fs}px Inter, sans-serif`;
-            const mw = ctx.measureText(s).width;
-            if (mw > BW * 0.95) fs = Math.floor(fs * (BW * 0.95) / mw);
-            fs = Math.min(fs, Math.floor(BH * 0.85));
-            ctx.clearRect(0, 0, BW, BH);
-            ctx.font = `bold ${fs}px Inter, sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillStyle = '#fff';
-            ctx.fillText(s, BW / 2, BH / 2);
-            const imgData = ctx.getImageData(0, 0, BW, BH).data;
-            const step = 6;
+            const ctx2 = cv.getContext('2d');
+            let fs = 160;
+            ctx2.font = `bold ${fs}px monospace, sans-serif`;
+            const mw = ctx2.measureText(s).width;
+            if (mw > BW * 0.92) fs = Math.floor(fs * (BW * 0.92) / mw);
+            fs = Math.min(fs, Math.floor(BH * 0.82));
+            ctx2.clearRect(0, 0, BW, BH);
+            ctx2.font = `bold ${fs}px monospace, sans-serif`;
+            ctx2.textAlign = 'center';
+            ctx2.textBaseline = 'middle';
+            ctx2.fillStyle = '#fff';
+            ctx2.fillText(s, BW / 2, BH / 2);
+            const imgData = ctx2.getImageData(0, 0, BW, BH).data;
+            const sStep = 5; // finer sampling for sharper font shape
             const dots = [];
-            for (let py = 0; py < BH; py += step) {
-              for (let px = 0; px < BW; px += step) {
-                if (imgData[(py * BW + px) * 4 + 3] > 100) {
+            for (let py = 0; py < BH; py += sStep) {
+              for (let px = 0; px < BW; px += sStep) {
+                if (imgData[(py * BW + px) * 4 + 3] > 80) {
                   dots.push([px / BW - 0.5, py / BH - 0.5]);
                 }
               }
@@ -4585,33 +4860,143 @@
             _pixCache = { text: s, dots };
           }
 
-          // コードレイン描画
           const W = t.width, H = t.height;
-          const scaleX = W * 0.95;
-          const scaleY = H * 0.38;
+          // Aspect-correct scaling: text bitmap is 1000×200 = 5:1
+          const scaleX = W * 0.90;
+          const scaleY = Math.min(scaleX * 0.20, H * 0.42); // preserve 5:1 ratio
           const now = performance.now();
           const { dots } = _pixCache;
-          const col = window._djTextDark ? 0 : 255;
+          const [cr, cg, cb] = window._djTextColor || [255, 255, 255];
 
-          const [cr, cg, cb] = window._djTextColor || [255,255,255];
           t.noStroke();
           t.textStyle(t.BOLD);
           t.textSize(10);
           t.textAlign(t.CENTER, t.CENTER);
 
-          for (let i = 0; i < dots.length; i++) {
-            const [nx, ny] = dots[i];
-            // 各ドットが独自の速度で文字を高速切り替え
-            const speed = 18 + (i % 7) * 4; // 18〜42 chars/sec
-            const charIdx = Math.floor((now * speed / 1000 + i * 0.618) % _CODE_CHARS.length);
-            const ch = _CODE_CHARS[charIdx];
-            t.fill(cr, cg, cb, 255);
-            t.text(ch, nx * scaleX, ny * scaleY);
+          if (window._pixNegMode) {
+            // NEG: build grid bitmap from dot cloud, then render:
+            //   Inside text → Mercury White stencil
+            //   Outside text → code rain
+            const gStep = 0.038;
+            const gCols = Math.ceil(1.0 / gStep) + 1;
+            const gRows = Math.ceil(1.0 / gStep) + 1;
+            const bitmap = new Uint8Array(gCols * gRows);
+
+            // Map each dot to the nearest grid cell (+ 1-cell radius padding)
+            for (const [dx, dy] of dots) {
+              const gx = Math.round((dx + 0.5) / gStep);
+              const gy = Math.round((dy + 0.5) / gStep);
+              for (let oy = -1; oy <= 1; oy++) {
+                for (let ox = -1; ox <= 1; ox++) {
+                  const bx = gx + ox, by = gy + oy;
+                  if (bx >= 0 && bx < gCols && by >= 0 && by < gRows)
+                    bitmap[by * gCols + bx] = 1;
+                }
+              }
+            }
+
+            const cw = gStep * scaleX, ch = gStep * scaleY;
+            let outsideIdx = 0;
+            for (let gy = 0; gy < gRows; gy++) {
+              for (let gx = 0; gx < gCols; gx++) {
+                const px2 = (gx * gStep - 0.5) * scaleX;
+                const py2 = (gy * gStep - 0.5) * scaleY;
+                if (bitmap[gy * gCols + gx]) {
+                  // Inside text: Mercury White fill (strict stencil)
+                  t.noStroke();
+                  t.fill(210, 225, 255, 230);
+                  t.rect(px2 - cw * 0.5, py2 - ch * 0.5, cw, ch);
+                } else {
+                  // Outside text: scrolling code rain
+                  const speed = 12 + (outsideIdx % 7) * 3;
+                  const charIdx = Math.floor((now * speed / 1000 + outsideIdx * 0.618) % _CODE_CHARS.length);
+                  t.fill(cr, cg, cb, 135);
+                  t.text(_CODE_CHARS[charIdx], px2, py2);
+                  outsideIdx++;
+                }
+              }
+            }
+          } else {
+            // POS: code rain strictly inside the font shape
+            for (let i = 0; i < dots.length; i++) {
+              const [nx, ny] = dots[i];
+              const speed = 18 + (i % 7) * 4;
+              const charIdx = Math.floor((now * speed / 1000 + i * 0.618) % _CODE_CHARS.length);
+              t.fill(cr, cg, cb, 255);
+              t.text(_CODE_CHARS[charIdx], nx * scaleX, ny * scaleY);
+            }
           }
         };
       }
       applyPixFix();
     })();
+  </script>
+
+  <!-- ===== PIX NEG + DAT STROBE ===== -->
+  <script>
+  (function() {
+    'use strict';
+
+    // ── PIX NEG sub-toggle ──────────────────────────────────────
+    window._pixNegMode = false;
+    document.getElementById('pixNegBtn')?.addEventListener('click', function() {
+      window._pixNegMode = !window._pixNegMode;
+      this.classList.toggle('active', window._pixNegMode);
+      window.clearPixCache?.();
+    });
+
+    // ── DAT STROBE: 白フラッシュ (mix-blend-mode: difference) ──
+    const strobeFlash = document.createElement('div');
+    strobeFlash.id = 'strobeFlashOverlay';
+    strobeFlash.style.cssText = [
+      'position:fixed', 'top:0', 'left:0', 'width:100vw', 'height:100vh',
+      'background:#ffffff', 'pointer-events:none', 'z-index:99997',
+      'mix-blend-mode:difference', 'opacity:0',
+      'transition:opacity 80ms ease-out'
+    ].join(';');
+    document.body.appendChild(strobeFlash);
+
+    let _datStrobeOn  = false;
+    let _strobeCooldown = false;
+    let _prevBass     = 0;
+    const STROBE_THRESH = 0.65;
+
+    document.getElementById('datStrobeBtn')?.addEventListener('click', function() {
+      _datStrobeOn = !_datStrobeOn;
+      this.classList.toggle('active', _datStrobeOn);
+    });
+
+    function triggerStrobe() {
+      strobeFlash.style.transition = 'none';
+      strobeFlash.style.opacity    = '1';
+      _strobeCooldown = true;
+      requestAnimationFrame(() => {
+        strobeFlash.style.transition = 'opacity 80ms ease-out';
+        strobeFlash.style.opacity    = '0';
+        setTimeout(() => { _strobeCooldown = false; }, 120);
+      });
+    }
+
+    // bass rising-edge detector (runs independently)
+    function strobeWatcher() {
+      requestAnimationFrame(strobeWatcher);
+      if (!_datStrobeOn || _strobeCooldown) { _prevBass = window._liquidBassIntensity || 0; return; }
+      const bass = window._liquidBassIntensity || 0;
+      if (bass > STROBE_THRESH && _prevBass <= STROBE_THRESH) triggerStrobe();
+      _prevBass = bass;
+    }
+    strobeWatcher();
+
+    // RESET で両サブトグルをOFF
+    document.getElementById('topResetBtn')?.addEventListener('click', () => {
+      _datStrobeOn = false;
+      window._pixNegMode = false;
+      document.getElementById('datStrobeBtn')?.classList.remove('active');
+      document.getElementById('pixNegBtn')?.classList.remove('active');
+      strobeFlash.style.opacity = '0';
+      window.clearPixCache?.();
+    });
+  })();
   </script>
 
   <!-- ===== STARTUP FLASH ===== -->
