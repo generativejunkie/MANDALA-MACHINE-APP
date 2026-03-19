@@ -139,29 +139,191 @@
       border-color: #2a2a2a !important
     }
 
+    /* ╔══════════════════════════════════════════════════════╗
+       ║  BOTTOM BAR — 48px / 3-group centered console      ║
+       ╚══════════════════════════════════════════════════════╝ */
     #musicPanel {
-      background: #0f0f0f !important;
-      border-color: #2a2a2a !important;
+      background: #080808 !important;
+      border-top: 1px solid #222 !important;
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: center !important;
+      height: 48px !important;
+      padding: 0 20px !important;
+      gap: 32px !important;
+      box-sizing: border-box !important;
+    }
+
+    /* ── Groups ── */
+    .mp-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .mp-group--stats {
+      gap: 10px;
+    }
+    .mp-group--actions {
+      gap: 6px;
+    }
+
+    /* ── Group separator ── */
+    .mp-sep {
+      width: 1px;
+      height: 18px;
+      background: rgba(255,255,255,0.12);
+      flex-shrink: 0;
+    }
+
+    /* ── Footer buttons — same height as topBar ── */
+    #musicPanel .mode-btn {
+      height: 26px !important;
+      padding: 0 10px !important;
+      font-size: 10px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.06em !important;
+      border-radius: 3px !important;
+      white-space: nowrap !important;
+    }
+
+    /* ── GAIN label ── */
+    #musicPanel label[for="inputGainSlider"] {
+      font-size: 9px !important;
+      font-weight: 600 !important;
+      color: #666 !important;
+      letter-spacing: 0.1em;
+      white-space: nowrap;
+    }
+    #inputGainDisplay {
+      font-size: 10px !important;
+      color: #888 !important;
+      width: 22px !important;
+    }
+
+    /* ── GAIN slider — 2px track ── */
+    #inputGainSlider {
+      width: 64px !important;
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent !important;
+      cursor: pointer;
+    }
+    #inputGainSlider::-webkit-slider-runnable-track {
+      height: 2px;
+      border-radius: 1px;
+      background: #333;
+    }
+    #inputGainSlider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      margin-top: -5px;
+      border-radius: 50%;
+      background: #00aaff;
+      box-shadow: 0 0 6px rgba(0,170,255,0.6);
+      border: none;
+      cursor: pointer;
+    }
+
+    /* ── EQ monitoring strip ── */
+    .music-eq-center {
+      display: flex !important;
+      align-items: flex-end !important;
+      gap: 3px !important;
+    }
+    .eq-bar-group {
       display: flex !important;
       flex-direction: column !important;
-      height: 72px !important;
-      padding: 0 !important;
+      align-items: center !important;
+      gap: 2px !important;
+    }
+    .eq-bar-container {
+      width: 4px !important;
+      height: 16px !important;
+      background: #1a1a1a;
+      border-radius: 1px;
+      overflow: hidden;
+      position: relative;
+    }
+    .eq-bar {
+      position: absolute !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      background: #00aaff !important;
+      border-radius: 1px !important;
+      transition: height 0.08s ease !important;
+    }
+    .eq-label {
+      font-size: 7px !important;
+      color: #555 !important;
+      letter-spacing: 0 !important;
+    }
+
+    /* ── BPM / FPS stats ── */
+    .mp-group--stats .stat-item {
+      font-size: 10px !important;
+      color: #555 !important;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+    #bpmValue {
+      font-size: 15px !important;
+      font-weight: 700 !important;
+      color: #ff3355 !important;
+      letter-spacing: 0.02em;
+    }
+    #fpsValue {
+      font-size: 15px !important;
+      font-weight: 700 !important;
+      color: #00e875 !important;
+      letter-spacing: 0.02em;
+    }
+
+    /* ── V-OUT button ── */
+    #vOutBtn.v-out-btn {
+      height: 26px !important;
+      padding: 0 10px !important;
+      font-size: 9px !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.14em !important;
+    }
+
+    /* ── VJ MOTION sliders — 2px track ── */
+    .slider-wrapper input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent !important;
+      height: auto !important;
+      cursor: pointer;
+    }
+    .slider-wrapper input[type=range]::-webkit-slider-runnable-track {
+      height: 2px;
+      border-radius: 1px;
+      background: #333;
+    }
+    .slider-wrapper input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      margin-top: -5px;
+      border-radius: 50%;
+      background: #555;
+      border: 1px solid #777;
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+    .slider-wrapper input[type=range]:hover::-webkit-slider-thumb {
+      background: #00aaff;
+      box-shadow: 0 0 6px rgba(0,170,255,0.5);
     }
     #musicPanelRow1 {
-      display: flex;
-      align-items: center;
-      height: 36px;
-      padding: 0 10px;
-      border-bottom: 1px solid #1a1a1a;
-      flex-shrink: 0;
+      display: contents; /* フラット化：子要素を musicPanel の直接の子として扱う */
     }
     #musicPanelRow2 {
-      display: flex;
-      align-items: center;
-      height: 36px;
-      padding: 0 10px;
-      flex-shrink: 0;
-      gap: 8px;
+      display: contents;
     }
     #audioDeviceSelect { display: none !important; }
 
@@ -178,25 +340,105 @@
       border-color: #2a2a2a !important
     }
 
+    /* ╔══════════════════════════════════════════════════════╗
+       ║  GLOBAL BUTTON VISIBILITY — NEON GLOW SYSTEM       ║
+       ╚══════════════════════════════════════════════════════╝ */
+
+    /* ── Inactive: light gray — readable in dark booth ── */
     .mode-btn {
-      color: #555 !important
+      color: #bbb !important;
+      font-size: 10px !important;
+      font-weight: 600 !important;
     }
 
+    /* ── Hover: immediate bright feedback ── */
     .mode-btn:hover {
-      background: #161616 !important;
-      color: #e0e0e0 !important
+      background: rgba(255,255,255,0.08) !important;
+      color: #fff !important;
+      border-color: rgba(255,255,255,0.25) !important;
     }
 
-    @keyframes activeBtnPulse {
-      0%, 100% { box-shadow: 0 3px 10px -1px rgba(0, 170, 255, 0.8), inset 0 -2px 5px rgba(0, 170, 255, 0.25); border-bottom-color: #00aaff; }
-      50%       { box-shadow: 0 1px 3px -1px rgba(0, 170, 255, 0.2), inset 0 -1px 2px rgba(0, 170, 255, 0.05); border-bottom-color: #004466; }
+    /* ── Active: NEON CYAN GLOW ── */
+    @keyframes cyanGlowPulse {
+      0%,100% {
+        box-shadow: 0 0 15px rgba(0,229,255,0.7), inset 0 0 6px rgba(0,229,255,0.15);
+        border-color: rgba(0,229,255,1.0);
+      }
+      50% {
+        box-shadow: 0 0 6px rgba(0,229,255,0.25);
+        border-color: rgba(0,229,255,0.5);
+      }
     }
     .mode-btn.active {
-      background: #1e1e1e !important;
+      background: rgba(0,229,255,0.15) !important;
+      color: #ffffff !important;
+      border-color: rgba(0,229,255,1.0) !important;
+      text-shadow: 0 0 8px rgba(0,229,255,0.9) !important;
+      box-shadow: 0 0 15px rgba(0,229,255,0.7) !important;
+      animation: cyanGlowPulse 2.2s ease-in-out infinite !important;
+    }
+
+    /* ── BLACKOUT — Vivid Red ── */
+    #blackoutBtn {
+      color: #ff4444 !important;
+      border-color: rgba(255,68,68,0.6) !important;
+      font-weight: 700 !important;
+    }
+    #blackoutBtn:hover {
+      background: rgba(255,0,0,0.12) !important;
+      color: #ff6666 !important;
+      border-color: #ff0000 !important;
+      box-shadow: 0 0 12px rgba(255,0,0,0.6) !important;
+    }
+    #blackoutBtn.active {
+      background: rgba(255,0,0,0.2) !important;
+      color: #ff3333 !important;
+      border-color: #ff0000 !important;
+      box-shadow: 0 0 20px rgba(255,0,0,0.8) !important;
+      text-shadow: 0 0 8px rgba(255,0,0,1.0) !important;
+      animation: none !important;
+    }
+
+    /* ── RESET — Vivid Red (resting state visible) ── */
+    #topResetBtn {
+      color: #ff5555 !important;
+      border-color: rgba(255,85,85,0.5) !important;
+      font-weight: 700 !important;
+    }
+    #topResetBtn:hover {
+      background: rgba(255,0,0,0.15) !important;
+      color: #ff8888 !important;
+      border-color: #ff0000 !important;
+      box-shadow: 0 0 14px rgba(255,0,0,0.7) !important;
+      text-shadow: 0 0 8px rgba(255,0,0,0.9) !important;
+    }
+
+    /* ── TAP — Cyan + rhythmic pulse on hover ── */
+    @keyframes tapRhythm {
+      0%,100% { box-shadow: 0 0 4px rgba(0,229,255,0.3); }
+      50%      { box-shadow: 0 0 20px rgba(0,229,255,0.85), inset 0 0 8px rgba(0,229,255,0.2); }
+    }
+    #tapBpmBtn {
+      color: #00e5ff !important;
+      border-color: rgba(0,229,255,0.7) !important;
+      font-weight: 700 !important;
+      text-shadow: 0 0 6px rgba(0,229,255,0.5) !important;
+    }
+    #tapBpmBtn:hover {
+      background: rgba(0,229,255,0.12) !important;
       color: #fff !important;
-      border-color: #fff !important;
-      border-bottom-color: #00aaff !important;
-      animation: activeBtnPulse 2.4s ease-in-out infinite !important;
+      border-color: #00e5ff !important;
+      animation: tapRhythm 0.75s ease-in-out infinite !important;
+    }
+
+    /* ── FREEZE active — cool blue ── */
+    #freezeBtn.active {
+      background: rgba(51,153,255,0.15) !important;
+      color: #ffffff !important;
+      border-color: #3399ff !important;
+      box-shadow: 0 0 14px rgba(51,153,255,0.6) !important;
+      text-shadow: 0 0 6px rgba(51,153,255,0.8) !important;
+      animation: none !important;
     }
 
     @keyframes starBeatFlash {
@@ -292,12 +534,10 @@
       background: #2a2a2a !important
     }
 
-    .slider-wrapper span,
     .sub-label,
     .info-text,
-    .label-mini,
-    .eq-label {
-      color: #555 !important
+    .label-mini {
+      color: #666 !important
     }
 
     .context-menu {
@@ -644,7 +884,7 @@
 
     /* #mainPanel のグリッドを4行に拡張（sceneBar追加のため）*/
     #mainPanel {
-      grid-template-rows: auto auto 1fr 72px !important;
+      grid-template-rows: auto auto 1fr 48px !important;
     }
 
     /* ===== VJ MOTION CONTROLS ===== */
@@ -823,6 +1063,20 @@
       box-shadow: 0 0 8px rgba(51, 153, 255, 0.4);
     }
 
+    @keyframes resetBlink {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.3; }
+    }
+
+    /* Canvas background: force pure black to prevent white artifact on init */
+    #canvasWrapper,
+    .canvas-container {
+      background: #000000 !important;
+    }
+    #canvasWrapper canvas {
+      background: #000000 !important;
+    }
+
     /* INVERT Effect: Default White Canvas, INVERT = Black Canvas */
     body.dark-mode #canvasWrapper {
       filter: invert(1) hue-rotate(180deg);
@@ -831,6 +1085,111 @@
 
     body.dark-mode.canvas-black #canvasWrapper {
       filter: none;
+    }
+
+    /* =====================================================
+       AUDIO SYNC TOGGLE — ON: 緑 / OFF: グレー
+       ===================================================== */
+    #audioSyncToggle {
+      font-size: 9px !important;
+      font-weight: 700 !important;
+      letter-spacing: 1px;
+      padding: 3px 9px !important;
+      background: #111 !important;
+      border: 1px solid #333 !important;
+      color: #555 !important;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.2s;
+    }
+    #audioSyncToggle:hover {
+      border-color: #555 !important;
+      color: #aaa !important;
+    }
+    #audioSyncToggle.active {
+      background: rgba(0, 255, 0, 0.1) !important;
+      border-color: #00ff00 !important;
+      color: #00ff00 !important;
+      box-shadow: 0 0 8px rgba(0, 255, 0, 0.35);
+    }
+
+    /* =====================================================
+       bh-mode-btn (左パネルモードグリッド) — 視認性強化
+       ===================================================== */
+    .bh-mode-btn {
+      border-color: #2a2a2a !important;
+    }
+    .bh-mode-btn:hover {
+      border-color: #555 !important;
+      background: #111 !important;
+    }
+    .bh-mode-btn.active {
+      border-color: #00e5ff !important;
+      background: rgba(0, 229, 255, 0.08) !important;
+    }
+    .bh-mode-label {
+      font-size: 8px !important;
+      color: #888 !important;
+      font-weight: 600 !important;
+    }
+    .bh-mode-btn.active .bh-mode-label {
+      color: #00e5ff !important;
+    }
+    .bh-mode-btn:hover .bh-mode-label {
+      color: #ccc !important;
+    }
+
+    /* =====================================================
+       OBJECTS PANEL — preset-item ホバー強調
+       ===================================================== */
+    .preset-item:hover {
+      border-color: rgba(255, 255, 255, 0.5) !important;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.2) !important;
+    }
+    .preset-item.active,
+    .preset-item.selected {
+      border-color: #00e5ff !important;
+      box-shadow: 0 0 8px rgba(0, 229, 255, 0.35) !important;
+    }
+
+    /* =====================================================
+       SCENE SLOTS — 視認性強化
+       ===================================================== */
+    .scene-slot {
+      color: #888 !important;
+      border-color: #333 !important;
+    }
+    .scene-slot:hover {
+      border-color: #666 !important;
+      color: #ccc !important;
+      background: #161616 !important;
+    }
+    .scene-slot.saved {
+      border-color: #444 !important;
+      color: #bbb !important;
+    }
+    .scene-slot.active {
+      border-color: #00e5ff !important;
+      color: #00e5ff !important;
+      background: rgba(0, 229, 255, 0.08) !important;
+      box-shadow: 0 0 8px rgba(0, 229, 255, 0.3) !important;
+    }
+
+    /* =====================================================
+       menu-section h3 (右パネルセクションヘッダー)
+       ===================================================== */
+    .menu-section h3 {
+      color: #888 !important;
+      font-size: 9px !important;
+      letter-spacing: 0.15em !important;
+    }
+
+    /* slider-wrapper ラベル可読性向上 */
+    .slider-wrapper label {
+      color: #888 !important;
+    }
+    .slider-wrapper span {
+      color: #aaa !important;
     }
   </style>
   <script type="module" crossorigin src="./assets/index-Dwl_9uI6.js"></script>
@@ -1087,6 +1446,10 @@
                     <span class="swatch-circle" style="background:radial-gradient(circle,#b0b8c0 0%,#3a4048 60%,#111 100%);"></span>
                     <span class="swatch-label">SMOKE</span>
                   </button>
+                  <button class="preset-swatch-btn vj-preset-item" data-preset="tricolor" title="TRICOLOR — Red/Blue/White, Zero Green">
+                    <span class="swatch-circle" style="background:radial-gradient(circle,#fff 0%,#aa00ff 45%,#ff0000 70%,#0000ff 100%);"></span>
+                    <span class="swatch-label">TRICOLOR</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -1113,6 +1476,10 @@
             <button id="topMixBtn" class="mode-btn" title="Mixed Mode" data-i18n-title="mix">
               <span data-i18n="mix">MIX</span>
             </button>
+
+            <div class="top-row-divider"></div>
+            <button id="blackoutBtn" class="mode-btn" title="Blackout [B]" style="color:#ff4444;border-color:#ff4444;"><span>BLACKOUT</span></button>
+            <button id="topResetBtn" class="mode-btn top-row--reset" title="RESET ALL"><span>RESET</span></button>
 
           </div>
 
@@ -1234,69 +1601,60 @@
         <div id="generatingOverlay">Generating...</div>
       </div>
 
-      <!-- Music Panel -->
+      <!-- Music Panel — 3グループ水平センター配置 -->
       <div id="musicPanel">
-        <!-- 1段目: 既存コントロール -->
-        <div id="musicPanelRow1">
-        <div class="music-controls-left">
-          <input type="file" id="musicUpload" accept=".mp3,.wav,.ogg,.m4a,.aac,.flac,.aiff,.wma" style="display: none;">
-          <button id="musicAddBtn" class="music-icon-btn" title="Open File" style="display:none;"></button>
-          <button id="musicPlayBtn" class="music-icon-btn" title="Play/Pause" style="display:none;">▶</button>
-          <button id="topMicBtn" class="music-icon-btn" title="Mic Input" style="display:none;"></button>
-          <span id="midiStatus" style="display:none;" title="MIDI Not Connected">⌬</span>
-          <span id="musicTrackTitle" style="display:none;">No Track Selected</span>
-          <div class="music-gain-control" style="display: flex; align-items: center; margin-left: 10px;">
-            <label for="inputGainSlider" style="font-size: 10px; margin-right: 5px; color: #888;">GAIN</label>
-            <input type="range" id="inputGainSlider" min="0" max="10.0" step="0.1" value="2.5" style="width: 60px;">
-            <span id="inputGainDisplay"
-              style="font-size: 10px; margin-left: 5px; width: 20px; display: inline-block; color: #aaa;">2.5</span>
+
+        <!-- 非表示要素 (IDを保持したまま非表示) -->
+        <input type="file" id="musicUpload" accept=".mp3,.wav,.ogg,.m4a,.aac,.flac,.aiff,.wma" style="display:none;">
+        <button id="musicAddBtn"   class="music-icon-btn" style="display:none;"></button>
+        <button id="musicPlayBtn"  class="music-icon-btn" style="display:none;">▶</button>
+        <button id="topMicBtn"     class="music-icon-btn" style="display:none;"></button>
+        <span   id="midiStatus"    style="display:none;" title="MIDI Not Connected">⌬</span>
+        <span   id="musicTrackTitle" style="display:none;">No Track Selected</span>
+        <!-- keep legacy row refs for any JS that writes to them -->
+        <div id="musicPanelRow1" style="display:none;"></div>
+        <div id="musicPanelRow2" style="display:none;"></div>
+
+        <!-- GROUP A: GAIN + EQ バー -->
+        <div class="mp-group mp-group--gain">
+          <label for="inputGainSlider">GAIN</label>
+          <input type="range" id="inputGainSlider" min="0" max="10.0" step="0.1" value="2.5">
+          <span id="inputGainDisplay">2.5</span>
+          <div class="mp-sep"></div>
+          <div class="music-eq-center">
+            <div class="eq-bar-group">
+              <div class="eq-bar-container"><div class="eq-bar" id="eqBarHi"></div></div>
+              <span class="eq-label">HI</span>
+            </div>
+            <div class="eq-bar-group">
+              <div class="eq-bar-container"><div class="eq-bar" id="eqBarMid"></div></div>
+              <span class="eq-label">MID</span>
+            </div>
+            <div class="eq-bar-group">
+              <div class="eq-bar-container"><div class="eq-bar" id="eqBarLow"></div></div>
+              <span class="eq-label">LOW</span>
+            </div>
           </div>
         </div>
 
-        <div class="music-eq-center">
-          <div class="eq-bar-group">
-            <div class="eq-bar-container">
-              <div class="eq-bar" id="eqBarHi"></div>
-            </div>
-            <span class="eq-label">HI</span>
-          </div>
-          <div class="eq-bar-group">
-            <div class="eq-bar-container">
-              <div class="eq-bar" id="eqBarMid"></div>
-            </div>
-            <span class="eq-label">MID</span>
-          </div>
-          <div class="eq-bar-group">
-            <div class="eq-bar-container">
-              <div class="eq-bar" id="eqBarLow"></div>
-            </div>
-            <span class="eq-label">LOW</span>
-          </div>
+        <!-- GROUP B: BPM / FPS stats -->
+        <div class="mp-group mp-group--stats">
+          <span class="stat-item">BPM <span id="bpmValue">--</span></span>
+          <div class="mp-sep"></div>
+          <span class="stat-item">FPS <span id="fpsValue">60</span></span>
         </div>
 
-        <div class="music-stats-right">
-          <span class="stat-item">BPM: <span id="bpmValue" style="color:#ff4d6d;font-size:1.3em;font-weight:700;letter-spacing:0.05em;">--</span></span>
-          <span class="stat-item">FPS: <span id="fpsValue">60</span></span>
+        <!-- GROUP C: Action buttons + V-OUT -->
+        <div class="mp-group mp-group--actions">
+          <button id="tapBpmBtn"  class="mode-btn" title="Tap over time to set BPM">TAP</button>
+          <button id="autoBpmBtn" class="mode-btn" title="Auto BPM detection">BPM AUTO</button>
+          <button id="invertBtn"  class="mode-btn" title="Invert Colors">INVERT</button>
+          <button id="glowBtn"    class="mode-btn" title="Toggle Center Glow">GLOW</button>
+          <button id="freezeBtn"  class="mode-btn" title="Freeze canvas [F]">FREEZE</button>
+          <div class="mp-sep"></div>
           <button id="vOutBtn" class="v-out-btn" title="Projector Output">V-OUT</button>
-          <button id="syphonOutBtn" class="v-out-btn" title="MJPEG Stream → TouchDesigner / OBS / VLC&#10;URL: http://localhost:8000/stream" style="margin-left:4px;opacity:0.7;">SYPHON</button>
-          <span id="tdLinkStatus" title="TouchDesigner OSC Link&#10;ターゲット: 127.0.0.1:10000"
-                style="margin-left:6px;font-size:8px;letter-spacing:1px;color:#333;cursor:pointer;user-select:none;"
-                >TD ●</span>
         </div>
-        </div><!-- /musicPanelRow1 -->
 
-        <!-- 2段目: VJアクションバー (TAP/BPM AUTO/INVERT/GLOW/FREEZE/BLACKOUT/RESET) -->
-        <div id="musicPanelRow2" style="display:flex;align-items:center;gap:4px;padding:4px 8px;border-top:1px solid #1a1a1a;">
-          <button id="tapBpmBtn" class="mode-btn" title="Tap over time to set BPM"><span>TAP</span></button>
-          <button id="autoBpmBtn" class="mode-btn" title="Auto BPM detection from audio input"><span>BPM AUTO</span></button>
-          <button id="invertBtn" class="mode-btn" title="Invert Colors"><span>INVERT</span></button>
-          <button id="glowBtn" class="mode-btn" title="Toggle Center Glow Visibility"><span>GLOW</span></button>
-          <div class="top-row-divider"></div>
-          <button id="freezeBtn" class="mode-btn" title="Freeze canvas [F]"><span>FREEZE</span></button>
-          <button id="blackoutBtn" class="mode-btn" title="Blackout [B]" style="color:#ff4444;border-color:#ff4444;"><span>BLACKOUT</span></button>
-          <div class="top-row-divider"></div>
-          <button id="topResetBtn" class="mode-btn top-row--reset" title="RESET ALL"><span>RESET</span></button>
-        </div>
       </div>
 
     </div>
@@ -1340,23 +1698,33 @@
         </div>
       </div>
 
-      <!-- OSC / TD LINK 設定 -->
-      <div class="menu-section">
-        <h3 style="display:flex;align-items:center;gap:6px;">
-          TD LINK
-          <span id="oscDot" style="width:6px;height:6px;border-radius:50%;background:#333;display:inline-block;"></span>
-        </h3>
-        <div style="display:flex;gap:4px;margin-bottom:4px;">
-          <input id="oscHost" type="text" value="127.0.0.1"
-                 style="flex:2;background:#111;border:1px solid #222;color:#aaa;font-size:9px;padding:2px 4px;border-radius:2px;">
-          <input id="oscPort" type="number" value="10000" min="1024" max="65535"
-                 style="flex:1;background:#111;border:1px solid #222;color:#aaa;font-size:9px;padding:2px 4px;border-radius:2px;">
-          <button id="oscConnectBtn"
-                  style="font-size:8px;letter-spacing:1px;padding:2px 6px;background:#1a1a1a;border:1px solid #333;color:#666;cursor:pointer;border-radius:2px;">
-            LINK
+      <!-- AUDIO SYNC — Bass→Red, Treble→Blue (Tricolor preset) -->
+      <div class="menu-section" id="audioSyncSection">
+        <h3 style="display:flex;align-items:center;justify-content:space-between;">
+          AUDIO SYNC
+          <button id="audioSyncToggle"
+                  style="font-size:8px;letter-spacing:1px;padding:2px 8px;background:#1a1a1a;border:1px solid #333;color:#555;cursor:pointer;border-radius:2px;transition:all 0.2s;">
+            OFF
           </button>
+        </h3>
+        <div style="font-size:8px;color:#444;letter-spacing:0.5px;margin-bottom:4px;">Bass→RED · Treble→BLUE</div>
+        <div class="slider-wrapper" style="margin-bottom:6px;">
+          <label style="font-size:9px;color:#555;width:48px;flex-shrink:0;">COLOR GAIN</label>
+          <input type="range" id="colorGainSlider" min="1" max="4" step="0.1" value="2.0" style="flex:1;">
+          <span id="colorGainValue" style="width:28px;text-align:right;font-size:9px;color:#aaa;">2.0</span>
         </div>
-        <div id="oscStatusText" style="font-size:8px;color:#333;letter-spacing:1px;">OFFLINE</div>
+        <div class="slider-wrapper" style="margin-bottom:4px;">
+          <label style="font-size:9px;color:#555;width:48px;flex-shrink:0;">BASS</label>
+          <div id="bassBar" style="flex:1;height:6px;background:#1a1a1a;border-radius:2px;overflow:hidden;">
+            <div id="bassBarFill" style="height:100%;width:0%;background:linear-gradient(90deg,#660000,#ff0000);border-radius:2px;transition:width 0.04s;"></div>
+          </div>
+        </div>
+        <div class="slider-wrapper">
+          <label style="font-size:9px;color:#555;width:48px;flex-shrink:0;">TREBLE</label>
+          <div id="trebleBar" style="flex:1;height:6px;background:#1a1a1a;border-radius:2px;overflow:hidden;">
+            <div id="trebleBarFill" style="height:100%;width:0%;background:linear-gradient(90deg,#000066,#0000ff);border-radius:2px;transition:width 0.04s;"></div>
+          </div>
+        </div>
       </div>
 
       <div class="menu-section">
@@ -1950,7 +2318,7 @@
           const sm = window.mandalaMachine?.sceneManager;
           if (sm) {
             sm.renderer.domElement.style.cssText = '';
-            sm.renderer.domElement.style.backgroundColor = 'rgb(255,255,255)';
+            sm.renderer.domElement.style.backgroundColor = 'rgb(0,0,0)';
             sm.renderer.setPixelRatio(1);
           }
           btn.classList.remove('active');
@@ -2191,6 +2559,115 @@
     })();
   </script>
 
+  <!-- ═══════════════════════════════════════════════════════
+       AUDIO SYNC — Bass(20-250Hz)→RED, Treble(2k-10kHz)→BLUE
+       Drives u_bassBlue uniform in the Tricolor shader.
+       Web Audio API AnalyserNode (smoothingTimeConstant=0.8)
+       ═══════════════════════════════════════════════════════ -->
+  <script>
+  (function AudioAnalyzer() {
+    const toggleBtn   = document.getElementById('audioSyncToggle');
+    const bassBarFill = document.getElementById('bassBarFill');
+    const trebleBarFill = document.getElementById('trebleBarFill');
+    if (!toggleBtn) return;
+
+    let _ctx = null, _analyser = null, _buf = null, _raf = null;
+    let _active = false;
+    // Smoothed values (EMA)
+    let _sBass = 0, _sTreble = 0;
+    const SMOOTH = 0.82;
+
+    async function start() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        _ctx     = new (window.AudioContext || window.webkitAudioContext)();
+        _analyser = _ctx.createAnalyser();
+        _analyser.fftSize = 1024;
+        _analyser.smoothingTimeConstant = 0.80;
+        _buf = new Uint8Array(_analyser.frequencyBinCount);
+        const src = _ctx.createMediaStreamSource(stream);
+        src.connect(_analyser);
+        _active = true;
+        toggleBtn.textContent = 'ON';
+        toggleBtn.style.color  = '#00ff88';
+        toggleBtn.style.borderColor = '#00ff88';
+        console.log('[AUDIO SYNC] Started — Bass→RED, Treble→BLUE');
+        loop();
+      } catch(e) {
+        console.warn('[AUDIO SYNC] mic access denied:', e.message);
+        toggleBtn.textContent = 'ERR';
+      }
+    }
+
+    function stop() {
+      _active = false;
+      if (_raf) { cancelAnimationFrame(_raf); _raf = null; }
+      if (_ctx) { _ctx.close(); _ctx = null; }
+      toggleBtn.textContent = 'OFF';
+      toggleBtn.style.color = '#555';
+      toggleBtn.style.borderColor = '#333';
+      if (bassBarFill)   bassBarFill.style.width   = '0%';
+      if (trebleBarFill) trebleBarFill.style.width = '0%';
+      // Reset shader to time-driven mode
+      window._liquidAudioSync       = 0;
+      window._liquidBassIntensity   = 0;
+      window._liquidTrebleIntensity = 0;
+    }
+
+    function loop() {
+      if (!_active || !_analyser) return;
+      _raf = requestAnimationFrame(loop);
+      _analyser.getByteFrequencyData(_buf);
+
+      const nyq   = _ctx.sampleRate / 2;
+      const binHz = nyq / _analyser.frequencyBinCount;
+
+      // Bass: 20–250 Hz
+      const bLo = Math.floor(20  / binHz);
+      const bHi = Math.ceil(250  / binHz);
+      let bassSum = 0;
+      for (let i = bLo; i <= bHi; i++) bassSum += _buf[i];
+      const bassRaw = bassSum / ((bHi - bLo + 1) * 255);
+
+      // Treble: 2000–10000 Hz
+      const tLo = Math.floor(2000  / binHz);
+      const tHi = Math.ceil(10000  / binHz);
+      let trebleSum = 0;
+      for (let i = tLo; i <= tHi; i++) trebleSum += _buf[i];
+      const trebleRaw = trebleSum / ((tHi - tLo + 1) * 255);
+
+      // EMA smoothing (prevents flicker)
+      _sBass   = _sBass   * SMOOTH + bassRaw   * (1 - SMOOTH);
+      _sTreble = _sTreble * SMOOTH + trebleRaw * (1 - SMOOTH);
+
+      // Non-linear power boost: bass^1.5, treble^2.0 (treble needs more punch)
+      const bassBoost   = Math.min(1.0, Math.pow(_sBass,   1.5));
+      const trebleBoost = Math.min(1.0, Math.pow(_sTreble, 2.0));
+
+      // Expose separate intensities to shader IIFE via globals
+      window._liquidBassIntensity   = bassBoost;
+      window._liquidTrebleIntensity = trebleBoost;
+      window._liquidAudioSync = 1;
+
+      // Update meter bars (show raw boosted values for clear feedback)
+      if (bassBarFill)   bassBarFill.style.width   = Math.round(bassBoost   * 100) + '%';
+      if (trebleBarFill) trebleBarFill.style.width = Math.round(trebleBoost * 100) + '%';
+    }
+
+    // COLOR GAIN slider label sync
+    const gainSlider = document.getElementById('colorGainSlider');
+    const gainValue  = document.getElementById('colorGainValue');
+    gainSlider?.addEventListener('input', function() {
+      if (gainValue) gainValue.textContent = parseFloat(this.value).toFixed(1);
+    });
+
+    toggleBtn.addEventListener('click', () => _active ? stop() : start());
+
+    // Public API for RESET
+    window.stopAudioSync = stop;
+  })();
+  </script>
+
   <!-- RESET ALL BUTTON -->
   <script>
     (function setupResetButton() {
@@ -2200,103 +2677,201 @@
         if (!mm || !btn) return setTimeout(applyReset, 200);
 
         btn.addEventListener('click', () => {
-          // ── 1. 全モードボタンのアクティブ状態を解除 ─────────
-          document.querySelectorAll('.mode-btn.active').forEach(b => b.classList.remove('active'));
+          // Guard: prevent double-fire during tween
+          if (btn.dataset.resetting === '1') return;
+          btn.dataset.resetting = '1';
 
-          // ── 2. autoModeを先にOFF（背景色リセットのため） ───
-          mm.toggleAutoMode(false);
-          mm.setSpaceMode(false);
+          // ══════════════════════════════════════════════════════
+          // T=0ms: Audio ゼロ化 (即時)
+          // ══════════════════════════════════════════════════════
+          window._liquidBassIntensity   = 0;
+          window._liquidTrebleIntensity = 0;
+          window._liquidAudioSync       = 0;
+          window.stopAudioSync?.();
 
-          // ── 3. アプリ全体をリセット ─────────────────────────
-          mm.clearAll();
-          mm.toggleBaryonMode(false);
-          mm.setMandalaMode(false);
-          mm.toggleAutoMode(false); // MANDALAがautoModeをONにするため念押し
-          mm.setReflectMode(false);
-          mm.toggleAntigravityMode(false);
-          mm.toggleSpinMode(false);
-          mm.toggleOrbitMode(false);
-          mm.setWireframeMode('solid');
-          mm.setDefaultObjectColor({ r: 0, g: 0, b: 0 });
-          mm.setSizeMultiplier(1);
-          mm.setSpeedMultiplier(1);
-          mm.setSpreadMultiplier(1);
-          mm.setSpacingMultiplier(8);
-          mm.setSymmetryCount(1);
-          mm.setMasterIntensity(100);
-          mm.setBrightness(100);
-          mm.setContrast(100);
-          mm.setSaturation(100);
+          // T=0ms: Button — Vivid Red Pulse (3× / 0.5s)
+          btn.style.transition = 'box-shadow 0.08s ease, color 0.08s ease';
+          btn.style.color      = '#ff0000';
+          btn.style.borderColor = '#ff0000';
+          btn.style.boxShadow  = '0 0 30px rgba(255,0,0,1.0)';
+          btn.style.textShadow = '0 0 10px rgba(255,0,0,1.0)';
 
-          // ── 4. 背景を白に強制セット ──────────────────────────
-          mm.setBackgroundColor({ r: 255, g: 255, b: 255 });
+          // "Resetting..." ラベル (V-OUTの隣に挿入)
+          let resetLabel = document.getElementById('_resetLabel');
+          if (!resetLabel) {
+            resetLabel = document.createElement('span');
+            resetLabel.id = '_resetLabel';
+            resetLabel.style.cssText = 'font-size:9px;color:#ff4444;letter-spacing:0.1em;white-space:nowrap;animation:resetBlink 0.4s ease infinite;';
+            resetLabel.textContent = 'RESETTING...';
+            document.getElementById('vOutBtn')?.insertAdjacentElement('afterend', resetLabel);
+          }
+          resetLabel.style.display = '';
 
-          // ── 5. カラースライダーをリセット ────────────────────
-          ['colorR', 'colorG', 'colorB'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) { el.value = 0; el.dispatchEvent(new Event('input', { bubbles: true })); }
-          });
+          // ══════════════════════════════════════════════════════
+          // T=0→500ms: uFadeOut 1.0→0.0 (easeInCubic tween)
+          // ══════════════════════════════════════════════════════
+          const FADE_MS = 700;
+          const tweenStart = performance.now();
 
-          // ── 6. VJ Motion スライダーをデフォルト値にリセット ──
-          // [sliderId, valueLabelId, defaultVal]
-          const VJ_DEFAULTS = [
-            ['warpIntensitySlider',   'warpIntensityValue',   3  ],
-            ['liquidViscositySlider', 'liquidViscosityValue', 3  ],
-            ['elasticitySlider',      'elasticityValue',      3  ],
-            ['audioReactSlider',      'audioReactValue',      2.5],
-          ];
-          VJ_DEFAULTS.forEach(([id, valId, def]) => {
-            const sl = document.getElementById(id);
-            const vl = document.getElementById(valId);
-            if (sl) { sl.value = def; sl.dispatchEvent(new Event('input', { bubbles: true })); }
-            if (vl) vl.textContent = parseFloat(def).toFixed(1);
-          });
+          function easeInCubic(t) { return t * t * t; }
 
-          // QUALITY スライダーを LOW (1) にリセット
-          const qSlider = document.getElementById('simQualitySlider');
-          const qLabel  = document.getElementById('simQualityValue');
-          if (qSlider) { qSlider.value = 1; qSlider.dispatchEvent(new Event('input', { bubbles: true })); }
-          if (qLabel)  qLabel.textContent = 'MED';
+          function fadeTick(now) {
+            const elapsed = now - tweenStart;
+            const progress = Math.min(elapsed / FADE_MS, 1.0);
+            const val = 1.0 - easeInCubic(progress);
+            window.setLiquidFadeOut?.(val);
 
-          // ── 7. Liquid シェーダーをOFF・タイマーリセット ──────
-          // uTime の累積は toggleLiquidMode(false→true) 時に startTime が再設定される
-          window.toggleLiquidMode?.(false);
+            // Pulse button glow 3× (period ~166ms each)
+            const pulse = Math.abs(Math.sin(progress * Math.PI * 3));
+            btn.style.boxShadow = `0 0 ${10 + pulse * 20}px rgba(255,0,0,${0.5 + pulse * 0.5})`;
 
-          // ── 8. VJ プリセット / モーションボタン highlight解除 ─
-          document.querySelectorAll('.vj-preset-item, .vj-motion-btn').forEach(b => b.classList.remove('active'));
+            if (progress < 1.0) {
+              requestAnimationFrame(fadeTick);
+            } else {
+              doHardReset();
+            }
+          }
+          requestAnimationFrame(fadeTick);
 
-          // ── 9. localStorage: 描画パラメータ用キーをクリア ────
-          // ※ vjSceneSlots_v1 はユーザー保存シーンなので保持
-          // ※ TIME TABLE の SCHEDULE データはIIFEプライベートスコープ内にあり
-          //    localStorage にも window にも露出しないため自動的に保護される
-          const PRESERVE_KEYS = new Set(['vjSceneSlots_v1']);
-          Object.keys(localStorage).forEach(k => {
-            if (!PRESERVE_KEYS.has(k)) localStorage.removeItem(k);
-          });
+          // ══════════════════════════════════════════════════════
+          // T=700ms: Total Blackout + Parameter Reset
+          // Critical order: stop loop → set targets → purge GPU → restart
+          // ══════════════════════════════════════════════════════
+          function doHardReset() {
 
-          // ── 10. 全モード強制OFFを念押し（非同期処理の後） ────
-          setTimeout(() => {
-            mm.toggleAutoMode(false);
-            mm.setMandalaMode(false);
-            mm.setSpaceMode(false);
-            mm.state.autoMode    = false;
-            mm.state.mandalaMode = false;
-            mm.state.spaceMode   = false;
+            // ─── STEP 1: Instant display black (last rendered frame = 0) ───
+            window.setLiquidFadeOut?.(0.0);
+
+            // ─── STEP 2: STOP render loop — no more FBO writes ───────────
+            // This is the key fix: without this, the running loop re-writes
+            // purple data into FBOs immediately after gl.clear().
+            window.toggleLiquidMode?.(false);
+
+            // ─── STEP 3: Set Mercury targets BEFORE FBO purge ────────────
+            // clearLiquidFBO() snaps all lerps to _target*, so targets must
+            // already be Mercury when we call it.
+            window.setFluidPreset?.('mercury');
+
+            // ─── STEP 4: GPU memory purge — ALL ping-pong FBOs → black ──
+            // Also zeros: audio state, _bassIntensity, _trebleIntensity,
+            // _audioSync, and snaps _lerpTint/Visc/Ten/Smoke/Tricolor.
+            window.clearLiquidFBO?.();
+
+            // ─── STEP 5: Restore fade uniform for the next ON cycle ──────
+            window.setLiquidFadeOut?.(1.0);
+
+            // ─── STEP 6: Audio Sync UI → OFF ─────────────────────────────
+            window._liquidBassIntensity   = 0;
+            window._liquidTrebleIntensity = 0;
+            window._liquidAudioSync       = 0;
+            window.stopAudioSync?.();
+            const syncToggle = document.getElementById('audioSyncToggle');
+            if (syncToggle) {
+              syncToggle.textContent = 'OFF';
+              syncToggle.classList.remove('active');
+            }
+
+            // ─── STEP 7: Mandala core reset ───────────────────────────────
             document.querySelectorAll('.mode-btn.active').forEach(b => b.classList.remove('active'));
-            mm.setBackgroundColor({ r: 255, g: 255, b: 255 });
-          }, 100);
+            document.querySelectorAll('.vj-preset-item, .vj-motion-btn').forEach(b => b.classList.remove('active'));
 
-          // COLOR PICKER をデフォルト(Liquid blue)に戻す
-          const cpReset = document.getElementById('liquidColorPicker');
-          if (cpReset) cpReset.value = '#4d94ff';
-          window.setLiquidColor?.('#4d94ff');
-          // AUTO COLOR SYNC を再有効化
-          window._liquidColorAuto = true;
-          const autoLabel = document.getElementById('liquidColorAuto');
-          if (autoLabel) { autoLabel.textContent = 'MAN'; autoLabel.style.color = '#555'; }
+            mm.toggleAutoMode(false);
+            mm.setSpaceMode(false);
+            mm.clearAll();
+            mm.toggleBaryonMode(false);
+            mm.setMandalaMode(false);
+            mm.setReflectMode(false);
+            mm.toggleAntigravityMode(false);
+            mm.toggleSpinMode(false);
+            mm.toggleOrbitMode(false);
+            mm.setWireframeMode('solid');
+            mm.setDefaultObjectColor({ r: 0, g: 0, b: 0 });
+            mm.setSizeMultiplier(1);
+            mm.setSpeedMultiplier(1);
+            mm.setSpreadMultiplier(1);
+            mm.setSpacingMultiplier(8);
+            mm.setSymmetryCount(1);
+            mm.setMasterIntensity(100);
+            mm.setBrightness(100);
+            mm.setContrast(100);
+            mm.setSaturation(100);
+            mm.setBackgroundColor({ r: 0, g: 0, b: 0 });
 
-          console.log('RESET complete');
-          console.log('State Reset: CSV data preserved.');
+            // ─── STEP 8: UI sliders sync to Mercury defaults ──────────────
+            ['colorR', 'colorG', 'colorB'].forEach(id => {
+              const el = document.getElementById(id);
+              if (el) { el.value = 0; el.dispatchEvent(new Event('input', { bubbles: true })); }
+            });
+            [
+              ['warpIntensitySlider',   'warpIntensityValue',   3  ],
+              ['liquidViscositySlider', 'liquidViscosityValue', 4  ],  // Mercury viscosity
+              ['elasticitySlider',      'elasticityValue',      9  ],  // Mercury tension
+              ['audioReactSlider',      'audioReactValue',      2.5],
+              ['inputGainSlider',       'inputGainDisplay',     2.5],
+            ].forEach(([id, valId, def]) => {
+              const sl = document.getElementById(id);
+              const vl = document.getElementById(valId);
+              if (sl) { sl.value = def; sl.dispatchEvent(new Event('input', { bubbles: true })); }
+              if (vl) vl.textContent = parseFloat(def).toFixed(1);
+            });
+
+            const qSlider = document.getElementById('simQualitySlider');
+            if (qSlider) { qSlider.value = 1; qSlider.dispatchEvent(new Event('input', { bubbles: true })); }
+            const qLabel = document.getElementById('simQualityValue');
+            if (qLabel) qLabel.textContent = 'LOW';
+
+            // COLOR GAIN → 1.0
+            const gainSl = document.getElementById('colorGainSlider');
+            const gainLb = document.getElementById('colorGainValue');
+            if (gainSl) gainSl.value = 1.0;
+            if (gainLb) gainLb.textContent = '1.0';
+
+            // BLACKOUT overlay
+            const boOverlay = document.getElementById('blackoutOverlay');
+            if (boOverlay?.classList.contains('active')) {
+              boOverlay.classList.remove('active');
+              document.getElementById('blackoutBtn')?.classList.remove('active');
+            }
+
+            // ─── STEP 9: Restart render loop (clean Mercury, black FBOs) ─
+            window.toggleLiquidMode?.(true);
+
+            // Color picker sync (next RAF, after loop starts)
+            requestAnimationFrame(() => {
+              const cp = document.getElementById('liquidColorPicker');
+              if (cp) cp.value = '#d9eeff';
+              window.setLiquidColor?.('#d9eeff');
+            });
+
+            // ─── STEP 10: localStorage (CSV TimeTable protected) ──────────
+            const PRESERVE_KEYS = new Set(['vjSceneSlots_v1']);
+            Object.keys(localStorage).forEach(k => {
+              if (!PRESERVE_KEYS.has(k)) localStorage.removeItem(k);
+            });
+
+            // ─── STEP 11: Button appearance restore ───────────────────────
+            btn.style.cssText = '';
+            btn.dataset.resetting = '';
+            if (resetLabel) resetLabel.style.display = 'none';
+
+            window._liquidColorAuto = true;
+            const autoLabel = document.getElementById('liquidColorAuto');
+            if (autoLabel) { autoLabel.textContent = 'MAN'; autoLabel.style.color = '#555'; }
+
+            // 150ms後念押し（AUTO mode 再起動ガード）
+            setTimeout(() => {
+              mm.toggleAutoMode(false);
+              mm.setMandalaMode(false);
+              mm.setSpaceMode(false);
+              mm.state.autoMode    = false;
+              mm.state.mandalaMode = false;
+              mm.state.spaceMode   = false;
+              document.querySelectorAll('.mode-btn.active').forEach(b => b.classList.remove('active'));
+              mm.setBackgroundColor({ r: 0, g: 0, b: 0 });
+            }, 150);
+
+            console.log('[HARD RESET] ✓ toggleOFF → Mercury → FBO purge × 2 → uFadeOut=1 → toggleON. CSV preserved.');
+          }
         });
 
         console.log('Reset button ready');
@@ -4495,8 +5070,6 @@
         // カラーピッカー UI を同期
         if (colorPicker) colorPicker.value = row.color;
         if (colorAutoLabel) { colorAutoLabel.textContent = 'AUTO'; colorAutoLabel.style.color = '#4af'; }
-        // OSC: timetable row + color をTouchDesignerへ送信
-        window.oscSendTimetable?.(idx, row.color);
         console.log('[COLOR SYNC] row', idx, '→', row.color);
       }
 
@@ -4638,7 +5211,7 @@
         const cfg = VJ_PRESETS[btn.dataset.preset];
         if (!cfg) return;
 
-        const fluidPresets = ['liquid', 'mercury', 'lava', 'neon'];
+        const fluidPresets = ['liquid', 'mercury', 'lava', 'neon', 'metallic', 'smoke', 'tricolor'];
         const isFluid = fluidPresets.includes(btn.dataset.preset);
 
         if (isFluid) {
@@ -4809,6 +5382,7 @@ float fbm(vec2 p) {
 }
 
 uniform float u_elasticity;
+uniform float u_tricolor;  // 0=normal, 1=tricolor R/B/W smoke (persistence boost)
 
 void main() {
   float flowSpeed = 0.025 + (1.0 - u_viscosity) * 0.055;
@@ -4834,11 +5408,12 @@ void main() {
     texture(u_prev, clamp(prevUV + vec2( 0.0,   blurR), 0.001, 0.999)) +
     texture(u_prev, clamp(prevUV - vec2( 0.0,   blurR), 0.001, 0.999));
   vec4 prevMixed = mix(nbSum * 0.25, texture(u_prev, prevUV), 0.30 + u_viscosity * 0.60);
-  float persistence = clamp(0.78 + u_viscosity * 0.15 + u_beat * 0.015, 0.0, 0.95);
+  // tricolor preset boosts persistence to 0.98 for deep trailing smoke clouds
+  float persistence = clamp(0.78 + u_viscosity * 0.15 + u_beat * 0.015 + u_tricolor * 0.036, 0.0, 0.98);
   fragColor = mix(texture(u_src, v_uv), prevMixed, persistence);
 }`;
 
-    // ── PASS 2: DISPLAY — Metaball + exp()メニスカス + 屈折 + tint ──
+    // ── PASS 2: DISPLAY — Metal Mirror / Smoke Volumetric ──
     const FS_DISPLAY = `#version 300 es
 precision mediump float;
 in vec2 v_uv;
@@ -4851,83 +5426,222 @@ uniform vec2  u_res;
 uniform vec3  u_tint;
 uniform float u_time;
 uniform float u_elasticity;
-uniform float u_smoke;    // 0=solid liquid, 1=smoke/vapor
+uniform float u_smoke;      // 0=chrome metal, 1=ethereal smoke
+uniform float u_tricolor;      // 0=normal, 1=tricolor R/B/W (no green)
+uniform float u_bassIntensity; // boosted bass level  0-1 (pow^1.5)
+uniform float u_trebleIntensity; // boosted treble level 0-1 (pow^2.0)
+uniform float u_colorGain;    // color boost multiplier 1-4
+uniform float u_audioSync;    // 0=time-driven, 1=audio-driven
+uniform float u_whiteCore;    // 1=white center pulses with beat
+uniform float u_fadeOut;      // 1.0=normal, 0.0=total black (RESET tween)
 out vec4 fragColor;
+
+// ── Noise helpers for smoke micro-detail ──
+float _h21(vec2 p) {
+  p = fract(p * vec2(127.1, 311.7));
+  p += dot(p, p + 17.31);
+  return fract(p.x * p.y);
+}
+float _vn(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(_h21(i), _h21(i+vec2(1,0)), u.x),
+             mix(_h21(i+vec2(0,1)), _h21(i+vec2(1,1)), u.x), u.y);
+}
+float _fbm(vec2 p) {
+  float v = 0.500 * _vn(p); p *= 2.1;
+        v += 0.250 * _vn(p); p *= 2.1;
+        v += 0.125 * _vn(p); p *= 2.1;
+        v += 0.063 * _vn(p);
+  return v;
+}
 
 void main() {
   vec2 texel = 1.0 / u_res;
+  const vec3 LUM = vec3(0.2126, 0.7152, 0.0722);
+
+  // ── Density & central-difference gradient (4 samples → accurate normals) ──
   vec4 densCol = texture(u_fbo, v_uv);
-  float d = dot(densCol.rgb, vec3(0.2126, 0.7152, 0.0722));
-
-  // 前進差分グラジェント (Sobel比50%削減)
-  float e = texel.x * 2.5;
-  float dR = dot(texture(u_fbo, v_uv + vec2(e, 0.0)).rgb, vec3(0.2126,0.7152,0.0722));
-  float dU = dot(texture(u_fbo, v_uv + vec2(0.0, e)).rgb, vec3(0.2126,0.7152,0.0722));
-  vec2 grad  = vec2(dR - d, dU - d);
+  float d = dot(densCol.rgb, LUM);
+  float e = texel.x * 2.2;
+  float dL = dot(texture(u_fbo, v_uv + vec2(-e, 0.0)).rgb, LUM);
+  float dR = dot(texture(u_fbo, v_uv + vec2( e, 0.0)).rgb, LUM);
+  float dD = dot(texture(u_fbo, v_uv + vec2(0.0,-e)).rgb, LUM);
+  float dU = dot(texture(u_fbo, v_uv + vec2(0.0, e)).rgb, LUM);
+  vec2  grad    = vec2(dR - dL, dU - dD) * 0.5;
   float gradMag = length(grad);
-  vec2 gradN = grad / (gradMag + 0.0001);
+  vec2  gradN   = grad / (gradMag + 0.0001);
 
-  // ── Edge: Smoke=ソフト拡散, Solid=パキッとエッジ (branchless mix) ──
-  float threshold  = mix(0.22 + u_viscosity * 0.08, 0.10, u_smoke);
-  float edgeW_base = max(0.001, 0.030 - u_tension * 0.028);
-  float edgeW      = mix(edgeW_base, 0.22, u_smoke);
-  float edgePow    = mix(0.75, 1.9, u_smoke);
-  float mask       = pow(smoothstep(threshold - edgeW, threshold + edgeW * mix(0.15, 1.0, u_smoke), d), edgePow);
+  // ══════════════════════════════════════════════════════
+  // PATH A — METAL / CHROME  (u_smoke = 0)
+  // ══════════════════════════════════════════════════════
 
-  float sharpness = mix(35.0 + u_tension * 260.0, 4.0, u_smoke);
-  float meniscus  = exp(-abs(d - threshold) * sharpness) * clamp(gradMag * 14.0, 0.0, 1.0);
-  meniscus = clamp(meniscus * (1.0 + u_beat * 0.8) * (1.0 - u_smoke * 0.85), 0.0, 1.0);
+  // Razor-sharp liquid-metal edge
+  float mThresh  = 0.30 + u_viscosity * 0.05;
+  float mEdgeW   = max(0.0008, 0.010 - u_tension * 0.009);
+  float metalMask = pow(smoothstep(mThresh - mEdgeW, mThresh + mEdgeW, d), 0.50);
 
-  float refrStr = 0.018 * mask * (1.0 - mask * 0.6) * clamp(gradMag * 10.0, 0.0, 1.0)
-                + u_beat * 0.008 * mask;
-  vec4 refracted = texture(u_src, clamp(v_uv - gradN * refrStr * (1.0 - u_smoke), 0.001, 0.999));
+  // Pseudo-normal from density gradient
+  vec3 metalN = normalize(vec3(grad * 5.5, 1.0));
+  vec3 viewDir = vec3(0.0, 0.0, 1.0);
 
-  // ── 黒背景ベース合成 ──
-  vec4 bgBlack  = vec4(0.0, 0.0, 0.0, 1.0);
-  vec4 liquidInner = mix(bgBlack, densCol, mix(0.45, 0.30, u_smoke));
-  liquidInner  = mix(liquidInner, refracted, 0.28 * mask * (1.0 - u_smoke));
-  liquidInner.rgb = mix(liquidInner.rgb, u_tint * 0.9, 0.22 * mask);
-  liquidInner.rgb *= 1.0 + mask * mix(0.18, 0.05, u_smoke);
+  // Primary sharp highlight (key light)
+  vec3  kLight  = normalize(vec3(-0.52, 0.82, 1.0));
+  vec3  kHalf   = normalize(kLight + viewDir);
+  float spec1   = pow(max(0.0, dot(metalN, kHalf)), 140.0 + u_tension * 320.0);
+  spec1 *= metalMask * clamp(gradMag * 14.0, 0.0, 1.0) * (1.0 + u_beat * 1.0);
 
-  vec4 result = mix(bgBlack, liquidInner, mask);
-  result.rgb   = mix(result.rgb, u_tint, meniscus * (0.50 + u_tension * 0.45));
-  result.rgb  += vec3(meniscus * mask * 0.28 * (1.0 - u_smoke * 0.7));
-  result.rgb  += vec3(u_beat * 0.04 * mask);
+  // Secondary broad highlight (fill / environment)
+  vec3  fLight  = normalize(vec3(0.55, -0.38, 0.7));
+  vec3  fHalf   = normalize(fLight + viewDir);
+  float spec2   = pow(max(0.0, dot(metalN, fHalf)), 20.0 + u_tension * 50.0);
+  spec2 *= metalMask * clamp(gradMag * 7.0, 0.0, 1.0) * 0.38;
 
-  // ── Outer Glow: Smoke は大きく柔らかい ──
-  float glowDecay = mix(12.0, 3.5, u_smoke);
-  float glowCap   = mix(0.65, 0.95, u_smoke);
-  float glowStr   = mix(0.40, 0.85, u_smoke);
-  float outerGlow = exp(-max(0.0, threshold - d) * glowDecay)
-                  * (1.0 - mask)
-                  * clamp(gradMag * mix(10.0, 4.0, u_smoke), 0.0, 1.0);
-  // Smokeは距離に比例した軟体グロー
-  outerGlow = mix(outerGlow, smoothstep(0.0, threshold, d) * (1.0 - mask), u_smoke * 0.5);
-  outerGlow = clamp(outerGlow * (1.0 + u_beat * mix(1.2, 2.5, u_smoke)), 0.0, glowCap);
-  result.rgb += u_tint * outerGlow * glowStr;
+  // Fresnel rim (edge brightening)
+  float fresnel = pow(1.0 - clamp(dot(metalN, viewDir), 0.0, 1.0), 3.5);
+  fresnel *= metalMask * clamp(gradMag * 10.0, 0.0, 1.0);
 
-  // ── Specular: Smoke では無効 ──
-  vec3 fakeN    = normalize(vec3(gradN * clamp(gradMag * 3.0, 0.0, 1.0), 0.8));
-  vec3 lightDir = normalize(vec3(-0.38, 0.70, 1.0));
-  float spec    = pow(max(0.0, dot(fakeN, lightDir)), 52.0 + u_tension * 90.0);
-  spec *= mask * clamp(gradMag * 9.0, 0.0, 1.0) * (1.0 + u_beat * 0.6) * (1.0 - u_smoke * 0.95);
-  float specStr = 0.55 + u_tension * 0.42;
-  result.rgb += u_tint * spec * specStr * 0.70;
-  result.rgb += vec3(spec * 0.32 * specStr);
+  // Meniscus ring (sharp bright band at surface boundary)
+  float meniSharp = 90.0 + u_tension * 440.0;
+  float meniscus  = exp(-abs(d - mThresh) * meniSharp) * clamp(gradMag * 20.0, 0.0, 1.0);
+  meniscus = clamp(meniscus * (1.0 + u_beat * 1.4), 0.0, 1.0);
 
-  // ── Chromatic Aberration: Smoke では縮小 ──
-  float caStr = 0.004 * mask * (1.0 + u_beat * 1.5) * u_elasticity * mix(1.0, 0.2, u_smoke);
+  // Refraction (liquid distortion of underlying content)
+  float refrStr = 0.024 * metalMask * clamp(gradMag * 10.0, 0.0, 1.0) + u_beat * 0.010 * metalMask;
+  vec3 refracted = texture(u_src, clamp(v_uv - gradN * refrStr, 0.001, 0.999)).rgb;
+
+  // Metal base: near-black tinted interior + refracted
+  vec3 metalBase  = mix(vec3(0.0), u_tint * 0.12, metalMask * 0.65);
+  metalBase       = mix(metalBase, refracted * 0.28, metalMask * 0.45);
+
+  // Assemble metal color
+  vec3 metalCol  = metalBase;
+  metalCol += u_tint * meniscus * (0.65 + u_tension * 0.35);  // tinted rim
+  metalCol += vec3(meniscus * 0.40);                           // white hot ring
+  metalCol += u_tint * spec1 * (0.55 + u_tension * 0.45) * (1.0 + u_beat * 0.9);
+  metalCol += vec3(spec1 * 0.50);                              // pure white hotspot
+  metalCol += u_tint * spec2;                                  // fill
+  metalCol += u_tint * fresnel * 0.45;                         // rim
+  metalCol += vec3(u_beat * 0.06 * metalMask);                 // beat pulse
+
+  // Metal outer glow (tight chrome halo)
+  float mglow = exp(-max(0.0, mThresh - d) * 16.0) * (1.0 - metalMask)
+              * clamp(gradMag * 14.0, 0.0, 1.0);
+  mglow = clamp(mglow * (1.0 + u_beat * 1.8), 0.0, 0.75);
+  metalCol += u_tint * mglow * 0.55;
+
+  // ══════════════════════════════════════════════════════
+  // PATH B — SMOKE / ETHEREAL GAS  (u_smoke = 1)
+  // ══════════════════════════════════════════════════════
+
+  // FBM swirl noise → micro-detail in smoke
+  vec2 nUV      = v_uv * 3.8 + vec2(u_time * 0.038, u_time * 0.025);
+  float swirl   = _fbm(nUV) * 0.5 + 0.5;          // [0..1]
+  float swirl2  = _fbm(nUV * 1.7 + 4.3) * 0.5 + 0.5;
+
+  // Soft volumetric density — NO sharp smoothstep
+  float smokeDens = pow(max(0.0, d), 1.35) * (0.80 + swirl * 0.20);
+  float smokeMask = pow(clamp(smokeDens * 2.8, 0.0, 1.0), 0.75);
+
+  // Matte base: tint × density (zero specular)
+  vec3 smokeBase = u_tint * smokeDens * 1.5;
+
+  // Inner emissive scattering (volumetric glow from within)
+  float emission = pow(max(0.0, d - 0.04), 0.65) * (0.6 + swirl2 * 0.4);
+  emission = clamp(emission * (1.0 + u_beat * 2.5), 0.0, 1.0);
+  vec3 smokeCol  = smokeBase + u_tint * emission * 0.70;
+
+  // Large soft bloom / nebula halo
+  float sBloom = exp(-max(0.0, 0.14 - d) * 2.8) * (1.0 - smokeMask);
+  sBloom = mix(sBloom, smoothstep(0.0, 0.18, d) * (1.0 - smokeMask) * swirl, 0.55);
+  sBloom = clamp(sBloom * (1.0 + u_beat * 3.2), 0.0, 1.0);
+  smokeCol += u_tint * sBloom * 1.0;
+
+  // Subtle wispy detail from noise
+  smokeCol += u_tint * (swirl - 0.5) * smokeMask * 0.18;
+
+  // ══════════════════════════════════════════════════════
+  // PATH C — TRICOLOR HARSH MIX  (u_tricolor → 1)
+  // GREEN IS ZERO AT ALL TIMES. Pure additive R + B + W.
+  // ══════════════════════════════════════════════════════
+
+  // ── Audio-reactive intensities (boosted, clamped) ──
+  // Audio ON: use boosted bass/treble; OFF: sin(time) fallback
+  float tFall   = sin(u_time * 1.8) * 0.5 + 0.5;         // 0→1 oscillation
+  float bassI   = clamp(u_bassIntensity   * u_colorGain, 0.0, 1.0);
+  float trebleI = clamp(u_trebleIntensity * u_colorGain, 0.0, 1.0);
+  float bassF   = mix(1.0 - tFall, bassI,   u_audioSync); // 0=max red, fallback
+  float trebleF = mix(tFall,       trebleI, u_audioSync); // 0=max blue, fallback
+
+  // ── Pure channel separation — green explicitly 0 ──
+  vec3 redChannel  = vec3(bassF,   0.0, 0.0);   // pure RED,  G=0, B=0
+  vec3 blueChannel = vec3(0.0, 0.0, trebleF);   // pure BLUE, G=0, R=0
+  vec3 smokeRB     = redChannel + blueChannel;   // additive mix, no lerp, no green
+
+  // ── Radius-based gradient: white core, R+B edges ──
+  float dist2ctr = length(v_uv - 0.5);
+  float radGrad  = smoothstep(0.08, 0.42, dist2ctr);  // 0=center, 1=edge
+
+  // White core intensity: pulses with bass beat (kick drum reaction)
+  float whiteAmt  = clamp(0.55 + bassI * u_whiteCore * 1.6 + u_beat * 0.7, 0.0, 1.3);
+  float coreWhite = (1.0 - radGrad) * whiteAmt;
+
+  // ── Harsh blend: density × gradient-based zone separation ──
+  // Gradient from white zone (center) → R+B zone (edges)
+  float tcBlend    = smoothstep(0.10, 0.50, radGrad);
+  vec3 tricolorCol = mix(vec3(coreWhite), smokeRB, tcBlend) * smokeDens * 2.4;
+
+  // White core additive glow (independent of R/B — must stay pure white)
+  tricolorCol += vec3(coreWhite * smokeMask * 0.55);
+
+  // Inner emissive: white-hot at high density center
+  tricolorCol += vec3(emission * 0.75) * (1.0 - radGrad * 0.85);
+
+  // Outer bloom: ONLY R+B channels bleed outward — NOT white
+  // This preserves color purity: bloom stays red or blue, never grey
+  tricolorCol += smokeRB * sBloom * 1.6;
+
+  // Wispy swirl: R+B tinted detail, zero green
+  tricolorCol += smokeRB * (swirl - 0.5) * smokeMask * 0.28;
+
+  // Ensure final green channel is strictly zero in tricolor territory
+  tricolorCol.g = 0.0;
+  // Re-add white core's green (white needs all 3 channels)
+  tricolorCol.g += coreWhite * smokeMask * 0.55 + emission * 0.75 * (1.0 - radGrad * 0.85);
+  tricolorCol.g = clamp(tricolorCol.g * (1.0 - radGrad * 0.9), 0.0, 1.0); // fade to 0 at edges
+
+  // Blend normal smoke → tricolor
+  smokeCol = mix(smokeCol, tricolorCol, u_tricolor);
+
+  // ══════════════════════════════════════════════════════
+  // BLEND metal ↔ smoke
+  // ══════════════════════════════════════════════════════
+  float finalMask = mix(metalMask, smokeMask, u_smoke);
+  vec3  finalRGB  = mix(metalCol,  smokeCol,  u_smoke);
+
+  // ── Chromatic Aberration ──
+  // Metal: strong edge split along gradient; Smoke: radial from center, minimal
+  vec2  radialDir = normalize(v_uv - 0.5 + 0.0001);
+  vec2  caDir     = mix(gradN, radialDir, u_smoke);
+  float caStr = mix(
+    0.007 * metalMask * clamp(gradMag * 9.0, 0.0, 1.0) * (1.0 + u_beat * 2.2) * u_elasticity,
+    0.0015 * smokeMask * (1.0 + u_beat * 0.6),
+    u_smoke
+  );
   vec3 rgbSplit;
-  rgbSplit.r = texture(u_src, clamp(v_uv + gradN * caStr,       0.001, 0.999)).r;
-  rgbSplit.g = result.g;
-  rgbSplit.b = texture(u_src, clamp(v_uv - gradN * caStr * 0.7, 0.001, 0.999)).b;
-  result.rgb = mix(result.rgb, rgbSplit, meniscus * 0.55 + mask * 0.12);
+  rgbSplit.r = texture(u_src, clamp(v_uv + caDir * caStr,        0.001, 0.999)).r;
+  rgbSplit.g = finalRGB.g;
+  rgbSplit.b = texture(u_src, clamp(v_uv - caDir * caStr * 0.60, 0.001, 0.999)).b;
+  float caMix = mix(meniscus * 0.65 + metalMask * 0.14, smokeMask * 0.08, u_smoke);
+  finalRGB = mix(finalRGB, rgbSplit, caMix);
 
   // ── Film Grain ──
-  float grain = fract(sin(dot(v_uv * 1000.0 + fract(u_time * 0.07), vec2(127.1, 311.7))) * 43758.5453) - 0.5;
-  result.rgb += grain * mix(0.016, 0.028, u_smoke) * (1.0 - mask * 0.5);
+  float grain = fract(sin(dot(v_uv * 1000.0 + fract(u_time * 0.07),
+                               vec2(127.1, 311.7))) * 43758.5453) - 0.5;
+  finalRGB += grain * mix(0.010, 0.034, u_smoke) * (1.0 - finalMask * 0.45);
 
-  fragColor = clamp(result, 0.0, 1.0);
+  // ── Fade-out (RESET tween) ──
+  fragColor = vec4(clamp(finalRGB, 0.0, 1.0) * u_fadeOut, 1.0);
 }`;
 
     // ── GL ユーティリティ ────────────────────────────────────
@@ -4980,6 +5694,12 @@ void main() {
       if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
       }
+      // ── GPU メモリ即時ゼロ初期化 ──────────────────────────────
+      // gl.texImage2D(..., null) はGPUメモリを確保するが初期化しない。
+      // FBOがまだバインドされている今、gl.clear() で確実に黒に塗る。
+      // これで「上右隅の白いゴミデータ」アーティファクトを防止する。
+      gl.clearColor(0, 0, 0, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       return { fbo, tex };
     }
@@ -5030,6 +5750,7 @@ void main() {
       u_beat:       gl.getUniformLocation(progAdvect,  'u_beat'),
       u_res:        gl.getUniformLocation(progAdvect,  'u_res'),
       u_elasticity: gl.getUniformLocation(progAdvect,  'u_elasticity'),
+      u_tricolor:   gl.getUniformLocation(progAdvect,  'u_tricolor'),
     };
     const uDisp = {
       u_fbo:        gl.getUniformLocation(progDisplay, 'u_fbo'),
@@ -5042,6 +5763,13 @@ void main() {
       u_time:       gl.getUniformLocation(progDisplay, 'u_time'),
       u_elasticity: gl.getUniformLocation(progDisplay, 'u_elasticity'),
       u_smoke:      gl.getUniformLocation(progDisplay, 'u_smoke'),
+      u_tricolor:       gl.getUniformLocation(progDisplay, 'u_tricolor'),
+      u_bassIntensity:  gl.getUniformLocation(progDisplay, 'u_bassIntensity'),
+      u_trebleIntensity:gl.getUniformLocation(progDisplay, 'u_trebleIntensity'),
+      u_colorGain:      gl.getUniformLocation(progDisplay, 'u_colorGain'),
+      u_audioSync:      gl.getUniformLocation(progDisplay, 'u_audioSync'),
+      u_whiteCore:      gl.getUniformLocation(progDisplay, 'u_whiteCore'),
+      u_fadeOut:        gl.getUniformLocation(progDisplay, 'u_fadeOut'),
     };
 
     // ── プリセット ──────────────────────────────────────────
@@ -5050,8 +5778,9 @@ void main() {
       mercury:  { tint: [0.85, 0.93, 1.00], viscosity: 4, tension: 9,  smoke: 0 },
       lava:     { tint: [1.00, 0.24, 0.00], viscosity: 9, tension: 2,  smoke: 0 },
       neon:     { tint: [0.00, 1.00, 0.62], viscosity: 2, tension: 5,  smoke: 0 },
-      metallic: { tint: [0.75, 0.78, 0.82], viscosity: 8, tension: 10, smoke: 0 }, // クロム銀
-      smoke:    { tint: [0.62, 0.68, 0.72], viscosity: 7, tension: 0,  smoke: 1 }, // 霧状拡散
+      metallic: { tint: [0.75, 0.78, 0.82], viscosity: 8, tension: 10, smoke: 0,              tricolor: 0 },
+      smoke:    { tint: [0.62, 0.68, 0.72], viscosity: 7, tension: 0,  smoke: 1,              tricolor: 0 },
+      tricolor: { tint: [1.00, 1.00, 1.00], viscosity: 7, tension: 0,  smoke: 1, tricolor: 1            }, // R/B/W — no green
     };
     let currentTint = PRESETS.liquid.tint;
 
@@ -5069,8 +5798,16 @@ void main() {
     let _targetTen   = 0.5;
     let _lerpVisc    = 0.5;
     let _lerpTen     = 0.5;
-    let _targetSmoke = 0.0;   // 0=solid, 1=smoke
-    let _lerpSmoke   = 0.0;
+    let _targetSmoke    = 0.0;   // 0=solid, 1=smoke
+    let _lerpSmoke      = 0.0;
+    let _targetTricolor = 0.0;   // 0=normal, 1=tricolor R/B/W
+    let _lerpTricolor   = 0.0;
+    // Fade-out tween (RESET animation)
+    let _fadeOut        = 1.0;   // 1.0=normal, 0.0=full black
+    // Audio-reactive state (updated by AudioAnalyzer IIFE via globals)
+    let _bassIntensity   = 0.0;  // boosted bass   0-1
+    let _trebleIntensity = 0.0;  // boosted treble 0-1
+    let _audioSync       = 0.0;  // 0=off, 1=on
     let _prevRafTime = performance.now();
 
     // ── オーディオビート — プール済みバッファで GC ゼロ ────
@@ -5139,17 +5876,14 @@ void main() {
       _lerpTint[0] += (_targetTint[0] - _lerpTint[0]) * lerpK;
       _lerpTint[1] += (_targetTint[1] - _lerpTint[1]) * lerpK;
       _lerpTint[2] += (_targetTint[2] - _lerpTint[2]) * lerpK;
-      _lerpVisc    += (_targetVisc    - _lerpVisc)    * lerpK;
-      _lerpTen     += (_targetTen     - _lerpTen)     * lerpK;
-      _lerpSmoke   += (_targetSmoke   - _lerpSmoke)   * lerpK;
+      _lerpVisc     += (_targetVisc    - _lerpVisc)     * lerpK;
+      _lerpTen      += (_targetTen     - _lerpTen)     * lerpK;
+      _lerpSmoke    += (_targetSmoke   - _lerpSmoke)   * lerpK;
+      _lerpTricolor += (_targetTricolor - _lerpTricolor) * lerpK;
 
       const viscosity = _lerpVisc;
       const tension   = _lerpTen;
       const beat      = getBeat();
-
-      // OSC beat & smoke — ThrottleはOSC側で処理
-      window.oscSendBeat?.(_lerpSmoke > 0.05 ? beat : beat);
-      window.oscSendSmoke?.(_lerpSmoke);
 
       // ソーステクスチャ更新: サイズ変化時のみ texImage2D、通常は texSubImage2D（再確保なし）
       if (videoReady && vid.readyState >= 2) {
@@ -5177,6 +5911,7 @@ void main() {
       gl.uniform1f(uAdv.u_beat,       beat);
       gl.uniform2f(uAdv.u_res,        simW, simH);
       gl.uniform1f(uAdv.u_elasticity, getSlider('warpIntensitySlider', 3));
+      gl.uniform1f(uAdv.u_tricolor,   _lerpTricolor);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, srcTex);
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, readTex);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -5198,6 +5933,18 @@ void main() {
       gl.uniform1f(uDisp.u_time,       t);
       gl.uniform1f(uDisp.u_elasticity, getSlider('warpIntensitySlider', 3));
       gl.uniform1f(uDisp.u_smoke,      _lerpSmoke);
+      // Pull audio analysis from AudioAnalyzer IIFE (RAF-updated globals)
+      if (window._liquidBassIntensity   !== undefined) _bassIntensity   = window._liquidBassIntensity;
+      if (window._liquidTrebleIntensity !== undefined) _trebleIntensity = window._liquidTrebleIntensity;
+      if (window._liquidAudioSync       !== undefined) _audioSync       = window._liquidAudioSync;
+      const colorGain = parseFloat(document.getElementById('colorGainSlider')?.value ?? 2.0);
+      gl.uniform1f(uDisp.u_tricolor,        _lerpTricolor);
+      gl.uniform1f(uDisp.u_bassIntensity,   _bassIntensity);
+      gl.uniform1f(uDisp.u_trebleIntensity, _trebleIntensity);
+      gl.uniform1f(uDisp.u_colorGain,       colorGain);
+      gl.uniform1f(uDisp.u_audioSync,       _audioSync);
+      gl.uniform1f(uDisp.u_whiteCore,       1.0);
+      gl.uniform1f(uDisp.u_fadeOut,         _fadeOut);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texFBO[pingPong]);
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, srcTex);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -5214,6 +5961,10 @@ void main() {
       const disp = document.getElementById(id.replace('Slider','Value'));
       if (disp) disp.textContent = parseFloat(val).toFixed(1);
     }
+
+    // ── Fade-out tween (public) ──
+    window.setLiquidFadeOut = function(v) { _fadeOut = Math.max(0, Math.min(1, v)); };
+    window.getLiquidFadeOut = function()  { return _fadeOut; };
 
     // ── パブリック API ──────────────────────────────────────
     window.toggleLiquidMode = function(on) {
@@ -5248,9 +5999,10 @@ void main() {
       const p = PRESETS[name] || PRESETS.liquid;
       // Lerp ターゲットをセット — DOM イベント・スライダー変更なし → ゼロラグ
       _targetTint[0] = p.tint[0]; _targetTint[1] = p.tint[1]; _targetTint[2] = p.tint[2];
-      _targetVisc  = p.viscosity / 10.0;
-      _targetTen   = p.tension   / 10.0;
-      _targetSmoke = p.smoke || 0.0;
+      _targetVisc     = p.viscosity / 10.0;
+      _targetTen      = p.tension   / 10.0;
+      _targetSmoke    = p.smoke     || 0.0;
+      _targetTricolor = p.tricolor  || 0.0;
       // スライダーUI + カラーピッカーの見た目のみ次フレームで更新
       requestAnimationFrame(() => {
         const vs = document.getElementById('liquidViscositySlider');
@@ -5267,6 +6019,32 @@ void main() {
         }
       });
       console.log('[LIQUID] Preset→', name, p.smoke ? '(SMOKE)' : '');
+    };
+
+    // ── FBO フィードバッククリア (RESET から呼ばれる) ──────
+    // Hard FBO purge — call AFTER setFluidPreset() so targets are already Mercury
+    window.clearLiquidFBO = function() {
+      if (!gl || W === 0) return;
+      // Fill both ping-pong FBOs with pure black (eliminates all ghost/tint)
+      gl.clearColor(0, 0, 0, 1);
+      for (let i = 0; i < 2; i++) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbos[i]);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+      }
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      pingPong = 0;
+      // Snap all lerp values instantly to current targets (no gradual transition)
+      _lerpTint[0]  = _targetTint[0];
+      _lerpTint[1]  = _targetTint[1];
+      _lerpTint[2]  = _targetTint[2];
+      _lerpVisc     = _targetVisc;
+      _lerpTen      = _targetTen;
+      _lerpSmoke    = _targetSmoke;
+      _lerpTricolor = _targetTricolor;
+      // Zero audio intensities in shader state (prevents purple bleed from residual values)
+      _bassIntensity   = 0;
+      _trebleIntensity = 0;
+      _audioSync       = 0;
     };
 
     // ── カラーピッカー → リアルタイムに _targetTint を更新 ──
@@ -5290,187 +6068,6 @@ void main() {
   })();
   </script>
 
-  <!-- ═══════════════════════════════════════════════════════
-       OSC BRIDGE — MANDALA MACHINE → TouchDesigner
-       アドレスマップ:
-         /param/viscosity  [f]          — 液体粘度 0-1
-         /param/tension    [f]          — 表面張力 0-1
-         /param/warp       [f]          — ワープ強度 0-1
-         /param/audioReact [f]          — オーディオリアクティブ 0-1
-         /param/beat       [f]          — ビートパルス 0-1 (リアルタイム)
-         /param/color      [r] [g] [b]  — tint色 float 0-1
-         /param/smoke      [f]          — Smokeモード 0-1
-         /preset/name      [s]          — プリセット名 (e.g. "mercury")
-         /timetable/row    [f]          — CSVの現在行インデックス
-         /timetable/color  [r] [g] [b]  — CSV色 float 0-1
-       ═══════════════════════════════════════════════════════ -->
-  <script>
-  (function initOscBridge() {
-    // Electron IPC (nodeIntegration=true)
-    let _ipc = null;
-    try { _ipc = require('electron').ipcRenderer; } catch(e) { return; }  // Webブラウザでは無効
-
-    // ── ステータス UI ──────────────────────────────────────
-    const dot        = document.getElementById('oscDot');
-    const statusText = document.getElementById('oscStatusText');
-    const tdStatus   = document.getElementById('tdLinkStatus');
-
-    function setStatus(connected, host, port) {
-      const color = connected ? '#00ff88' : '#333';
-      const label = connected ? `ONLINE → ${host}:${port}` : 'OFFLINE';
-      if (dot)        { dot.style.background = color; }
-      if (statusText) { statusText.textContent = label; statusText.style.color = connected ? '#4af' : '#333'; }
-      if (tdStatus)   { tdStatus.style.color = connected ? '#00ff88' : '#333'; }
-    }
-
-    _ipc.on('osc-status', (e, { connected, host, port }) => setStatus(connected, host, port));
-
-    // LINK ボタン
-    document.getElementById('oscConnectBtn')?.addEventListener('click', () => {
-      const host = document.getElementById('oscHost')?.value.trim() || '127.0.0.1';
-      const port = parseInt(document.getElementById('oscPort')?.value) || 10000;
-      _ipc.send('osc-connect', host, port);
-    });
-
-    // ── スロットル付き OSC 送信 ────────────────────────────
-    const _last = {};
-    const THROTTLE = 16;  // ms (~60fps)
-    function osc(address, ...args) {
-      const now = Date.now();
-      if (now - (_last[address] || 0) < THROTTLE) return;
-      _last[address] = now;
-      _ipc.send('osc', address, ...args);
-    }
-
-    // ── スライダーバインド ─────────────────────────────────
-    const SLIDER_MAP = [
-      ['liquidViscositySlider', '/param/viscosity', 10],
-      ['elasticitySlider',      '/param/tension',   10],
-      ['warpIntensitySlider',   '/param/warp',      10],
-      ['audioReactSlider',      '/param/audioReact',10],
-    ];
-    SLIDER_MAP.forEach(([id, addr, scale]) => {
-      document.getElementById(id)?.addEventListener('input', function() {
-        osc(addr, parseFloat(this.value) / scale);
-      });
-    });
-
-    // ── カラーピッカー → /param/color ─────────────────────
-    document.getElementById('liquidColorPicker')?.addEventListener('input', function() {
-      const hex = this.value;
-      const r = parseInt(hex.slice(1,3),16)/255;
-      const g = parseInt(hex.slice(3,5),16)/255;
-      const b = parseInt(hex.slice(5,7),16)/255;
-      osc('/param/color', r, g, b);
-    });
-
-    // ── プリセットクリック → /preset/name ─────────────────
-    document.addEventListener('click', e => {
-      const btn = e.target.closest('.vj-preset-item');
-      if (btn?.dataset?.preset) {
-        _ipc.send('osc', '/preset/name', btn.dataset.preset);  // スロットルなし (一発)
-      }
-    });
-
-    // ── ビートパルス → /param/beat (RAFループ経由) ─────────
-    // window.oscSendBeat() は Liquid shader の render loop から呼ばれる
-    window.oscSendBeat = function(beat) { osc('/param/beat', beat); };
-
-    // ── CSV COLOR SYNC → /timetable/color + /timetable/row ─
-    // window.oscSendTimetable() は TIME TABLE IIFE から呼ばれる
-    window.oscSendTimetable = function(rowIdx, hex) {
-      _ipc.send('osc', '/timetable/row', rowIdx);
-      if (hex && /^#[0-9a-fA-F]{6}$/.test(hex)) {
-        const r = parseInt(hex.slice(1,3),16)/255;
-        const g = parseInt(hex.slice(3,5),16)/255;
-        const b = parseInt(hex.slice(5,7),16)/255;
-        _ipc.send('osc', '/timetable/color', r, g, b);
-      }
-    };
-
-    // ── Smoke モード → /param/smoke ──────────────────────────
-    // liquid render loop から window.oscSendSmoke(val) で呼ばれる
-    window.oscSendSmoke = function(smoke) { osc('/param/smoke', smoke); };
-
-    console.log('[OSC] Bridge initialized — bound to IPC');
-  })();
-  </script>
-
-  <!-- ═══════════════════════════════════════════════════════
-       SYPHON OUT — MJPEG stream to TouchDesigner / OBS / VLC
-       URL: http://localhost:8000/stream
-       ═══════════════════════════════════════════════════════ -->
-  <script src="http://localhost:8000/socket.io/socket.io.js"></script>
-  <script>
-  (function initSyphonOut() {
-    const btn = document.getElementById('syphonOutBtn');
-    if (!btn) return;
-
-    let _active  = false;
-    let _socket  = null;
-    let _rafId   = null;
-    let _lastT   = 0;
-    let _fpsTarget = 30;           // 送信FPS (変更可能)
-    const _interval = () => 1000 / _fpsTarget;
-
-    // 送信対象キャンバスを取得（Liquid overlay → mandala canvas の順で優先）
-    function getCanvas() {
-      const liquid = document.getElementById('liquidCanvas');
-      if (liquid && liquid.style.display !== 'none') return liquid;
-      return document.querySelector('#canvasContainer canvas');
-    }
-
-    function connectSocket() {
-      if (_socket?.connected) return;
-      _socket = io('http://localhost:8000', { transports: ['websocket'] });
-      _socket.on('connect',    () => console.log('[SYPHON] Socket connected'));
-      _socket.on('disconnect', () => console.log('[SYPHON] Socket disconnected'));
-    }
-
-    function captureLoop(now) {
-      if (!_active) return;
-      _rafId = requestAnimationFrame(captureLoop);
-      if (now - _lastT < _interval()) return;
-      _lastT = now;
-
-      const canvas = getCanvas();
-      if (!canvas || !_socket?.connected) return;
-      try {
-        // JPEG quality 0.80 — 画質とサイズのバランス
-        const jpeg = canvas.toDataURL('image/jpeg', 0.80);
-        _socket.emit('video-frame', jpeg);
-      } catch(e) { /* cross-origin等は無視 */ }
-    }
-
-    function start() {
-      if (_active) return;
-      _active = true;
-      connectSocket();
-      requestAnimationFrame(captureLoop);
-      btn.classList.add('active');
-      btn.style.opacity = '1';
-      btn.textContent = 'SYPHON●';
-      console.log('[SYPHON] OUT started — http://localhost:8000/stream');
-      console.log('[SYPHON] TouchDesigner: videoinstreamDAT → http://localhost:8000/stream');
-      console.log('[SYPHON] OBS: メディアソース → ネットワークURL → http://localhost:8000/stream');
-    }
-
-    function stop() {
-      if (!_active) return;
-      _active = false;
-      if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
-      btn.classList.remove('active');
-      btn.style.opacity = '0.7';
-      btn.textContent = 'SYPHON';
-      console.log('[SYPHON] OUT stopped');
-    }
-
-    btn.addEventListener('click', () => _active ? stop() : start());
-
-    // パブリック API (コンソールから操作可)
-    window.syphonOut = { start, stop, setFps: fps => { _fpsTarget = fps; } };
-  })();
-  </script>
 </body>
 
 </html>
