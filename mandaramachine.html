@@ -130,20 +130,20 @@
     }
 
     .panel-side {
-      background: rgba(14, 14, 14, .96) !important;
-      border-color: #2a2a2a !important
+      background: rgba(10, 10, 10, 0.95) !important;
+      border-color: #222 !important
     }
 
     #topBar {
-      background: #0a0a0a !important;
-      border-color: #2a2a2a !important
+      background: rgba(10, 10, 10, 0.95) !important;
+      border-bottom: 1px solid #222 !important
     }
 
     /* ╔══════════════════════════════════════════════════════╗
        ║  BOTTOM BAR — 48px / 3-group centered console      ║
        ╚══════════════════════════════════════════════════════╝ */
     #musicPanel {
-      background: #080808 !important;
+      background: rgba(10, 10, 10, 0.95) !important;
       border-top: 1px solid #222 !important;
       display: flex !important;
       flex-direction: row !important;
@@ -328,16 +328,22 @@
     #audioDeviceSelect { display: none !important; }
 
     .panel-header {
-      border-color: #1e1e1e !important
+      border-color: #222 !important
     }
 
     .panel-header h3,
     .menu-section h3 {
-      color: #e0e0e0 !important
+      color: #888 !important;
+      font-size: 10px !important;
+      letter-spacing: 0.2em !important;
+      text-transform: uppercase !important;
+      border-bottom: 1px solid #222 !important;
+      padding-bottom: 4px !important;
+      margin-bottom: 8px !important;
     }
 
     .menu-section {
-      border-color: #2a2a2a !important
+      border-color: #222 !important
     }
 
     /* ╔══════════════════════════════════════════════════════╗
@@ -397,6 +403,13 @@
       box-shadow: 0 0 20px rgba(255,0,0,0.8) !important;
       text-shadow: 0 0 8px rgba(255,0,0,1.0) !important;
       animation: none !important;
+    }
+
+    /* ── Performance Critical Buttons Boost ── */
+    #blackoutBtn, #tapBpmBtn, #freezeBtn, #datStrobeBtn, #topBlinkBtn {
+      padding: 0 12px !important;
+      font-size: 11px !important;
+      letter-spacing: 0.1em;
     }
 
     /* ── RESET — Vivid Red (resting state visible) ── */
@@ -460,38 +473,36 @@
     }
 
     .transition-btn,
-    .stroke-btn {
-      background: #0a0a0a !important;
-      color: #e0e0e0 !important;
-      border-color: #2a2a2a !important
-    }
-
-    .transition-btn.active {
-      background: #fff !important;
-      color: #000 !important
-    }
-
-    .vj-pro-btn {
-      border-color: #e0e0e0 !important;
-      color: #e0e0e0 !important;
-      background: transparent !important
-    }
-
-    .vj-pro-btn:hover {
-      background: #e0e0e0 !important;
-      color: #000 !important
-    }
-
+    .stroke-btn,
+    .vj-pro-btn,
     .mode-tag-btn {
-      background: #111 !important;
-      border-color: #2a2a2a !important;
-      color: #555 !important
+      background: transparent !important;
+      border-color: #222 !important;
+      color: #bbb !important;
+      font-size: 10px !important;
+      font-weight: 600 !important;
+      transition: all 0.15s;
     }
 
+    .transition-btn:hover,
+    .stroke-btn:hover,
+    .vj-pro-btn:hover,
+    .mode-tag-btn:hover {
+      background: rgba(255,255,255,0.08) !important;
+      color: #fff !important;
+      border-color: rgba(255,255,255,0.25) !important;
+    }
+
+    .transition-btn.active,
+    .stroke-btn.active,
+    .vj-pro-btn.active,
     .mode-tag-btn.active {
-      background: #fff !important;
-      color: #000 !important;
-      border-color: #fff !important
+      background: rgba(0,229,255,0.15) !important;
+      color: #ffffff !important;
+      border-color: rgba(0,229,255,1.0) !important;
+      text-shadow: 0 0 8px rgba(0,229,255,0.9) !important;
+      box-shadow: 0 0 15px rgba(0,229,255,0.7) !important;
+      animation: cyanGlowPulse 2.2s ease-in-out infinite !important;
     }
 
     .reset-btn {
@@ -1374,16 +1385,7 @@
         </div>
       </div>
 
-      <div class="panel-header">
-        <h3 data-i18n="wireframe">WIREFRAME</h3>
-      </div>
-      <div class="wireframe-controls-grid">
-        <button class="transition-btn stroke-btn active" data-wireframe="solid" id="solidModeBtn"
-          data-i18n="solid">Solid</button>
-        <button class="transition-btn stroke-btn" data-wireframe="wireframe" id="wireModeBtn"
-          data-i18n="wire">Wire</button>
-        <button class="transition-btn stroke-btn" data-wireframe="mixed" id="mixModeBtn" data-i18n="mix">Mix</button>
-      </div>
+
     </div>
 
     <!-- メインパネル (Canvas + Controls) -->
