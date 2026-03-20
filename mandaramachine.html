@@ -6181,21 +6181,31 @@ void main() {
       box-shadow: none !important;
     }
 
-    /* ── モバイル横画面対応 ── */
+    /* ── モバイル横画面: パネルを強制表示・サイズ縮小 ── */
+    @media screen and (orientation: landscape) {
+      /* エンジンのmax-width:768pxでのpanel非表示を上書き */
+      #app-root {
+        grid-template-columns: 140px 1fr 140px !important;
+      }
+      #leftPanel, #rightPanel {
+        display: flex !important;
+      }
+    }
     @media screen and (max-width: 900px) and (orientation: landscape) {
       #topBar { height: 36px !important; min-height: 36px !important; }
       #topBar .mode-btn, #topBar .top-row .mode-btn {
-        font-size: 8px !important; padding: 0 5px !important;
+        font-size: 8px !important; padding: 0 4px !important;
         height: 26px !important; min-height: 26px !important;
       }
-      #leftPanel { width: 120px !important; font-size: 9px !important; }
-      #rightPanel { width: 120px !important; font-size: 9px !important; }
+      #leftPanel, #rightPanel { width: 140px !important; font-size: 9px !important; }
+      .menu-section { padding: 8px !important; }
       .menu-section h3 { font-size: 8px !important; }
       .mode-btn, .mode-tag-btn, .symmetry-btn {
         font-size: 8px !important; height: 22px !important;
-        padding: 0 4px !important;
+        padding: 0 4px !important; min-width: 0 !important;
       }
       input[type=range] { height: 18px !important; }
+      .slider-wrapper { gap: 4px !important; }
     }
 
     /* ── 縦画面：回転促進オーバーレイ ── */
