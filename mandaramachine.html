@@ -908,9 +908,8 @@
       opacity: 0.5;
     }
 
-    /* #mainPanel のグリッドを4行に拡張（sceneBar追加のため）*/
     #mainPanel {
-      grid-template-rows: auto auto 1fr 48px !important;
+      grid-template-rows: auto 1fr !important;
     }
 
     /* ===== VJ MOTION CONTROLS ===== */
@@ -956,84 +955,6 @@
       box-shadow: 0 0 8px rgba(0,255,136,0.35), inset 0 -2px 4px rgba(0,255,136,0.1) !important;
       animation: none !important;
     }
-    /* ===== SCENE BAR ===== */
-    #sceneBar {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 5px 12px;
-      background: #0a0a0a;
-      border-bottom: 1px solid #222;
-      flex-shrink: 0;
-    }
-    .scene-bar-label {
-      font-family: var(--font-ui);
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      color: #444;
-      white-space: nowrap;
-    }
-    .scene-bar-hint {
-      font-family: var(--font-ui);
-      font-size: 9px;
-      color: #333;
-      letter-spacing: 0.08em;
-      margin-left: auto;
-      white-space: nowrap;
-    }
-    .scene-slots {
-      display: flex;
-      gap: 4px;
-    }
-    .scene-slot {
-      font-family: var(--font-ui);
-      font-size: 10px;
-      font-weight: 700;
-      width: 28px;
-      height: 22px;
-      border: 1px solid #222;
-      border-radius: 3px;
-      background: #0e0e0e;
-      color: #333;
-      cursor: pointer;
-      transition: background 0.1s, color 0.1s, border-color 0.1s, box-shadow 0.1s;
-      position: relative;
-      overflow: hidden;
-    }
-    .scene-slot:hover {
-      border-color: #444;
-      color: #888;
-    }
-    /* 保存済みスロット */
-    .scene-slot.saved {
-      border-color: #3a3a3a;
-      color: #aaa;
-      background: #141414;
-    }
-    /* アクティブ（呼び出し中）スロット */
-    .scene-slot.active {
-      border-color: #fff;
-      color: #fff;
-      background: #1e1e1e;
-      box-shadow: 0 0 6px rgba(255,255,255,0.15);
-    }
-    /* 長押し中のプログレス */
-    .scene-slot::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      height: 2px;
-      width: 0;
-      background: #fff;
-      transition: none;
-    }
-    .scene-slot.pressing::after {
-      width: 100%;
-      transition: width 0.6s linear;
-    }
-
     /* ===== BLACKOUT OVERLAY ===== */
     .blackout-overlay {
       position: absolute;
@@ -1277,28 +1198,6 @@
       box-shadow: 0 0 8px rgba(0, 229, 255, 0.35) !important;
     }
 
-    /* =====================================================
-       SCENE SLOTS — 視認性強化
-       ===================================================== */
-    .scene-slot {
-      color: #888 !important;
-      border-color: #333 !important;
-    }
-    .scene-slot:hover {
-      border-color: #666 !important;
-      color: #ccc !important;
-      background: #161616 !important;
-    }
-    .scene-slot.saved {
-      border-color: #444 !important;
-      color: #bbb !important;
-    }
-    .scene-slot.active {
-      border-color: #00e5ff !important;
-      color: #00e5ff !important;
-      background: rgba(0, 229, 255, 0.08) !important;
-      box-shadow: 0 0 8px rgba(0, 229, 255, 0.3) !important;
-    }
 
     /* =====================================================
        menu-section h3 (全パネルセクションヘッダー統一)
@@ -1691,21 +1590,6 @@
         </div>
       </div>
 
-      <!-- シーンスロット -->
-      <div id="sceneBar">
-        <span class="scene-bar-label">SCENE</span>
-        <div class="scene-slots">
-          <button class="scene-slot" data-slot="0" title="Long press to save">1</button>
-          <button class="scene-slot" data-slot="1" title="Long press to save">2</button>
-          <button class="scene-slot" data-slot="2" title="Long press to save">3</button>
-          <button class="scene-slot" data-slot="3" title="Long press to save">4</button>
-          <button class="scene-slot" data-slot="4" title="Long press to save">5</button>
-          <button class="scene-slot" data-slot="5" title="Long press to save">6</button>
-          <button class="scene-slot" data-slot="6" title="Long press to save">7</button>
-          <button class="scene-slot" data-slot="7" title="Long press to save">8</button>
-        </div>
-        <span class="scene-bar-hint">HOLD TO SAVE</span>
-      </div>
 
       <!-- キャンバス -->
       <div id="canvasWrapper">
@@ -2163,9 +2047,6 @@
       </div>
     </div>
 
-    <div class="menu-section">
-      <button class="reset-btn" id="resetScene" data-i18n="resetScene">RESET SCENE</button>
-    </div>
   </div>
 
   </div>
@@ -4488,177 +4369,6 @@
     })();
   </script>
 
-  <!-- ===== SCENE SAVE / RECALL ===== -->
-  <script>
-    (function setupSceneSlots() {
-      const STORAGE_KEY = 'vjSceneSlots_v1';
-      const HOLD_MS = 600;
-
-      const SLIDER_IDS = [
-        'size', 'speed', 'spread', 'spacing', 'baseRotation', 'objectCount',
-        'colorR', 'colorG', 'colorB', 'bgColorR', 'bgColorG', 'bgColorB',
-        'masterIntensity'
-      ];
-      const MODE_BTN_IDS = [
-        'topAiBtn', 'topMandalaBtn', 'topBlinkBtn', 'topGravityBtn',
-        'topBrainHackBtn', 'topRavenBtn', 'topQuantumBtn', 'topOrbitBtn',
-        'topSpinBtn', 'topBaryonBtn', 'topGlitchBtn', 'topNoiseBtn',
-        'topMosaicBtn', 'invertBtn', 'glowBtn'
-      ];
-      const WIRE_BTN_IDS = ['topSolidBtn', 'topWireBtn', 'topMixBtn'];
-
-      // localStorage から読み込み
-      let scenes = Array(8).fill(null);
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) scenes = JSON.parse(saved);
-      } catch(e) {}
-
-      function saveToStorage() {
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(scenes)); } catch(e) {}
-      }
-
-      // 現在の状態をキャプチャ
-      function captureScene() {
-        const state = {};
-        SLIDER_IDS.forEach(id => {
-          const el = document.getElementById(id);
-          if (el) state[id] = el.value;
-        });
-        MODE_BTN_IDS.forEach(id => {
-          const el = document.getElementById(id);
-          if (el) state[id] = el.classList.contains('active');
-        });
-        WIRE_BTN_IDS.forEach(id => {
-          const el = document.getElementById(id);
-          if (el && el.classList.contains('active')) state.wireframe = id;
-        });
-        // AUTO は別管理（AUTO中は保存しない）
-        state.autoOff = true;
-        return state;
-      }
-
-      // 状態を復元
-      function applyScene(state) {
-        // まずAUTOをOFF
-        const autoBtn = document.getElementById('topAutoBtn');
-        if (autoBtn?.classList.contains('active')) autoBtn.click();
-
-        // RESET
-        document.getElementById('topResetBtn')?.click();
-
-        setTimeout(() => {
-          // スライダー
-          SLIDER_IDS.forEach(id => {
-            if (state[id] === undefined) return;
-            const el = document.getElementById(id);
-            if (!el) return;
-            el.value = state[id];
-            el.dispatchEvent(new Event('input', { bubbles: true }));
-          });
-
-          // モードボタン（現在と差分のみクリック）
-          MODE_BTN_IDS.forEach(id => {
-            if (state[id] === undefined) return;
-            const el = document.getElementById(id);
-            if (!el) return;
-            const isNowActive = el.classList.contains('active');
-            if (state[id] !== isNowActive) el.click();
-          });
-
-          // ワイヤーフレーム
-          if (state.wireframe) {
-            document.getElementById(state.wireframe)?.click();
-          }
-        }, 150);
-      }
-
-      function apply() {
-        const slots = document.querySelectorAll('.scene-slot');
-        if (!slots.length) return setTimeout(apply, 200);
-
-        let activeSlot = -1;
-
-        // 初期表示: 保存済みスロットを反映
-        slots.forEach((btn, i) => {
-          if (scenes[i]) btn.classList.add('saved');
-        });
-
-        slots.forEach((btn, i) => {
-          let holdTimer = null;
-
-          const startHold = () => {
-            btn.classList.add('pressing');
-            holdTimer = setTimeout(() => {
-              // 長押し → 保存
-              scenes[i] = captureScene();
-              saveToStorage();
-              btn.classList.add('saved');
-              btn.classList.remove('pressing');
-              // 保存フラッシュ
-              btn.style.background = '#fff';
-              btn.style.color = '#000';
-              setTimeout(() => {
-                btn.style.background = '';
-                btn.style.color = '';
-              }, 300);
-              holdTimer = null;
-            }, HOLD_MS);
-          };
-
-          const cancelHold = (wasShortPress) => {
-            if (holdTimer) {
-              clearTimeout(holdTimer);
-              holdTimer = null;
-              btn.classList.remove('pressing');
-              // 短押し → 呼び出し
-              if (wasShortPress && scenes[i]) {
-                applyScene(scenes[i]);
-                slots.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                activeSlot = i;
-              }
-            } else {
-              btn.classList.remove('pressing');
-            }
-          };
-
-          btn.addEventListener('mousedown', () => startHold());
-          btn.addEventListener('mouseup',   () => cancelHold(true));
-          btn.addEventListener('mouseleave', () => cancelHold(false));
-          btn.addEventListener('touchstart', e => { e.preventDefault(); startHold(); }, { passive: false });
-          btn.addEventListener('touchend',   e => { e.preventDefault(); cancelHold(true); });
-        });
-
-        // キーボードショートカット: 1〜8
-        document.addEventListener('keydown', e => {
-          if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-          const n = parseInt(e.key);
-          if (n >= 1 && n <= 8) {
-            const idx = n - 1;
-            if (e.shiftKey) {
-              // Shift+数字 → 保存
-              scenes[idx] = captureScene();
-              saveToStorage();
-              slots[idx].classList.add('saved');
-              slots[idx].style.background = '#fff';
-              slots[idx].style.color = '#000';
-              setTimeout(() => { slots[idx].style.background = ''; slots[idx].style.color = ''; }, 300);
-            } else if (scenes[idx]) {
-              // 数字のみ → 呼び出し
-              applyScene(scenes[idx]);
-              slots.forEach(b => b.classList.remove('active'));
-              slots[idx].classList.add('active');
-            }
-          }
-        });
-      }
-
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', apply);
-      } else { apply(); }
-    })();
-  </script>
 
   <!-- ===== BLACKOUT & FREEZE ===== -->
   <script>
