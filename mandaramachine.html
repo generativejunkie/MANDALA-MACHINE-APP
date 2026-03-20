@@ -407,8 +407,9 @@
 
     /* ── Performance Critical Buttons Boost ── */
     #blackoutBtn, #tapBpmBtn, #freezeBtn, #datStrobeBtn, #topBlinkBtn {
-      padding: 0 12px !important;
+      padding: 0 14px !important;
       font-size: 11px !important;
+      min-height: 30px !important;
       letter-spacing: 0.1em;
     }
 
@@ -529,8 +530,12 @@
     }
 
     .symmetry-btn.active {
-      background: #fff !important;
-      color: #000 !important
+      background: rgba(0,229,255,0.15) !important;
+      color: #ffffff !important;
+      border-color: rgba(0,229,255,1.0) !important;
+      text-shadow: 0 0 8px rgba(0,229,255,0.9) !important;
+      box-shadow: 0 0 15px rgba(0,229,255,0.7) !important;
+      animation: cyanGlowPulse 2.2s ease-in-out infinite !important;
     }
 
     input[type=text],
@@ -579,7 +584,14 @@
     #leftPanel {
       transition: width .28s cubic-bezier(.4, 0, .2, 1), opacity .22s, transform .28s;
       overflow-y: auto;
-      overflow-x: hidden
+      overflow-x: hidden;
+      background: rgba(10, 10, 10, 0.95) !important;
+      border-right: 1px solid #222 !important;
+    }
+
+    #rightPanel {
+      background: rgba(10, 10, 10, 0.95) !important;
+      border-left: 1px solid #222 !important;
     }
 
     #leftPanel.collapsed {
@@ -624,11 +636,13 @@
 
     /* ===== BRAIN HACK REDESIGN ===== */
     .menu-section h3 {
-      font-size: 9px;
-      letter-spacing: 0.15em;
-      color: #444;
-      margin: 0 0 12px 0;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: #888;
+      margin: 0 0 8px 0;
       text-transform: uppercase;
+      border-bottom: 1px solid #222;
+      padding-bottom: 4px;
     }
 
     /* モードグリッド: 3x2 */
@@ -947,8 +961,8 @@
       align-items: center;
       gap: 10px;
       padding: 5px 12px;
-      background: #080808;
-      border-bottom: 1px solid #1e1e1e;
+      background: #0a0a0a;
+      border-bottom: 1px solid #222;
       flex-shrink: 0;
     }
     .scene-bar-label {
@@ -1132,19 +1146,59 @@
       box-shadow: none !important;
     }
 
-    /* ── Sub-toggle: NEG / STR ── */
-    .dj-sub-btn {
-      font-size: 8px !important;
-      padding: 2px 5px !important;
-      height: 22px !important;
-      opacity: 0.55;
-      border-style: dashed !important;
-      letter-spacing: 0.5px;
+    /* ── DJ NAME ボタンレイアウト統一 ── */
+    .dj-name-toggle-container {
+      display: grid !important;
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 4px !important;
+      margin-top: 8px !important;
     }
-    .dj-sub-btn.active {
+    .dj-name-effects {
+      display: grid !important;
+      grid-template-columns: repeat(5, 1fr) !important;
+      gap: 4px !important;
+      margin-top: 8px !important;
+    }
+    /* ON/OFF/WHT/BLK・エフェクトボタン共通サイズ */
+    .dj-name-toggle-container .mode-tag-btn,
+    .dj-name-effects .mode-tag-btn {
+      width: 100% !important;
+      height: 26px !important;
+      font-size: 9px !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.06em !important;
+      padding: 0 !important;
+      text-align: center !important;
+    }
+    /* 非アクティブ時はグローなし・ダーク表示 */
+    .dj-name-toggle-container .mode-tag-btn:not(.active),
+    .dj-name-effects .mode-tag-btn:not(.active) {
+      border-color: #2a2a2a !important;
+      box-shadow: none !important;
+      animation: none !important;
+      text-shadow: none !important;
+      color: #777 !important;
+      background: transparent !important;
+    }
+
+    /* ── Sub-toggle: NEG / STR — 通常ボタンと同サイズに統一 ── */
+    .dj-sub-btn {
+      font-size: 9px !important;
+      padding: 0 !important;
+      height: 26px !important;
       opacity: 1 !important;
       border-style: solid !important;
-      box-shadow: 0 0 8px var(--accent-color), 0 0 16px var(--accent-color) !important;
+      letter-spacing: 0.06em !important;
+      border-color: #333 !important;
+    }
+    .dj-sub-btn.active {
+      background: rgba(0,229,255,0.15) !important;
+      color: #ffffff !important;
+      border-color: rgba(0,229,255,1.0) !important;
+      border-style: solid !important;
+      text-shadow: 0 0 8px rgba(0,229,255,0.9) !important;
+      box-shadow: 0 0 15px rgba(0,229,255,0.7) !important;
+      animation: cyanGlowPulse 2.2s ease-in-out infinite !important;
     }
 
     /* INVERT Effect: Default White Canvas, INVERT = Black Canvas */
@@ -1246,12 +1300,16 @@
     }
 
     /* =====================================================
-       menu-section h3 (右パネルセクションヘッダー)
+       menu-section h3 (全パネルセクションヘッダー統一)
        ===================================================== */
     .menu-section h3 {
       color: #888 !important;
-      font-size: 9px !important;
-      letter-spacing: 0.15em !important;
+      font-size: 10px !important;
+      letter-spacing: 0.2em !important;
+      text-transform: uppercase !important;
+      border-bottom: 1px solid #222 !important;
+      padding-bottom: 4px !important;
+      margin-bottom: 8px !important;
     }
 
     /* slider-wrapper ラベル可読性向上 */
@@ -1260,6 +1318,30 @@
     }
     .slider-wrapper span {
       color: #aaa !important;
+    }
+
+    /* ===== SMARTPHONE CASUAL VIEWER MODE ===== */
+    @media (max-width: 768px), (pointer: coarse) and (max-width: 1024px) {
+      #leftPanel, #rightPanel, #musicPanel, #topBar, #leftPanelToggle {
+        display: none !important;
+      }
+      #app-root {
+        grid-template-columns: 1fr !important;
+        grid-template-rows: 1fr !important;
+        display: block !important;
+      }
+      #mainPanel {
+        width: 100vw !important;
+        height: 100vh !important;
+      }
+      #canvasWrapper {
+        width: 100vw !important;
+        height: 100vh !important;
+        cursor: pointer;
+      }
+      #mobileViewerHint {
+        display: block !important;
+      }
     }
   </style>
   <script type="module" crossorigin src="./assets/index-Dwl_9uI6.js"></script>
@@ -1303,14 +1385,15 @@
           <input type="text" id="canvasText" placeholder="Enter DJ Name..." maxlength="50" style="width: 100%; box-sizing: border-box;">
         </div>
         <!-- ── MASTER FLASH ROW: ON / OFF / WHT / BLK ── -->
-        <div class="dj-name-toggle-container" style="display:flex; gap:4px; margin-top:8px;">
+        <div class="dj-name-toggle-container">
           <button id="djNameOnBtn"     class="mode-tag-btn">ON</button>
           <button id="djNameOffBtn"    class="mode-tag-btn active">OFF</button>
           <button id="djTextWhiteBtn"  class="mode-tag-btn dj-wht-btn active" title="White Text">WHT</button>
           <button id="djTextBlackBtn"  class="mode-tag-btn dj-blk-btn"        title="Black Text">BLK</button>
         </div>
         <!-- ── EFFECTS ROW ── -->
-        <div class="dj-name-effects" style="display:flex; flex-wrap:wrap; gap:4px; margin-top:8px;">
+        <div class="dj-name-effects">
+          <button class="mode-tag-btn" data-effect="mosaic">MOS</button>
           <button class="mode-tag-btn" data-effect="warp">WRP</button>
           <button class="mode-tag-btn" data-effect="none">MIN</button>
           <button class="mode-tag-btn" data-effect="neon">FLT</button>
@@ -1449,9 +1532,7 @@
             <button id="topBaryonBtn" class="mode-btn" title="Baryon Mode">
               <span>BARYON</span>
             </button>
-            <button id="topReverseBtn" class="mode-btn" title="Reverse: Implosion Flow">
-              <span>REVERSE</span>
-            </button>
+
             <button id="topBgToggleBtn" class="mode-btn" title="Background: Black / White" style="min-width:48px;">
               <span id="topBgToggleLabel">BG●</span>
             </button>
@@ -1631,8 +1712,7 @@
         <div class="canvas-container" id="canvasContainer"></div>
         <!-- Liquid shader overlay canvas -->
         <canvas id="liquidCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:4;display:none;"></canvas>
-        <!-- Advanced overlay canvases -->
-        <canvas id="reverseCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:3;display:none;"></canvas>
+
         <div id="centerGlow" class="center-glow hidden"></div>
         <div id="p5-container"
           style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;">
@@ -2511,6 +2591,7 @@
         <feBlend in="SourceGraphic" in2="grayNoise" mode="overlay" result="blend" />
         <feComposite in="blend" in2="SourceGraphic" operator="in" />
       </filter>
+
     </defs>
   </svg>
   <script>
@@ -2762,9 +2843,6 @@
   })();
   </script>
 
-  <!-- ═══════════════════════════════════════════════════════════════
-       ADVANCED OVERLAYS: REVERSE
-       ═══════════════════════════════════════════════════════════════ -->
   <script>
   (function setupAdvancedOverlays() {
     'use strict';
@@ -2788,153 +2866,13 @@
     })();
 
     // ──────────────────────────────────────────────────────────────
-    // REVERSE MODE  (Perimeter-to-Center Implosion)
-    // ──────────────────────────────────────────────────────────────
-    const revCanvas = document.getElementById('reverseCanvas');
-    const revCtx    = revCanvas?.getContext('2d');
-    let revRaf=null, _revOn=false, revParticles=[], _revLastBass=0;
-    const REV_COLS=['#00e5ff','#ff00ff','#ffaa00','#00ff88','#ffffff','#ff4466'];
-
-    // Spawn from OUTSIDE the visible canvas boundary
-    function spawnRevPerimeter(n, speedMult=1.0){
-      if(!revCanvas) return;
-      const W=revCanvas.width||revCanvas.clientWidth;
-      const H=revCanvas.height||revCanvas.clientHeight;
-      const cx=W/2, cy=H/2;
-      // Spawn radius: just beyond the canvas diagonal
-      const outerR = Math.sqrt(cx*cx+cy*cy) * 1.25;
-      for(let i=0;i<n;i++){
-        const angle = Math.random() * Math.PI * 2;
-        const r     = outerR * (1.0 + Math.random() * 0.25);
-        const x     = cx + Math.cos(angle) * r;
-        const y     = cy + Math.sin(angle) * r;
-        // Direction: toward center with slight angular noise
-        const nx    = cx - x + (Math.random()-0.5) * 60;
-        const ny    = cy - y + (Math.random()-0.5) * 60;
-        const d     = Math.sqrt(nx*nx+ny*ny) || 1;
-        const spd   = (4.0 + Math.random() * 5.5) * speedMult;
-        revParticles.push({
-          x, y,
-          vx: nx/d*spd, vy: ny/d*spd,
-          life: 1.0,
-          decay: 0.003 + Math.random() * 0.005,
-          sz: 2.0 + Math.random() * 4.5,
-          col: REV_COLS[Math.floor(Math.random()*REV_COLS.length)],
-          trail: []
-        });
-      }
-    }
-
-    function revLoop(){
-      if(!_revOn||!revCtx) return;
-      revRaf = requestAnimationFrame(revLoop);
-
-      const W=revCanvas.clientWidth, H=revCanvas.clientHeight;
-      if(revCanvas.width!==W||revCanvas.height!==H){
-        revCanvas.width=W; revCanvas.height=H;
-      }
-
-      // Soft fade trail
-      revCtx.fillStyle='rgba(0,0,0,0.13)';
-      revCtx.fillRect(0,0,W,H);
-
-      // Continuous trickle from perimeter
-      if(Math.random()<0.5) spawnRevPerimeter(3);
-
-      // BASS rising-edge → massive wave burst
-      const bass = window._liquidBassIntensity || 0;
-      if(bass > 0.65 && _revLastBass <= 0.65){
-        spawnRevPerimeter(Math.floor(25 + bass*45), 1.0 + bass*1.5);
-      }
-      _revLastBass = bass;
-
-      const cx=W/2, cy=H/2;
-      revParticles = revParticles.filter(p=>p.life>0.01);
-
-      revCtx.save();
-      revCtx.globalCompositeOperation = 'lighter';
-
-      revParticles.forEach(p=>{
-        const dx=cx-p.x, dy=cy-p.y;
-        const dist=Math.sqrt(dx*dx+dy*dy)||1;
-
-        // Pull force: scales with distance (farther = stronger pull)
-        const pull = 0.07 + (dist / Math.max(W,H)) * 0.28;
-        p.vx += dx/dist * pull;
-        p.vy += dy/dist * pull;
-
-        // Damping: settle near center, mild drag elsewhere
-        if(dist < 80){
-          p.vx *= 0.80;
-          p.vy *= 0.80;
-        } else {
-          p.vx *= 0.978;
-          p.vy *= 0.978;
-        }
-
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life -= p.decay;
-
-        // Trail accumulation
-        p.trail.push({x:p.x, y:p.y});
-        if(p.trail.length > 30) p.trail.shift();
-
-        // Draw trail as single polyline (fast)
-        if(p.trail.length > 2){
-          revCtx.shadowBlur = 10;
-          revCtx.shadowColor = p.col;
-          revCtx.beginPath();
-          revCtx.moveTo(p.trail[0].x, p.trail[0].y);
-          for(let i=1;i<p.trail.length;i++) revCtx.lineTo(p.trail[i].x, p.trail[i].y);
-          revCtx.strokeStyle = p.col + Math.floor(p.life*150).toString(16).padStart(2,'0');
-          revCtx.lineWidth   = p.sz * 0.5;
-          revCtx.stroke();
-        }
-
-        // Particle core with glow
-        revCtx.shadowBlur  = 20;
-        revCtx.shadowColor = p.col;
-        revCtx.beginPath();
-        revCtx.arc(p.x, p.y, Math.max(0.5, p.sz*p.life), 0, Math.PI*2);
-        revCtx.fillStyle = p.col + Math.floor(p.life*220).toString(16).padStart(2,'0');
-        revCtx.fill();
-      });
-
-      revCtx.restore();
-    }
-
-    function setReverse(on){
-      _revOn = on;
-      if(!revCanvas) return;
-      revCanvas.style.display = on ? 'block' : 'none';
-      if(on){
-        revParticles = [];
-        _revLastBass = 0;
-        spawnRevPerimeter(70, 1.2); // Big-bang opening burst
-        if(!revRaf) revLoop();
-      } else {
-        if(revRaf){ cancelAnimationFrame(revRaf); revRaf=null; }
-        revParticles = [];
-        if(revCtx) revCtx.clearRect(0,0,revCanvas.width,revCanvas.height);
-      }
-    }
-
-    document.getElementById('topReverseBtn')?.addEventListener('click', function(){
-      const isNow=this.classList.contains('active');
-      setReverse(isNow);
-    });
-
-    // ──────────────────────────────────────────────────────────────
     // Public RESET API
     // ──────────────────────────────────────────────────────────────
     window.resetAdvancedOverlays = function(){
-      if(_revOn) setReverse(false);
       window._ravenZoomOff?.();
-      document.getElementById('topReverseBtn')?.classList.remove('active');
     };
 
-    console.log('[ADVANCED OVERLAYS] Ready: REVERSE');
+    console.log('[ADVANCED OVERLAYS] Ready');
   })();
   </script>
 
@@ -6455,6 +6393,83 @@ void main() {
   })();
   </script>
 
+  <!-- SMARTPHONE CASUAL VIEWER MODE JS -->
+  <div id="mobileViewerHint" style="display:none; position:fixed; bottom:30px; left:50%; transform:translateX(-50%); z-index:9999; color:rgba(255,255,255,0.7); font-family:'Space Grotesk',sans-serif; font-size:11px; pointer-events:none; letter-spacing:0.3em; text-align:center; text-shadow:0 0 10px rgba(0,0,0,0.8);">
+    TAP TO CHANGE<br><span style="color:#0af;font-size:10px;">AUTO MODE READY</span>
+  </div>
+  <style>
+    @keyframes presetFade {
+      0% { opacity: 0; transform: translate(-50%, -40%); }
+      20% { opacity: 1; transform: translate(-50%, -50%); }
+      80% { opacity: 1; transform: translate(-50%, -50%); }
+      100% { opacity: 0; transform: translate(-50%, -60%); }
+    }
+  </style>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const isMobileViewer = () => window.innerWidth <= 768 || (window.matchMedia("(pointer: coarse)").matches && window.innerWidth <= 1024);
+      
+      const initMobileViewer = () => {
+        if (!isMobileViewer()) return;
+        
+        let attempts = 0;
+        const tryEnableAuto = setInterval(() => {
+          attempts++;
+          const autoBtn = document.getElementById('topAutoBtn');
+          if (window.mandalaMachine && autoBtn) {
+            clearInterval(tryEnableAuto);
+            if (!autoBtn.classList.contains('active')) {
+              autoBtn.click(); // AUTO ON
+            }
+          }
+          if (attempts > 50) clearInterval(tryEnableAuto);
+        }, 100);
+
+        // Tap interface for mobile viewer
+        const presetBtns = Array.from(document.querySelectorAll('.vj-preset-item'));
+        const canvasWrapper = document.getElementById('canvasWrapper');
+        if (canvasWrapper && presetBtns.length > 0) {
+          canvasWrapper.addEventListener('click', (e) => {
+            if (!isMobileViewer()) return;
+            const randomPreset = presetBtns[Math.floor(Math.random() * presetBtns.length)];
+            randomPreset.click();
+            
+            // Visual feedback
+            const hint = document.createElement('div');
+            hint.innerText = randomPreset.querySelector('.swatch-label')?.innerText || 'PRESET';
+            hint.style.cssText = "position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); color:#fff; font-family:'Space Grotesk',sans-serif; font-size:24px; font-weight:700; letter-spacing:0.2em; text-shadow:0 0 20px #0af, 0 0 40px #0af; pointer-events:none; z-index:9999; animation: presetFade 1.5s forwards;";
+            canvasWrapper.appendChild(hint);
+            setTimeout(() => hint.remove(), 1500);
+          });
+        }
+      };
+
+      initMobileViewer();
+    });
+  </script>
+
+  <!-- ╔══════════════════════════════════════════════════════╗
+       ║  DJ NAME ボタン: 非アクティブ時グロー完全抑制         ║
+       ║  ※ エンジンCSS（<link>）より後に配置して確実に上書き  ║
+       ╚══════════════════════════════════════════════════════╝ -->
+  <style>
+    #leftPanel .dj-name-toggle-container .mode-tag-btn:not(.active),
+    #leftPanel .dj-name-effects .mode-tag-btn:not(.active) {
+      border: 1px solid #2a2a2a !important;
+      box-shadow: none !important;
+      animation: none !important;
+      text-shadow: none !important;
+      color: #666 !important;
+      background: transparent !important;
+      outline: none !important;
+    }
+    #leftPanel .dj-name-toggle-container .mode-tag-btn:not(.active):hover,
+    #leftPanel .dj-name-effects .mode-tag-btn:not(.active):hover {
+      border-color: #555 !important;
+      color: #ccc !important;
+      box-shadow: none !important;
+    }
+  </style>
 </body>
 
 </html>

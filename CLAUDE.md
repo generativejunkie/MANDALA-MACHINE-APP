@@ -55,7 +55,6 @@ window._liquidBassIntensity  // 読み取り専用: Bass強度 0〜1
 ```
 p5-container       z:5  ← p5スケッチ（ユーザー操作）
 liquidCanvas       z:4  ← 液体シェーダーオーバーレイ
-reverseCanvas      z:3  ← REVERSEモード専用Canvas
 canvasContainer    z:2  ← 3DマンダラエンジンのWebGLキャンバス
 blackoutOverlay    z:1  ← 暗転オーバーレイ
 ```
@@ -63,13 +62,6 @@ blackoutOverlay    z:1  ← 暗転オーバーレイ
 ---
 
 ## 実装済みカスタム機能
-
-### REVERSEモード（Implosion）
-- Canvas2D overlay（`#reverseCanvas`）
-- キャンバス外周（対角線の1.25倍）からパーティクルをスポーン
-- 距離比例の引力 + 中心80px以内でダンピング
-- BASS rising-edge（>0.65）で大量バースト
-- `globalCompositeOperation: 'lighter'`で加算合成
 
 ### PIXモード（コードレイン）
 - `mm.processingLayer.drawPixelText` をパッチして差し替え
@@ -112,7 +104,7 @@ new MutationObserver(() => { /* active クラスの変化を処理 */ })
 ## 現在のUIパネル構成
 
 ### トップバー（左→右）
-`RESET` / `AUDIO` / `REVERSE` / `RAVEN` / `AUTO` / `BPM` / 各種スライダー
+`RESET` / `AUDIO` / `RAVEN` / `AUTO` / `BPM` / 各種スライダー
 
 ### RA-CHANGパネル（テキストエフェクト）
 - Row1: `ON` `OFF` `WHT` `BLK`
