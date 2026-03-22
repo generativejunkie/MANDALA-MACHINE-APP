@@ -407,7 +407,7 @@
     }
 
     /* ── Performance Critical Buttons Boost ── */
-    #blackoutBtn, #tapBpmBtn, #freezeBtn, #datStrobeBtn, #topBlinkBtn {
+    #blackoutBtn, #tapBpmBtn, #freezeBtn, #topBlinkBtn {
       padding: 0 14px !important;
       font-size: 11px !important;
       min-height: 30px !important;
@@ -582,6 +582,10 @@
       filter: invert(1) !important
     }
 
+    #app-root:not(.left-collapsed) {
+      grid-template-columns: 300px 1fr 300px !important;
+    }
+
     #leftPanel {
       transition: width .28s cubic-bezier(.4, 0, .2, 1), opacity .22s, transform .28s;
       overflow-y: auto;
@@ -604,7 +608,7 @@
     }
 
     #app-root.left-collapsed {
-      grid-template-columns: 0 1fr 260px !important
+      grid-template-columns: 0 1fr 300px !important
     }
 
     #leftPanelToggle {
@@ -1244,6 +1248,38 @@
       }
     }
   </style>
+  <!-- V-OUT composite patch: エンジンより先に実行してipcRenderer.sendを差し替える -->
+  <script>
+  (function patchVoutCompositeEarly() {
+    try {
+      const ipc = require('electron').ipcRenderer;
+      const _orig = ipc.send.bind(ipc);
+      const comp = document.createElement('canvas');
+      const ctx = comp.getContext('2d');
+
+      ipc.send = function(channel, ...args) {
+        if (channel !== 'canvas-frame') return _orig(channel, ...args);
+        const engineDataURL = args[0];
+        const liq = document.getElementById('liquidCanvas');
+        const p5c = document.querySelector('#p5-container canvas');
+        const hasLiq = liq && liq.style.display !== 'none' && liq.width > 0;
+        const hasP5  = p5c && p5c.width > 0;
+        if (!hasLiq && !hasP5) return _orig(channel, engineDataURL);
+        const img = new Image();
+        img.onload = () => {
+          if (comp.width  !== img.width)  comp.width  = img.width;
+          if (comp.height !== img.height) comp.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          if (hasLiq) ctx.drawImage(liq, 0, 0, comp.width, comp.height);
+          if (hasP5)  ctx.drawImage(p5c, 0, 0, comp.width, comp.height);
+          _orig('canvas-frame', comp.toDataURL('image/jpeg', 0.85));
+        };
+        img.src = engineDataURL;
+      };
+      console.log('[V-OUT] Early composite patch applied');
+    } catch(e) {}
+  })();
+  </script>
   <script type="module" crossorigin src="./assets/index-Dwl_9uI6.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-_3glWkjg.css">
 </head>
@@ -1298,12 +1334,10 @@
           <button class="mode-tag-btn" data-effect="none">MIN</button>
           <button class="mode-tag-btn" data-effect="neon">FLT</button>
           <button class="mode-tag-btn" data-effect="plasma">LIQ</button>
-          <button class="mode-tag-btn" data-effect="scanline">SCN</button>
           <button class="mode-tag-btn" data-effect="hex">HEX</button>
           <button class="mode-tag-btn" data-effect="pixel">PIX</button>
           <button id="pixNegBtn"    class="mode-tag-btn dj-sub-btn">NEG</button>
           <button class="mode-tag-btn" data-effect="data">DAT</button>
-          <button id="datStrobeBtn" class="mode-tag-btn dj-sub-btn">STR</button>
         </div>
       </div>
 
@@ -1411,6 +1445,16 @@
                 </div>
                 <div class="quick-row speed-row">
                   <input type="range" id="quickBlinkSpeed" min="1" max="10" value="5" class="quick-slider">
+                </div>
+              </div>
+            </div>
+            <div class="dropdown-container">
+              <button id="objStrobeBtn" class="mode-btn" title="Object Strobe">OBJ STR</button>
+              <div id="objStrobeMenu" class="quick-settings-menu minimal">
+                <div class="quick-row speed-row">
+                  <label style="font-size:10px;letter-spacing:1px;opacity:0.7;">SPEED</label>
+                  <input type="range" id="objStrobeSpeed" min="1" max="20" value="8" class="quick-slider">
+                  <span id="objStrobeSpeedVal" style="font-size:10px;min-width:20px;">8</span>
                 </div>
               </div>
             </div>
@@ -1595,6 +1639,8 @@
       <div id="canvasWrapper">
         <div id="blackoutOverlay" class="blackout-overlay"></div>
         <div class="canvas-container" id="canvasContainer"></div>
+        <!-- OBJ STROBE overlay (mix-blend-mode:color-dodge でオブジェクトだけフラッシュ) -->
+        <div id="objStrobeOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:3;mix-blend-mode:color-dodge;background:black;display:none;will-change:background-color;"></div>
         <!-- Liquid shader overlay canvas -->
         <canvas id="liquidCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:4;display:none;"></canvas>
 
@@ -1722,6 +1768,29 @@
           <input type="color" id="liquidColorPicker" value="#4d94ff"
                  style="flex:1;height:22px;border:none;background:none;cursor:pointer;padding:0;">
           <span id="liquidColorAuto" style="width:28px;text-align:right;font-size:8px;color:#555;letter-spacing:1px;">MAN</span>
+        </div>
+        <!-- NEON / SMOKE / TRI カラーカスタマイズ -->
+        <div style="margin-top:8px;border-top:1px solid #1a1a1a;padding-top:8px;display:flex;flex-direction:column;gap:4px;">
+          <div class="slider-wrapper" style="align-items:center;">
+            <label style="font-size:9px;letter-spacing:1px;color:#555;width:64px;flex-shrink:0;">NEON</label>
+            <input type="color" id="neonColorPicker" value="#00ffbe"
+                   style="flex:1;height:22px;border:none;background:none;cursor:pointer;padding:0;">
+          </div>
+          <div class="slider-wrapper" style="align-items:center;">
+            <label style="font-size:9px;letter-spacing:1px;color:#555;width:64px;flex-shrink:0;">SMOKE</label>
+            <input type="color" id="smokeColorPicker" value="#9eadb8"
+                   style="flex:1;height:22px;border:none;background:none;cursor:pointer;padding:0;">
+          </div>
+          <div class="slider-wrapper" style="align-items:center;">
+            <label style="font-size:9px;letter-spacing:1px;color:#555;width:64px;flex-shrink:0;">TRI COL1</label>
+            <input type="color" id="tc1ColorPicker" value="#8800ff"
+                   style="flex:1;height:22px;border:none;background:none;cursor:pointer;padding:0;">
+          </div>
+          <div class="slider-wrapper" style="align-items:center;">
+            <label style="font-size:9px;letter-spacing:1px;color:#555;width:64px;flex-shrink:0;">TRI COL2</label>
+            <input type="color" id="tc2ColorPicker" value="#0000ff"
+                   style="flex:1;height:22px;border:none;background:none;cursor:pointer;padding:0;">
+          </div>
         </div>
       </div>
 
@@ -2664,6 +2733,14 @@
 
     toggleBtn.addEventListener('click', () => _active ? stop() : start());
 
+    // BG COLOR / OBJ COLOR: マウスオーバーで色変更ダイアログを開く
+    document.getElementById('bgColorPickerSync')?.addEventListener('mouseenter', function() {
+      if (!_bgAuto) this.click();
+    });
+    document.getElementById('objColorPickerSync')?.addEventListener('mouseenter', function() {
+      if (!_objAuto) this.click();
+    });
+
     // BG COLOR picker (manual)
     document.getElementById('bgColorPickerSync')?.addEventListener('input', function() {
       if (_bgAuto) return;
@@ -2885,7 +2962,12 @@
             // 3) Clear objects LAST — after all modes are deactivated to prevent re-add
             mm.clearAll();
             mm.setWireframeMode('solid');
-            mm.setDefaultObjectColor({ r: 0, g: 0, b: 0 });
+            mm.setDefaultObjectColor({ r: 255, g: 255, b: 255 });
+            // OBJ カラーピッカーも白に戻す
+            const objPicker = document.getElementById('objColorPickerSync');
+            if (objPicker) objPicker.value = '#ffffff';
+            const objPicker2 = document.getElementById('objColorPicker');
+            if (objPicker2) objPicker2.value = '#ffffff';
             mm.setSizeMultiplier(1);
             mm.setSpeedMultiplier(1);
             mm.setSpreadMultiplier(1);
@@ -4104,6 +4186,11 @@
       }
     })();
 
+    // V-OUT composite patch は <head> に配置済み（エンジンより先に実行）
+
+    // V-OUTオーバーレイ送信: preserveDrawingBufferがfalseなのでpixel読み取り不可
+    // → V-OUT overlay は electron-main.js 側のポップアップ注入のみで対応
+
     // V-OUTはコンパイル済みコード(UIController)が vOutBtn に直接ハンドラを設定済み
     // ===== VJ Controls (TAP, INVERT, GLOW) =====
     (function initVjControls() {
@@ -4583,7 +4670,7 @@
     })();
   </script>
 
-  <!-- ===== PIX NEG + DAT STROBE ===== -->
+  <!-- ===== PIX NEG ===== -->
   <script>
   (function() {
     'use strict';
@@ -4596,55 +4683,10 @@
       window.clearPixCache?.();
     });
 
-    // ── DAT STROBE: 白フラッシュ (mix-blend-mode: difference) ──
-    const strobeFlash = document.createElement('div');
-    strobeFlash.id = 'strobeFlashOverlay';
-    strobeFlash.style.cssText = [
-      'position:fixed', 'top:0', 'left:0', 'width:100vw', 'height:100vh',
-      'background:#ffffff', 'pointer-events:none', 'z-index:99997',
-      'mix-blend-mode:difference', 'opacity:0',
-      'transition:opacity 80ms ease-out'
-    ].join(';');
-    document.body.appendChild(strobeFlash);
-
-    let _datStrobeOn  = false;
-    let _strobeCooldown = false;
-    let _prevBass     = 0;
-    const STROBE_THRESH = 0.65;
-
-    document.getElementById('datStrobeBtn')?.addEventListener('click', function() {
-      _datStrobeOn = !_datStrobeOn;
-      this.classList.toggle('active', _datStrobeOn);
-    });
-
-    function triggerStrobe() {
-      strobeFlash.style.transition = 'none';
-      strobeFlash.style.opacity    = '1';
-      _strobeCooldown = true;
-      requestAnimationFrame(() => {
-        strobeFlash.style.transition = 'opacity 80ms ease-out';
-        strobeFlash.style.opacity    = '0';
-        setTimeout(() => { _strobeCooldown = false; }, 120);
-      });
-    }
-
-    // bass rising-edge detector (runs independently)
-    function strobeWatcher() {
-      requestAnimationFrame(strobeWatcher);
-      if (!_datStrobeOn || _strobeCooldown) { _prevBass = window._liquidBassIntensity || 0; return; }
-      const bass = window._liquidBassIntensity || 0;
-      if (bass > STROBE_THRESH && _prevBass <= STROBE_THRESH) triggerStrobe();
-      _prevBass = bass;
-    }
-    strobeWatcher();
-
-    // RESET で両サブトグルをOFF
+    // RESET でサブトグルをOFF
     document.getElementById('topResetBtn')?.addEventListener('click', () => {
-      _datStrobeOn = false;
       window._pixNegMode = false;
-      document.getElementById('datStrobeBtn')?.classList.remove('active');
       document.getElementById('pixNegBtn')?.classList.remove('active');
-      strobeFlash.style.opacity = '0';
       window.clearPixCache?.();
     });
   })();
@@ -5231,6 +5273,10 @@
       smoke: {
         modes: { topGravityBtn: true, topAutoBtn: true },
         params: { warp: 4,   viscosity: 7,   elasticity: 1,   audioReact: 5,   spacing: 20 }
+      },
+      tricolor: {
+        modes: { topGravityBtn: true, topAutoBtn: true },
+        params: { warp: 4,   viscosity: 7,   elasticity: 1,   audioReact: 6,   spacing: 18 }
       }
     };
 
@@ -5464,6 +5510,9 @@ uniform float u_time;
 uniform float u_elasticity;
 uniform float u_smoke;      // 0=chrome metal, 1=ethereal smoke
 uniform float u_tricolor;      // 0=normal, 1=tricolor R/B/W (no green)
+uniform vec3  u_tc1;        // tricolor bass color   (default red)
+uniform vec3  u_tc2;        // tricolor treble color (default blue)
+uniform vec3  u_tc3;        // tricolor core color   (default white)
 uniform float u_bassIntensity; // boosted bass level  0-1 (pow^1.5)
 uniform float u_trebleIntensity; // boosted treble level 0-1 (pow^2.0)
 uniform float u_colorGain;    // color boost multiplier 1-4
@@ -5609,42 +5658,39 @@ void main() {
   float bassF   = mix(1.0 - tFall, bassI,   u_audioSync); // 0=max red, fallback
   float trebleF = mix(tFall,       trebleI, u_audioSync); // 0=max blue, fallback
 
-  // ── Pure channel separation — green explicitly 0 ──
-  vec3 redChannel  = vec3(bassF,   0.0, 0.0);   // pure RED,  G=0, B=0
-  vec3 blueChannel = vec3(0.0, 0.0, trebleF);   // pure BLUE, G=0, R=0
-  vec3 smokeRB     = redChannel + blueChannel;   // additive mix, no lerp, no green
+  // ── カスタム3色: 左=tc1(紫), 右=tc2(青), 中心=tc3(白) ──
+  // 左右スプリット: v_uv.x で左右を分割（オーディオ強度も乗算）
+  float audioAmp = clamp((bassF + trebleF) * 0.6 + max(bassF, trebleF) * 0.5, 0.4, 1.0);
+  float leftW    = 1.0 - smoothstep(0.35, 0.65, v_uv.x);  // 左側の重み
+  float rightW   = smoothstep(0.35, 0.65, v_uv.x);         // 右側の重み
+  vec3 smokeRB   = (u_tc1 * leftW + u_tc2 * rightW) * audioAmp;
 
-  // ── Radius-based gradient: white core, R+B edges ──
+  // ── Radius-based gradient: core→edge ──
   float dist2ctr = length(v_uv - 0.5);
   float radGrad  = smoothstep(0.08, 0.42, dist2ctr);  // 0=center, 1=edge
 
-  // White core intensity: pulses with bass beat (kick drum reaction)
+  // Core intensity: pulses with bass beat
+  // TRICOLORモードでは中心白グローを無効化
   float whiteAmt  = clamp(0.55 + bassI * u_whiteCore * 1.6 + u_beat * 0.7, 0.0, 1.3);
-  float coreWhite = (1.0 - radGrad) * whiteAmt;
+  float coreWhite = (1.0 - radGrad) * whiteAmt * (1.0 - u_tricolor);
 
   // ── Harsh blend: density × gradient-based zone separation ──
-  // Gradient from white zone (center) → R+B zone (edges)
   float tcBlend    = smoothstep(0.10, 0.50, radGrad);
-  vec3 tricolorCol = mix(vec3(coreWhite), smokeRB, tcBlend) * smokeDens * 2.4;
+  vec3 tricolorCol = mix(u_tc3 * coreWhite, smokeRB, tcBlend) * smokeDens * 2.4;
 
-  // White core additive glow (independent of R/B — must stay pure white)
-  tricolorCol += vec3(coreWhite * smokeMask * 0.55);
+  // Core additive glow
+  tricolorCol += u_tc3 * coreWhite * smokeMask * 0.55;
 
-  // Inner emissive: white-hot at high density center
-  tricolorCol += vec3(emission * 0.75) * (1.0 - radGrad * 0.85);
+  // Inner emissive (TRICOLORでは無効)
+  tricolorCol += u_tc3 * emission * 0.75 * (1.0 - radGrad * 0.85) * (1.0 - u_tricolor);
 
-  // Outer bloom: ONLY R+B channels bleed outward — NOT white
-  // This preserves color purity: bloom stays red or blue, never grey
-  tricolorCol += smokeRB * sBloom * 1.6;
+  // Outer bloom — TRICOLORは煙の内側に限定して背景を黒に保つ
+  // sBloom は煙の外側を光らせるため、tricolorではsmokeMask比例ブルームに置き換える
+  float triSBloom = smokeMask * (0.6 + u_beat * 1.8);
+  tricolorCol += smokeRB * mix(sBloom, triSBloom, u_tricolor) * 1.6;
 
-  // Wispy swirl: R+B tinted detail, zero green
+  // Wispy swirl detail
   tricolorCol += smokeRB * (swirl - 0.5) * smokeMask * 0.28;
-
-  // Ensure final green channel is strictly zero in tricolor territory
-  tricolorCol.g = 0.0;
-  // Re-add white core's green (white needs all 3 channels)
-  tricolorCol.g += coreWhite * smokeMask * 0.55 + emission * 0.75 * (1.0 - radGrad * 0.85);
-  tricolorCol.g = clamp(tricolorCol.g * (1.0 - radGrad * 0.9), 0.0, 1.0); // fade to 0 at edges
 
   // Blend normal smoke → tricolor
   smokeCol = mix(smokeCol, tricolorCol, u_tricolor);
@@ -5806,6 +5852,9 @@ void main() {
       u_audioSync:      gl.getUniformLocation(progDisplay, 'u_audioSync'),
       u_whiteCore:      gl.getUniformLocation(progDisplay, 'u_whiteCore'),
       u_fadeOut:        gl.getUniformLocation(progDisplay, 'u_fadeOut'),
+      u_tc1:            gl.getUniformLocation(progDisplay, 'u_tc1'),
+      u_tc2:            gl.getUniformLocation(progDisplay, 'u_tc2'),
+      u_tc3:            gl.getUniformLocation(progDisplay, 'u_tc3'),
     };
 
     // ── プリセット ──────────────────────────────────────────
@@ -5838,6 +5887,10 @@ void main() {
     let _lerpSmoke      = 0.0;
     let _targetTricolor = 0.0;   // 0=normal, 1=tricolor R/B/W
     let _lerpTricolor   = 0.0;
+    // Tricolor: 縁2色（カスタム）+ 中心は白固定
+    let _tc1 = [0.533, 0.0, 1.0]; // 縁カラー1 (デフォルト: 紫 #8800ff)
+    let _tc2 = [0.0, 0.0, 1.0];  // 縁カラー2 (デフォルト: 青)
+    const _tc3 = [1.0, 1.0, 1.0];  // 中心: 白固定
     // Fade-out tween (RESET animation)
     let _fadeOut        = 1.0;   // 1.0=normal, 0.0=full black
     // Audio-reactive state (updated by AudioAnalyzer IIFE via globals)
@@ -5981,6 +6034,9 @@ void main() {
       gl.uniform1f(uDisp.u_audioSync,       _audioSync);
       gl.uniform1f(uDisp.u_whiteCore,       1.0);
       gl.uniform1f(uDisp.u_fadeOut,         _fadeOut);
+      gl.uniform3fv(uDisp.u_tc1, _tc1);
+      gl.uniform3fv(uDisp.u_tc2, _tc2);
+      gl.uniform3fv(uDisp.u_tc3, _tc3);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texFBO[pingPong]);
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, srcTex);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -6099,6 +6155,66 @@ void main() {
       _targetTint[1] = parseInt(hex.slice(3,5), 16) / 255;
       _targetTint[2] = parseInt(hex.slice(5,7), 16) / 255;
     };
+
+    // ── NEON / SMOKE / TRI カスタムカラーピッカー ──
+    let _currentPreset = 'liquid';
+    const _origPresets = {
+      neon:     [...PRESETS.neon.tint],
+      smoke:    [...PRESETS.smoke.tint],
+      tricolor: [...PRESETS.tricolor.tint],
+    };
+
+    function hexToTint(hex) {
+      return [
+        parseInt(hex.slice(1,3), 16) / 255,
+        parseInt(hex.slice(3,5), 16) / 255,
+        parseInt(hex.slice(5,7), 16) / 255,
+      ];
+    }
+
+    function applyCustomColor(presetName, hex) {
+      const t = hexToTint(hex);
+      PRESETS[presetName].tint = t;
+      // 現在そのプリセットが選択されていれば即反映
+      if (_currentPreset === presetName) {
+        _targetTint[0] = t[0]; _targetTint[1] = t[1]; _targetTint[2] = t[2];
+      }
+    }
+
+    // プリセット選択時に追跡 + TRICOLOR時は背景を黒固定
+    const _origSetFluidPreset = window.setFluidPreset;
+    window.setFluidPreset = function(name) {
+      _currentPreset = name;
+      _origSetFluidPreset?.(name);
+      if (name === 'tricolor') {
+        // 背景を黒に強制
+        window.mandalaMachine?.setBackgroundColor?.({ r: 0, g: 0, b: 0 });
+        const bgPicker = document.getElementById('bgColorPickerSync');
+        if (bgPicker) bgPicker.value = '#000000';
+      }
+    };
+
+    // マウスオーバーでカラーピッカーを開く
+    ['neonColorPicker','smokeColorPicker','tc1ColorPicker','tc2ColorPicker'].forEach(id => {
+      document.getElementById(id)?.addEventListener('mouseenter', function() { this.click(); });
+    });
+
+    document.getElementById('neonColorPicker')?.addEventListener('input', function() {
+      applyCustomColor('neon', this.value);
+    });
+    document.getElementById('smokeColorPicker')?.addEventListener('input', function() {
+      applyCustomColor('smoke', this.value);
+    });
+    // TRI 3色ピッカー → _tc1/_tc2/_tc3 直接更新
+    function pickerToRGB(hex) {
+      return [parseInt(hex.slice(1,3),16)/255, parseInt(hex.slice(3,5),16)/255, parseInt(hex.slice(5,7),16)/255];
+    }
+    document.getElementById('tc1ColorPicker')?.addEventListener('input', function() {
+      _tc1 = pickerToRGB(this.value);
+    });
+    document.getElementById('tc2ColorPicker')?.addEventListener('input', function() {
+      _tc2 = pickerToRGB(this.value);
+    });
 
     console.log('[LIQUID] Ready — HALF_FLOAT:', !!extHF, '| VAO | Resolution Scaling');
   })();
@@ -6249,6 +6365,69 @@ void main() {
       }
       document.addEventListener('click', tryLock, {once:true});
       document.addEventListener('touchstart', tryLock, {once:true});
+    })();
+  </script>
+
+  <!-- ===== OBJ STROBE ===== -->
+  <script>
+    (function() {
+      const btn      = document.getElementById('objStrobeBtn');
+      const overlay  = document.getElementById('objStrobeOverlay');
+      const menu     = document.getElementById('objStrobeMenu');
+      const slider   = document.getElementById('objStrobeSpeed');
+      const valLabel = document.getElementById('objStrobeSpeedVal');
+      if (!btn || !overlay) return;
+
+      let active  = false;
+      let rafId   = null;
+      let speed   = 8;   // Hz (フラッシュ/秒)
+      const FLASH_MS = 60; // フラッシュの持続時間 (ms)
+
+      function strobeFrame(ts) {
+        if (!active) return;
+        const period = 1000 / speed;
+        const phase  = ts % period;
+        if (phase < FLASH_MS) {
+          // 正弦波で滑らかに明滅
+          const b = Math.round(Math.sin((phase / FLASH_MS) * Math.PI) * 200);
+          overlay.style.background = `rgb(${b},${b},${b})`;
+        } else {
+          overlay.style.background = 'black';
+        }
+        rafId = requestAnimationFrame(strobeFrame);
+      }
+
+      function start() {
+        active = true;
+        btn.classList.add('active');
+        overlay.style.display = 'block';
+        rafId = requestAnimationFrame(strobeFrame);
+      }
+
+      function stop() {
+        active = false;
+        btn.classList.remove('active');
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+        overlay.style.display = 'none';
+        overlay.style.background = 'black';
+      }
+
+      btn.addEventListener('click', () => active ? stop() : start());
+
+      // ドロップダウン表示
+      btn.addEventListener('mouseenter', () => { menu.style.display = 'block'; });
+      menu.addEventListener('mouseleave', () => { menu.style.display = 'none'; });
+
+      slider.addEventListener('input', () => {
+        speed = parseInt(slider.value);
+        valLabel.textContent = speed;
+      });
+
+      // RESETで停止
+      document.getElementById('topResetBtn')?.addEventListener('click', stop, { capture: true });
+
+      // グローバルに公開 (AUTOモードなどから利用可能)
+      window._objStrobe = { start, stop, setSpeed: (v) => { speed = v; slider.value = v; valLabel.textContent = v; } };
     })();
   </script>
 </body>

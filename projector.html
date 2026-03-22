@@ -6,7 +6,16 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
-    #projCanvas { display: block; width: 100vw; height: 100vh; object-fit: contain; }
+    #projCanvas {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+    #overlayCanvas {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      mix-blend-mode: screen;
+      pointer-events: none;
+    }
     #statusOverlay {
       position: fixed; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
@@ -18,27 +27,47 @@
 </head>
 <body>
   <canvas id="projCanvas"></canvas>
+  <canvas id="overlayCanvas"></canvas>
   <div id="statusOverlay">WAITING FOR SIGNAL...</div>
   <script>
     const { ipcRenderer } = require('electron');
-    const canvas = document.getElementById('projCanvas');
-    const ctx = canvas.getContext('2d');
-    const overlay = document.getElementById('statusOverlay');
-    function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    const canvas  = document.getElementById('projCanvas');
+    const ctx     = canvas.getContext('2d');
+    const overlay = document.getElementById('overlayCanvas');
+    const octx    = overlay.getContext('2d');
+    const status  = document.getElementById('statusOverlay');
+
+    function resizeCanvases() {
+      canvas.width  = overlay.width  = window.innerWidth;
+      canvas.height = overlay.height = window.innerHeight;
+    }
+    resizeCanvases();
+    window.addEventListener('resize', resizeCanvases);
+
+    // 3D マンダラエンジンのベースフレーム
     ipcRenderer.on('canvas-frame', (event, dataURL) => {
-      overlay.style.display = 'none';
+      status.style.display = 'none';
       const img = new Image();
       img.onload = () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
-        const x = (canvas.width - img.width * scale) / 2;
+        const x = (canvas.width  - img.width  * scale) / 2;
         const y = (canvas.height - img.height * scale) / 2;
         ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
       };
       img.src = dataURL;
     });
+
+    // LIQ + p5 オーバーレイ (mix-blend-mode: screen で合成)
+    ipcRenderer.on('overlay-frame', (event, dataURL) => {
+      const img = new Image();
+      img.onload = () => {
+        octx.clearRect(0, 0, overlay.width, overlay.height);
+        octx.drawImage(img, 0, 0, overlay.width, overlay.height);
+      };
+      img.src = dataURL;
+    });
+
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') ipcRenderer.send('projector-fullscreen', false);
       if (e.key === 'f' || e.key === 'F') ipcRenderer.send('projector-fullscreen', true);

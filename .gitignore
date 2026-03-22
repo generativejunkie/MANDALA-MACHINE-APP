@@ -40,3 +40,4 @@ papers/.venv/
 lighthouse_results.json
 gesture_command.txt
 *.pdf
+.vercel
