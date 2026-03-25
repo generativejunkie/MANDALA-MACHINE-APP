@@ -1767,6 +1767,51 @@
         <div id="radarContainer" class="radar-container"></div>
       </div>
 
+      <!-- MANDARA ENGINE -->
+      <div class="menu-section" id="mandaraEngineSection">
+        <h3 style="display:flex;align-items:center;justify-content:space-between;">
+          MANDARA ENGINE
+          <button id="rightMandalaBtn" class="sub-toggle-btn">OFF</button>
+        </h3>
+        <div class="slider-wrapper" style="margin-bottom:6px;">
+          <label style="font-size:9px;color:#555;width:64px;flex-shrink:0;">SIZE</label>
+          <input type="range" id="size" min="0.5" max="2" step="0.1" value="1" style="flex:1;">
+          <span id="sizeValue" style="width:32px;text-align:right;font-size:10px;">1.0×</span>
+        </div>
+        <div class="slider-wrapper" style="margin-bottom:6px;">
+          <label style="font-size:9px;color:#555;width:64px;flex-shrink:0;">SPEED</label>
+          <input type="range" id="speed" min="-3" max="3" step="0.1" value="1" style="flex:1;">
+          <span id="speedValue" style="width:32px;text-align:right;font-size:10px;">1.0×</span>
+        </div>
+        <div class="slider-wrapper" style="margin-bottom:6px;">
+          <label style="font-size:9px;color:#555;width:64px;flex-shrink:0;">SCALE</label>
+          <input type="range" id="spread" min="0.5" max="3" step="0.1" value="1" style="flex:1;">
+          <span id="spreadValue" style="width:32px;text-align:right;font-size:10px;">1.0×</span>
+        </div>
+        <div class="slider-wrapper" style="margin-bottom:6px;">
+          <label style="font-size:9px;color:#555;width:64px;flex-shrink:0;">DISTANCE</label>
+          <input type="range" id="spacing" min="0.1" max="30" step="0.1" value="8" style="flex:1;">
+          <span id="spacingValue" style="width:32px;text-align:right;font-size:10px;">8.0</span>
+        </div>
+        <div class="slider-wrapper">
+          <label style="font-size:9px;color:#555;width:64px;flex-shrink:0;">ROTATION</label>
+          <input type="range" id="baseRotation" min="0" max="360" step="1" value="0" style="flex:1;">
+          <span id="baseRotationValue" style="width:32px;text-align:right;font-size:10px;">0°</span>
+        </div>
+        <div style="display:flex;gap:4px;margin-top:10px;border-top:1px solid #1a1a1a;padding-top:8px;">
+          <button class="sym-btn active" data-val="4">4</button>
+          <button class="sym-btn" data-val="6">6</button>
+          <button class="sym-btn" data-val="8">8</button>
+          <button class="sym-btn" data-val="12">12</button>
+          <button class="sym-btn" data-val="16">16</button>
+        </div>
+        <div style="margin-top:6px;display:flex;align-items:center;">
+          <label class="checkbox-label" style="font-size:9px;color:#555;">
+            <input type="checkbox" id="rightReflectMode"> REFLECT
+          </label>
+        </div>
+      </div>
+
       <!-- MOTION MODE -->
       <div class="menu-section" id="motionModeSection">
         <h3>MOTION MODE</h3>
@@ -1816,25 +1861,6 @@
         </div>
       </div>
 
-      <!-- MANDALA mode container -->
-      <div class="menu-section" id="mandalaSection">
-        <h3 style="display:flex;align-items:center;justify-content:space-between;">
-          MANDALA
-          <button id="rightMandalaBtn" class="sub-toggle-btn">OFF</button>
-        </h3>
-        <div style="display:flex;gap:4px;margin-top:8px;">
-          <button class="sym-btn active" data-val="4">4</button>
-          <button class="sym-btn" data-val="6">6</button>
-          <button class="sym-btn" data-val="8">8</button>
-          <button class="sym-btn" data-val="12">12</button>
-          <button class="sym-btn" data-val="16">16</button>
-        </div>
-        <div style="margin-top:6px;display:flex;align-items:center;gap:10px;">
-          <label class="checkbox-label" style="font-size:9px;color:#555;">
-            <input type="checkbox" id="rightReflectMode"> REFLECT
-          </label>
-        </div>
-      </div>
 
       <!-- FLASH / STROBE container -->
       <div class="menu-section" id="flashStrobeSection">
@@ -1956,14 +1982,6 @@
         </div>
       </div>
 
-      <div class="menu-section">
-        <h3 data-i18n="size">SIZE</h3>
-        <div class="slider-wrapper">
-          <input type="range" id="size" min="0.5" max="2" step="0.1" value="1">
-          <span id="sizeValue">1.0×</span>
-        </div>
-      </div>
-
       <!-- SPACE コントロール（SPACE モードアクティブ時に表示） -->
       <div class="menu-section" id="rightSpaceSection" style="display:none;">
         <h3>SPACE</h3>
@@ -1981,38 +1999,6 @@
           <label style="font-size:9px;letter-spacing:1px;color:#555;width:80px;flex-shrink:0;">STARS</label>
           <input type="range" id="rightStarsSlider" min="100" max="3000" step="100" value="3000" style="flex:1;">
           <span id="rightStarsValue" style="width:28px;text-align:right;">3000</span>
-        </div>
-      </div>
-
-      <div class="menu-section">
-        <h3 data-i18n="speed">SPEED</h3>
-        <div class="slider-wrapper">
-          <input type="range" id="speed" min="-3" max="3" step="0.1" value="1">
-          <span id="speedValue">1.0×</span>
-        </div>
-      </div>
-
-      <div class="menu-section">
-        <h3 data-i18n="scale">SCALE</h3>
-        <div class="slider-wrapper">
-          <input type="range" id="spread" min="0.5" max="3" step="0.1" value="1">
-          <span id="spreadValue">1.0×</span>
-        </div>
-      </div>
-
-      <div class="menu-section">
-        <h3 data-i18n="distance">DISTANCE</h3>
-        <div class="slider-wrapper">
-          <input type="range" id="spacing" min="0.1" max="30" step="0.1" value="8">
-          <span id="spacingValue">8.0</span>
-        </div>
-      </div>
-
-      <div class="menu-section">
-        <h3 data-i18n="rotation">ROTATION</h3>
-        <div class="slider-wrapper">
-          <input type="range" id="baseRotation" min="0" max="360" step="1" value="0">
-          <span id="baseRotationValue">0°</span>
         </div>
       </div>
 
@@ -7077,8 +7063,8 @@ void main() {
         color:#00e5ff;
       }
       #autoDjSection h3, #rightSpaceSection h3,
-      #mandalaSection h3, #flashStrobeSection h3,
-      #motionModeSection h3 {
+      #flashStrobeSection h3, #motionModeSection h3,
+      #mandaraEngineSection h3 {
         font-size:10px;letter-spacing:0.2em;color:#666;
         border-bottom:1px solid #222;padding-bottom:4px;margin-bottom:8px;
       }
@@ -7232,6 +7218,111 @@ void main() {
           if (window._objStrobe) window._objStrobe.setSpeed(Math.min(20, Math.round(rate / 3)));
         }));
       }
+    });
+  })();
+  </script>
+
+  <!-- ===== RADAR GUARD OVERLAY ===== -->
+  <script>
+  (function initRadarGuard() {
+    // 5軸スライダー定義（SIZE/SPEED/SCALE/DIST/ROT = 上頂点から時計回り）
+    var AXES = [
+      { id: 'size',         min: 0.5,  max: 2   },
+      { id: 'speed',        min: -3,   max: 3   },
+      { id: 'spread',       min: 0.5,  max: 3   },
+      { id: 'spacing',      min: 0.1,  max: 30  },
+      { id: 'baseRotation', min: 0,    max: 360 },
+    ];
+
+    function waitForRadar(cb) {
+      var t = setInterval(function() {
+        var rc = document.getElementById('radarContainer');
+        var cv = rc && rc.querySelector('canvas');
+        if (cv && cv.width > 0) { clearInterval(t); cb(rc, cv); }
+      }, 300);
+    }
+
+    waitForRadar(function(container, engineCanvas) {
+      var overlay = document.createElement('canvas');
+      overlay.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:10;';
+      container.style.position = 'relative';
+      container.appendChild(overlay);
+
+      function getNorm(axis) {
+        var el = document.getElementById(axis.id);
+        if (!el) return 0;
+        return Math.min(1, (parseFloat(el.value) - axis.min) / (axis.max - axis.min));
+      }
+
+      var frame = 0;
+      function draw() {
+        var W = engineCanvas.width;
+        var H = engineCanvas.height;
+        if (!W || !H) { requestAnimationFrame(draw); return; }
+        overlay.width  = W;
+        overlay.height = H;
+        var ctx = overlay.getContext('2d');
+        ctx.clearRect(0, 0, W, H);
+
+        var cx = W * 0.5;
+        var cy = H * 0.5;
+        var R  = Math.min(W, H) * 0.43;
+
+        // 頂点角度（SIZE=上、時計回り）
+        var ang = [];
+        for (var i = 0; i < 5; i++) ang.push(-Math.PI / 2 + (2 * Math.PI / 5) * i);
+
+        // ── 五角形の外側をマスク ──────────────────────────────────
+        ctx.save();
+        ctx.fillStyle = 'rgba(10,10,10,0.93)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.beginPath();
+        for (var i = 0; i < 5; i++) {
+          var vx = cx + R * Math.cos(ang[i]);
+          var vy = cy + R * Math.sin(ang[i]);
+          i === 0 ? ctx.moveTo(vx, vy) : ctx.lineTo(vx, vy);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+        // ── オーバーフロー検出 → 頂点に丸を描画して点滅 ───────────
+        frame++;
+        // 約8フレームに1回トグル（~60fps想定で0.13秒周期）
+        var blinkOn = (Math.floor(frame / 8) % 2 === 0);
+
+        for (var i = 0; i < 5; i++) {
+          var norm = getNorm(AXES[i]);
+          if (norm < 0.97) continue; // 正常範囲は何もしない
+
+          var vx = cx + R * Math.cos(ang[i]);
+          var vy = cy + R * Math.sin(ang[i]);
+
+          // 常時: エンジンの青丸をマスクが隠してしまうので頂点に丸を再描画
+          ctx.beginPath();
+          ctx.arc(vx, vy, 5, 0, Math.PI * 2);
+          ctx.fillStyle = '#4da6ff';
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          // 点滅: オレンジのグローリング
+          if (blinkOn) {
+            ctx.beginPath();
+            ctx.arc(vx, vy, 10, 0, Math.PI * 2);
+            ctx.strokeStyle = '#ff6600';
+            ctx.lineWidth   = 2;
+            ctx.globalAlpha = 0.85;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+          }
+        }
+
+        requestAnimationFrame(draw);
+      }
+      draw();
     });
   })();
   </script>
