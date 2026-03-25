@@ -1336,7 +1336,6 @@
           <button class="mode-tag-btn" data-effect="plasma">LIQ</button>
           <button class="mode-tag-btn" data-effect="hex">HEX</button>
           <button class="mode-tag-btn" data-effect="pixel">PIX</button>
-          <button id="pixNegBtn"    class="mode-tag-btn dj-sub-btn">NEG</button>
           <button class="mode-tag-btn" data-effect="data">DAT</button>
         </div>
       </div>
@@ -1421,9 +1420,9 @@
               <span data-i18n="space">SPACE</span>
             </button>
             <div class="top-row-divider"></div>
-            <button id="topMandalaBtn" class="mode-btn" title="Mandala Mode" aria-label="曼荼羅モードを切り替え"
-              aria-pressed="false" role="switch" data-i18n-title="mandala">
-              <span data-i18n="mandala">MANDALA</span>
+            <button id="topMandalaBtn" class="mode-btn" title="Mandara Mode" aria-label="曼荼羅モードを切り替え"
+              aria-pressed="false" role="switch">
+              <span>MANDARA</span>
             </button>
             <div class="top-row-divider"></div>
             <div class="dropdown-container">
@@ -1461,16 +1460,13 @@
             <button id="topGravityBtn" class="mode-btn" title="Zero Gravity" data-i18n-title="zeroGravity">
               <span data-i18n="gravity">ZERO GRAVITY</span>
             </button>
-            <button id="topRavenBtn" class="mode-btn" title="Raven Mode" data-i18n-title="raven">
-              <span data-i18n="raven">RAVEN</span>
-            </button>
             <button id="topQuantumBtn" class="mode-btn" title="Quantum Mode" data-i18n-title="quantum">
               <span data-i18n="quantum">QUANTUM</span>
             </button>
             <button id="topOrbitBtn" class="mode-btn" title="360° Orbit">
               <span>ORBIT</span>
             </button>
-            <button id="topSpinBtn" class="mode-btn" title="Spin Mandala">
+            <button id="topSpinBtn" class="mode-btn" title="Spin Mandara">
               <span>SPIN</span>
             </button>
             <button id="topBaryonBtn" class="mode-btn" title="Baryon Mode">
@@ -1542,6 +1538,33 @@
               </div>
             </div>
 
+            <!-- SINGULARITY / BLACKHOLE (modesから移動) -->
+            <div class="top-row-divider"></div>
+            <div class="dropdown-container">
+              <button id="topSingularityBtn" class="mode-btn" title="Singularity Mode">
+                <span>SINGULARITY</span>
+              </button>
+              <div id="singularityMenu" class="quick-settings-menu minimal">
+                <div class="quick-row speed-row">
+                  <label style="font-size:10px;opacity:0.7;letter-spacing:1px;">PULL</label>
+                  <input type="range" id="sngPullSlider" min="1" max="20" value="5" class="quick-slider">
+                  <span id="sngPullVal" style="font-size:10px;min-width:18px;">5</span>
+                </div>
+              </div>
+            </div>
+            <div class="dropdown-container">
+              <button id="blackholeCoreBtn" class="mode-btn" title="Blackhole Mode">
+                <span>BLACKHOLE</span>
+              </button>
+              <div id="blackholeMenu" class="quick-settings-menu minimal">
+                <div class="quick-row speed-row">
+                  <label style="font-size:10px;opacity:0.7;letter-spacing:1px;">PULL</label>
+                  <input type="range" id="bhPullSlider" min="1" max="20" value="5" class="quick-slider">
+                  <span id="bhPullVal" style="font-size:10px;min-width:18px;">5</span>
+                </div>
+              </div>
+            </div>
+
             <!-- MOTION MODE -->
             <button class="mode-btn vj-motion-btn" data-motion="kinetic" title="Kinetic Motion">KINETIC</button>
             <button class="mode-btn vj-motion-btn" data-motion="organic" title="Organic Motion">ORGANIC</button>
@@ -1585,8 +1608,8 @@
             <input type="range" id="autoSpeedSeekbar" min="-4" max="8" step="1" value="0">
           </div>
           <div class="seekbar-item" id="antigravitySeekbar">
-            <label>Float Speed: <span id="gravitySpeedValue">0.1</span></label>
-            <input type="range" id="gravitySpeedSeekbar" min="0.1" max="3" step="0.1" value="0.1">
+            <label>Float Speed: <span id="gravitySpeedValue">2.0</span></label>
+            <input type="range" id="gravitySpeedSeekbar" min="0.1" max="10" step="0.1" value="2.0">
           </div>
           <div class="seekbar-item" id="spaceCountSeekbar" style="display: none;">
             <label>Stars: <span id="spaceCountValue">3000</span></label>
@@ -1726,6 +1749,8 @@
           <button id="freezeBtn"  class="mode-btn" title="Freeze canvas [F]">FREEZE</button>
           <div class="mp-sep"></div>
           <button id="vOutBtn" class="v-out-btn" title="Projector Output">V-OUT</button>
+          <div class="mp-sep"></div>
+          <button id="recBtn" class="v-out-btn" title="Record Audio + Video">REC</button>
         </div>
 
       </div>
@@ -1906,7 +1931,7 @@
       </div>
 
       <div class="menu-section">
-        <h3 data-i18n="mandala">MANDALA</h3>
+        <h3>MANDARA</h3>
         <label class="checkbox-label">
           <input type="checkbox" id="mandalaMode">
           <span data-i18n="active">Enable</span>
@@ -2002,6 +2027,22 @@
             <input type="color" id="brainColorC" value="#110033" class="bh-swatch">
             <span class="bh-swatch-label">C</span>
           </div>
+        </div>
+      </div>
+
+      <!-- BLACKHOLE コントロール -->
+      <div class="menu-section" id="rightBlackholeSection">
+        <h3 style="display:flex;align-items:center;justify-content:space-between;">
+          BLACKHOLE
+          <button id="bhRightToggle"
+                  style="font-size:8px;letter-spacing:1px;padding:2px 8px;background:#1a1a1a;border:1px solid #333;color:#555;cursor:pointer;border-radius:2px;transition:all 0.2s;">
+            OFF
+          </button>
+        </h3>
+        <div class="slider-wrapper" style="margin-bottom:6px;">
+          <label style="font-size:9px;letter-spacing:1px;color:#555;width:48px;flex-shrink:0;">PULL</label>
+          <input type="range" id="bhRightPullSlider" min="1" max="20" value="5" style="flex:1;">
+          <span id="bhRightPullVal" style="width:28px;text-align:right;font-size:10px;">5</span>
         </div>
       </div>
     </div>
@@ -3636,6 +3677,9 @@
           if (lbl) lbl.textContent = isBlack ? 'BG●' : 'BG○';
           const btn = document.getElementById('topBgToggleBtn');
           if (btn) btn.classList.toggle('active', !isBlack);
+          // objColorPickerの値も同期（白背景→黒, 黒背景→白）
+          const picker = document.getElementById('objColorPicker');
+          if (picker) picker.value = isBlack ? '#ffffff' : '#000000';
         }
 
         // resetBackgroundIfManual を上書きして黒をデフォルトに
@@ -4607,7 +4651,7 @@
           const [cr, cg, cb] = window._djTextColor || [255, 255, 255];
 
           t.noStroke();
-          t.textStyle(t.BOLD);
+          t.textStyle(t.NORMAL);
           t.textSize(10);
           t.textAlign(t.CENTER, t.CENTER);
 
@@ -4692,6 +4736,57 @@
   })();
   </script>
 
+  <!-- ===== STARTUP TITLE ===== -->
+  <script>
+  (function() {
+    const TEXT = 'MANDARA MACHINE';
+    const CHAR_DELAY = 90;   // 1文字あたりの遅延 (ms)
+    const HOLD_TIME  = 900;  // 全文字表示後の保持時間 (ms)
+    const FADE_TIME  = 800;  // フェードアウト時間 (ms)
+
+    // オーバーレイ
+    const overlay = document.createElement('div');
+    overlay.style.cssText =
+      'position:fixed;top:0;left:0;width:100%;height:100%;' +
+      'display:flex;align-items:center;justify-content:center;' +
+      'pointer-events:none;z-index:9000;' +
+      'transition:opacity ' + FADE_TIME + 'ms ease;';
+
+    // テキストコンテナ
+    const container = document.createElement('div');
+    container.style.cssText =
+      'font-family:"Helvetica Neue","Helvetica","Arial",sans-serif;' +
+      'font-size:clamp(16px,2.4vw,32px);font-weight:200;' +
+      'letter-spacing:0.55em;color:#ffffff;' +
+      'text-shadow:0 0 12px rgba(255,255,255,0.25);' +
+      'white-space:nowrap;display:flex;gap:0;';
+
+    // 各文字をspan要素として追加（最初は透明）
+    TEXT.split('').forEach(ch => {
+      const span = document.createElement('span');
+      span.textContent = ch === ' ' ? '\u00A0' : ch;
+      span.style.cssText = 'opacity:0;transition:opacity 80ms ease;display:inline-block;';
+      container.appendChild(span);
+    });
+
+    overlay.appendChild(container);
+    document.body.appendChild(overlay);
+
+    // 1文字ずつ表示
+    const spans = container.querySelectorAll('span');
+    spans.forEach((span, i) => {
+      setTimeout(() => { span.style.opacity = '1'; }, i * CHAR_DELAY);
+    });
+
+    // 全文字表示後にフェードアウト
+    const totalDelay = (TEXT.length - 1) * CHAR_DELAY + HOLD_TIME;
+    setTimeout(() => {
+      overlay.style.opacity = '0';
+      setTimeout(() => overlay.remove(), FADE_TIME);
+    }, totalDelay);
+  })();
+  </script>
+
   <!-- ===== STARTUP FLASH ===== -->
   <script>
     (function() {
@@ -4727,6 +4822,11 @@
           clearInterval(timer);
           // 少し待ってから点滅（レンダリング安定後）
           setTimeout(runFlash, 300);
+          // ZERO GRAVITY Float Speed のデフォルト値をエンジンへ通知
+          setTimeout(() => {
+            const sl = document.getElementById('gravitySpeedSeekbar');
+            if (sl) sl.dispatchEvent(new Event('input', { bubbles: true }));
+          }, 800);
         }
       }, 100);
     })();
@@ -6366,6 +6466,378 @@ void main() {
       document.addEventListener('click', tryLock, {once:true});
       document.addEventListener('touchstart', tryLock, {once:true});
     })();
+  </script>
+
+  <!-- ===== SINGULARITY / BLACKHOLE ===== -->
+  <script>
+    (function setupSingularityAndBlackhole() {
+
+      function getMM() { return window.mandalaMachine; }
+
+      /* ════════════════════════════════════════
+         SINGULARITY — setSizeMultiplier で確実に動作
+         徐々に縮小 → Bass burst で爆発拡大 → 繰り返し
+      ════════════════════════════════════════ */
+      const sngTopBtn = document.getElementById('topSingularityBtn');
+      const sngSubBtn = document.getElementById('pixSngBtn');
+      const sngSlider = document.getElementById('sngPullSlider');
+      const sngValLbl = document.getElementById('sngPullVal');
+
+      let sngActive = false, sngRaf = null, sngLastBass = 0;
+      let sngPullMult = 1.0;
+      let sngSize = 1.0;       // 現在のサイズ倍率
+      let sngPhase = 'pull';   // 'pull' | 'hold' | 'burst'
+      let sngHoldStart = 0;
+
+      sngSlider?.addEventListener('input', () => {
+        sngPullMult = sngSlider.value / 5;
+        if (sngValLbl) sngValLbl.textContent = sngSlider.value;
+      });
+
+      function sngLoop() {
+        if (!sngActive) return;
+        const mm = getMM();
+        if (!mm) { sngRaf = requestAnimationFrame(sngLoop); return; }
+
+        const bass = window._liquidBassIntensity || 0;
+        const isBurst = (bass > 0.68 && sngLastBass <= 0.68);
+        sngLastBass = bass;
+
+        if (sngPhase === 'pull') {
+          // 徐々に縮小（引力効果）
+          const shrink = 0.002 * sngPullMult;
+          sngSize = Math.max(0.08, sngSize - shrink);
+          mm.setSizeMultiplier?.(sngSize);
+
+          // 最小まで縮んだら保持フェーズへ
+          if (sngSize <= 0.08) {
+            sngPhase = 'hold';
+            sngHoldStart = Date.now();
+          }
+          // Bassで即爆発
+          if (isBurst) { sngPhase = 'burst'; }
+
+        } else if (sngPhase === 'hold') {
+          // 2秒保持
+          if (Date.now() - sngHoldStart > 2000 || isBurst) {
+            sngPhase = 'burst';
+          }
+
+        } else if (sngPhase === 'burst') {
+          // 爆発: 一気に拡大
+          const burstTarget = 2.0 + sngPullMult * 0.4;
+          sngSize += (burstTarget - sngSize) * 0.25;
+          mm.setSizeMultiplier?.(sngSize);
+
+          // 拡大完了 → 引力フェーズに戻る
+          if (sngSize >= burstTarget * 0.95) {
+            sngPhase = 'pull';
+          }
+        }
+
+        sngRaf = requestAnimationFrame(sngLoop);
+      }
+
+      function sngSetActive(on) {
+        sngActive = on;
+        sngTopBtn?.classList.toggle('active', on);
+        sngSubBtn?.classList.toggle('active', on);
+        if (on) {
+          sngLastBass = 0; sngSize = 1.0; sngPhase = 'pull';
+          sngLoop();
+        } else {
+          cancelAnimationFrame(sngRaf); sngRaf = null;
+          getMM()?.setSizeMultiplier?.(1.0); // サイズ復元
+        }
+      }
+
+      sngTopBtn?.addEventListener('click', () => sngSetActive(!sngActive));
+      sngSubBtn?.addEventListener('click', () => sngSetActive(!sngActive));
+
+      /* ════════════════════════════════════════
+         BLACKHOLE — リング状に並んで中心へ吸い込み
+      ════════════════════════════════════════ */
+      const bhBtn     = document.getElementById('blackholeCoreBtn');
+      const bhSlider  = document.getElementById('bhPullSlider');
+      const bhValLbl  = document.getElementById('bhPullVal');
+
+      let bhActive = false, bhRaf = null;
+      let bhPullMult = 1.0;
+
+      bhSlider?.addEventListener('input', () => {
+        bhPullMult = bhSlider.value / 5;
+        if (bhValLbl) bhValLbl.textContent = bhSlider.value;
+      });
+
+      let _bhInstCache = null, _bhInstFrame = 0;
+      function getBhInstances() {
+        // 60フレームに1回だけ再取得（パフォーマンス最適化）
+        _bhInstFrame++;
+        if (!_bhInstCache || _bhInstFrame % 60 === 0) {
+          _bhInstCache = getMM()?.instanceManager?.getAllInstances?.() || [];
+        }
+        return _bhInstCache;
+      }
+
+      function bhLoop() {
+        if (!bhActive) return;
+        const mm = getMM();
+        const instances = getBhInstances();
+
+        if (instances.length === 0) {
+          bhRaf = requestAnimationFrame(bhLoop);
+          return;
+        }
+
+        const sym     = Math.max(2, parseInt(document.getElementById('symmetryValue')?.textContent || '6'));
+        const bass    = window._liquidBassIntensity || 0;
+        const outerR  = 600; // 固定半径でエンジン座標系に合わせる
+        const numRings = Math.floor(instances.length / sym);
+
+        let allDone = true;
+
+        for (let i = 0; i < numRings; i++) {
+          const group = instances.slice(i * sym, (i + 1) * sym);
+          const lead  = group[0];
+          if (!lead) continue;
+
+          // 初期化 / リサイクル
+          if (lead._bhR === undefined || lead._bhDone) {
+            lead._bhR    = outerR * (0.7 + Math.random() * 0.6);
+            lead._bhAng  = (i / numRings) * Math.PI * 2;
+            lead._bhVR   = 0;
+            lead._bhDone = false;
+          }
+
+          if (!lead._bhDone) allDone = false;
+
+          // 引力加速（中心に近いほど急加速）
+          const accel = (1.5 + (1200 / (lead._bhR + 10))) * bhPullMult;
+          lead._bhVR -= accel;
+          lead._bhVR *= 0.92;
+          lead._bhR  += lead._bhVR;
+
+          if (lead._bhR < 5) {
+            lead._bhDone = true;
+            group.forEach(p => { p.scale = 0; });
+            continue;
+          }
+
+          // 各オブジェクトをリング状に配置（ミラー対称）
+          group.forEach((p, idx) => {
+            const angle = lead._bhAng + (idx / sym) * Math.PI * 2;
+            const a = idx % 2 === 0 ? angle : -angle;
+
+            p.position.x = Math.cos(a) * lead._bhR;
+            p.position.y = Math.sin(a) * lead._bhR;
+            p.position.z = Math.sin(a * 2) * lead._bhR * 0.15;
+
+            const s = Math.max(0, Math.min(1, (lead._bhR - 5) / 100)) * (1 + bass * 0.5);
+            p.scale = s;
+          });
+        }
+
+        // 全リング吸収完了 → リセットして繰り返し
+        if (allDone && numRings > 0) {
+          instances.forEach(p => {
+            p._bhR = undefined;
+            p._bhDone = false;
+            p.scale = 1;
+          });
+        }
+
+        bhRaf = requestAnimationFrame(bhLoop);
+      }
+
+      function bhSetActive(on) {
+        bhActive = on;
+        bhBtn?.classList.toggle('active', on);
+        if (on) {
+          // SINGULARITY を止める
+          sngSetActive(false);
+          // エンジンを低速にしてBHが勝てるようにする
+          getMM()?.setSpeedMultiplier?.(0.05);
+          bhLoop();
+        } else {
+          cancelAnimationFrame(bhRaf); bhRaf = null;
+          getMM()?.setSpeedMultiplier?.(1.0);
+          // スケール復元
+          (_bhInstCache || []).forEach(p => { p.scale = 1; p._bhR = undefined; });
+          _bhInstCache = null;
+        }
+      }
+
+      bhBtn?.addEventListener('click', () => bhSetActive(!bhActive));
+
+      // RESET で両方停止
+      document.getElementById('topResetBtn')?.addEventListener('click', () => {
+        sngSetActive(false);
+        bhSetActive(false);
+      }, { capture: true });
+
+    })();
+  </script>
+
+  <!-- ===== BLACKHOLE 右パネル同期 ===== -->
+  <script>
+    (function() {
+      const coreBtn      = document.getElementById('blackholeCoreBtn');
+      const rightToggle  = document.getElementById('bhRightToggle');
+      const rightSlider  = document.getElementById('bhRightPullSlider');
+      const rightVal     = document.getElementById('bhRightPullVal');
+      const coreSlider   = document.getElementById('bhPullSlider');
+      const coreVal      = document.getElementById('bhPullVal');
+      if (!coreBtn || !rightToggle || !rightSlider || !coreSlider) return;
+
+      // トップバーのactive状態を右パネルのボタンに反映
+      function syncToggleBtn() {
+        const on = coreBtn.classList.contains('active');
+        rightToggle.textContent = on ? 'ON' : 'OFF';
+        rightToggle.style.color        = on ? '#00ffcc' : '#555';
+        rightToggle.style.borderColor  = on ? '#00ffcc' : '#333';
+      }
+      new MutationObserver(syncToggleBtn)
+        .observe(coreBtn, { attributes: true, attributeFilter: ['class'] });
+      syncToggleBtn();
+
+      // 右パネルのON/OFFボタン → トップバーのボタンをクリック
+      rightToggle.addEventListener('click', () => coreBtn.click());
+
+      // 右パネルのPULLスライダー → coreSlider に同期
+      rightSlider.addEventListener('input', () => {
+        coreSlider.value = rightSlider.value;
+        coreSlider.dispatchEvent(new Event('input'));
+        if (rightVal) rightVal.textContent = rightSlider.value;
+      });
+
+      // coreSlider の変化を右パネルにも反映（双方向同期）
+      coreSlider.addEventListener('input', () => {
+        rightSlider.value = coreSlider.value;
+        if (rightVal) rightVal.textContent = coreSlider.value;
+      });
+    })();
+  </script>
+
+  <!-- ===== REC: 音声+映像同時録画 ===== -->
+  <script>
+  (function() {
+    const btn = document.getElementById('recBtn');
+    if (!btn) return;
+
+    let recorder = null, chunks = [], rafId = null;
+    let threeVid = null, liqVid = null, audioStream = null;
+
+    function cleanup() {
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      [threeVid, liqVid].forEach(v => {
+        if (v) { try { v.srcObject?.getTracks().forEach(t => t.stop()); } catch(e){} }
+      });
+      threeVid = null; liqVid = null;
+      if (audioStream) { audioStream.getTracks().forEach(t => t.stop()); audioStream = null; }
+    }
+
+    function makeVidFromStream(stream) {
+      const v = document.createElement('video');
+      v.srcObject = stream; v.muted = true; v.autoplay = true; v.playsInline = true;
+      v.play().catch(() => {});
+      return v;
+    }
+
+    async function startRecording() {
+      const W = window.innerWidth, H = window.innerHeight;
+      const offscreen = document.createElement('canvas');
+      offscreen.width = W; offscreen.height = H;
+      const ctx = offscreen.getContext('2d');
+
+      // Three.js キャンバス → captureStream → video
+      try {
+        const tc = document.querySelector('#canvasContainer canvas');
+        if (tc && tc.width > 300) threeVid = makeVidFromStream(tc.captureStream(30));
+      } catch(e) {}
+
+      // liquidCanvas → captureStream → video
+      try {
+        const lc = document.getElementById('liquidCanvas');
+        if (lc && lc.width > 300) liqVid = makeVidFromStream(lc.captureStream(30));
+      } catch(e) {}
+
+      // マイク音声
+      try {
+        audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      } catch(e) { console.warn('[REC] audio unavailable', e); }
+
+      // 合成ループ
+      function compose() {
+        const liqVisible = !!document.getElementById('liquidCanvas') &&
+                           document.getElementById('liquidCanvas').style.display !== 'none';
+
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalCompositeOperation = 'source-over';
+
+        if (!liqVisible && threeVid && threeVid.readyState >= 2) {
+          ctx.drawImage(threeVid, 0, 0, W, H);
+        }
+        if (liqVisible && liqVid && liqVid.readyState >= 2) {
+          ctx.drawImage(liqVid, 0, 0, W, H);
+        }
+
+        // p5 オーバーレイ（コードレイン等）
+        try {
+          const p5c = document.querySelector('#p5-container canvas');
+          if (p5c && p5c.width > 0) {
+            ctx.globalCompositeOperation = 'screen';
+            ctx.drawImage(p5c, 0, 0, W, H);
+            ctx.globalCompositeOperation = 'source-over';
+          }
+        } catch(e) {}
+
+        rafId = requestAnimationFrame(compose);
+      }
+      compose();
+
+      // MediaRecorder
+      const videoStream = offscreen.captureStream(30);
+      const tracks = [...videoStream.getTracks()];
+      if (audioStream) tracks.push(...audioStream.getTracks());
+      const combined = new MediaStream(tracks);
+
+      const mimeType = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
+        .find(m => MediaRecorder.isTypeSupported(m)) || '';
+
+      recorder = new MediaRecorder(combined, mimeType ? { mimeType, videoBitsPerSecond: 8_000_000 } : {});
+      chunks = [];
+      recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+      recorder.onstop = () => {
+        cleanup();
+        const blob = new Blob(chunks, { type: mimeType || 'video/webm' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        const ts   = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+        a.href = url; a.download = `mandala-${ts}.webm`; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        btn.textContent = 'REC';
+        btn.style.cssText = '';
+      };
+
+      recorder.start(1000);
+      btn.textContent = 'STOP';
+      btn.style.cssText = 'background:#ff4444;border-color:#ff4444;color:#fff;';
+    }
+
+    btn.addEventListener('click', () => {
+      if (recorder && recorder.state === 'recording') {
+        recorder.stop(); recorder = null;
+      } else {
+        startRecording();
+      }
+    });
+
+    // RESET で停止
+    document.getElementById('topResetBtn')?.addEventListener('click', () => {
+      if (recorder && recorder.state === 'recording') { recorder.stop(); recorder = null; }
+    }, { capture: true });
+  })();
   </script>
 
   <!-- ===== OBJ STROBE ===== -->
