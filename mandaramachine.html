@@ -7225,15 +7225,6 @@ void main() {
   <!-- ===== RADAR GUARD OVERLAY ===== -->
   <script>
   (function initRadarGuard() {
-    // 5軸スライダー定義（SIZE/SPEED/SCALE/DIST/ROT = 上頂点から時計回り）
-    var AXES = [
-      { id: 'size',         min: 0.5,  max: 2   },
-      { id: 'speed',        min: -3,   max: 3   },
-      { id: 'spread',       min: 0.5,  max: 3   },
-      { id: 'spacing',      min: 0.1,  max: 30  },
-      { id: 'baseRotation', min: 0,    max: 360 },
-    ];
-
     function waitForRadar(cb) {
       var t = setInterval(function() {
         var rc = document.getElementById('radarContainer');
@@ -7248,10 +7239,41 @@ void main() {
       container.style.position = 'relative';
       container.appendChild(overlay);
 
-      function getNorm(axis) {
-        var el = document.getElementById(axis.id);
-        if (!el) return 0;
-        return Math.min(1, (parseFloat(el.value) - axis.min) / (axis.max - axis.min));
+      // 五角形の内側か判定
+      function insidePentagon(px, py, cx, cy, R, ang) {
+        for (var i = 0; i < 5; i++) {
+          var ax = cx + R * Math.cos(ang[i]);
+          var ay = cy + R * Math.sin(ang[i]);
+          var bx = cx + R * Math.cos(ang[(i + 1) % 5]);
+          var by = cy + R * Math.sin(ang[(i + 1) % 5]);
+          // 辺 (a→b) の左側に点があるか（右手系）
+          if ((bx - ax) * (py - ay) - (by - ay) * (px - ax) > 0) return false;
+        }
+        return true;
+      }
+
+      // エンジンcanvasの五角形外に輝度のある画素があるか → 頂点ごとに検出
+      function detectOverflow(ecx, W, H, cx, cy, R, ang) {
+        var overflow = [false, false, false, false, false];
+        try {
+          var imgData = ecx.getImageData(0, 0, W, H).data;
+          // 各頂点方向の "外側サンプル点" を確認
+          for (var i = 0; i < 5; i++) {
+            for (var d = 1.05; d <= 1.5; d += 0.05) {
+              var sx = Math.round(cx + R * d * Math.cos(ang[i]));
+              var sy = Math.round(cy + R * d * Math.sin(ang[i]));
+              if (sx < 0 || sy < 0 || sx >= W || sy >= H) continue;
+              var idx = (sy * W + sx) * 4;
+              // 輝度があれば（青い点などが描かれている）オーバーフロー
+              if (imgData[idx + 3] > 30 &&
+                  (imgData[idx] > 40 || imgData[idx+1] > 40 || imgData[idx+2] > 80)) {
+                overflow[i] = true;
+                break;
+              }
+            }
+          }
+        } catch(e) {} // クロスオリジン等の場合は無視
+        return overflow;
       }
 
       var frame = 0;
@@ -7268,13 +7290,12 @@ void main() {
         var cy = H * 0.5;
         var R  = Math.min(W, H) * 0.43;
 
-        // 頂点角度（SIZE=上、時計回り）
         var ang = [];
         for (var i = 0; i < 5; i++) ang.push(-Math.PI / 2 + (2 * Math.PI / 5) * i);
 
         // ── 五角形の外側をマスク ──────────────────────────────────
         ctx.save();
-        ctx.fillStyle = 'rgba(10,10,10,0.93)';
+        ctx.fillStyle = 'rgba(10,10,10,0.95)';
         ctx.fillRect(0, 0, W, H);
         ctx.globalCompositeOperation = 'destination-out';
         ctx.beginPath();
@@ -7287,34 +7308,36 @@ void main() {
         ctx.fill();
         ctx.restore();
 
-        // ── オーバーフロー検出 → 頂点に丸を描画して点滅 ───────────
+        // ── エンジンcanvasのオーバーフロー検出 ───────────────────
+        var ecx = engineCanvas.getContext('2d');
+        var overflow = ecx
+          ? detectOverflow(ecx, W, H, cx, cy, R, ang)
+          : [false,false,false,false,false];
+
         frame++;
-        // 約8フレームに1回トグル（~60fps想定で0.13秒周期）
-        var blinkOn = (Math.floor(frame / 8) % 2 === 0);
+        var blinkOn = (Math.floor(frame / 6) % 2 === 0);
 
         for (var i = 0; i < 5; i++) {
-          var norm = getNorm(AXES[i]);
-          if (norm < 0.97) continue; // 正常範囲は何もしない
-
+          if (!overflow[i]) continue;
           var vx = cx + R * Math.cos(ang[i]);
           var vy = cy + R * Math.sin(ang[i]);
 
-          // 常時: エンジンの青丸をマスクが隠してしまうので頂点に丸を再描画
+          // 頂点に青丸を再描画（マスクで消えたドットの代替）
           ctx.beginPath();
           ctx.arc(vx, vy, 5, 0, Math.PI * 2);
           ctx.fillStyle = '#4da6ff';
           ctx.fill();
-          ctx.strokeStyle = '#fff';
+          ctx.strokeStyle = 'rgba(255,255,255,0.8)';
           ctx.lineWidth = 1.5;
           ctx.stroke();
 
-          // 点滅: オレンジのグローリング
+          // 点滅オレンジリング
           if (blinkOn) {
             ctx.beginPath();
-            ctx.arc(vx, vy, 10, 0, Math.PI * 2);
+            ctx.arc(vx, vy, 11, 0, Math.PI * 2);
             ctx.strokeStyle = '#ff6600';
-            ctx.lineWidth   = 2;
-            ctx.globalAlpha = 0.85;
+            ctx.lineWidth   = 2.5;
+            ctx.globalAlpha = 0.9;
             ctx.stroke();
             ctx.globalAlpha = 1;
           }
