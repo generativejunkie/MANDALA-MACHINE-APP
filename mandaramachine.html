@@ -622,10 +622,16 @@
     /* オブジェクトグリッド 5列 */
     #presetGridLeft, #visualGridLeft { grid-template-columns: repeat(5, 1fr) !important; }
 
-    /* オブジェクトサムネイル: 背景ダーク＋明るいグレー表示 */
+    /* グリッド全体: hue-rotate(180deg) で赤枠→シアン枠に変換 */
+    /* 白/グレー/黒は色相なしのため影響なし */
+    #presetGridLeft, #visualGridLeft {
+      filter: hue-rotate(180deg) !important;
+    }
+
+    /* サムネイル: invert後にhue-rotateが重ならないよう逆回転で相殺 */
     #presetGridLeft canvas, #presetGridLeft img,
     #visualGridLeft canvas, #visualGridLeft img {
-      filter: invert(1) brightness(1.8) !important;
+      filter: invert(1) brightness(1.8) hue-rotate(180deg) !important;
     }
 
     /* ===== BRAIN HACK REDESIGN ===== */
@@ -1921,106 +1927,6 @@
         <div class="slider-wrapper">
           <input type="range" id="baseRotation" min="0" max="360" step="1" value="0">
           <span id="baseRotationValue">0°</span>
-        </div>
-      </div>
-
-      <div class="menu-section">
-        <h3>MANDARA</h3>
-        <label class="checkbox-label">
-          <input type="checkbox" id="mandalaMode">
-          <span data-i18n="active">Enable</span>
-        </label>
-        <div id="symmetryControls" class="symmetry-controls" style="display: none;">
-          <button class="symmetry-btn active" data-value="4">4</button>
-          <button class="symmetry-btn" data-value="6">6</button>
-          <button class="symmetry-btn" data-value="8">8</button>
-          <button class="symmetry-btn" data-value="12">12</button>
-        </div>
-        <label class="checkbox-label" style="margin-top: 10px;">
-          <input type="checkbox" id="reflectMode">
-          <span data-i18n="reflect">Reflect</span>
-        </label>
-      </div>
-
-      <div class="menu-section">
-        <h3 data-i18n="autoGenerate">AUTO GENERATE</h3>
-        <label class="checkbox-label">
-          <input type="checkbox" id="autoGenerateMode">
-          <span data-i18n="active">Enable</span>
-        </label>
-        <div id="autoGenerateSpeed" style="display: block; margin-top: 10px;">
-          <label class="sub-label" data-i18n="speed">Speed</label>
-          <div class="slider-wrapper">
-            <input type="range" id="autoSpeed" min="-4" max="8" step="1" value="0">
-            <span id="autoSpeedValue">0×</span>
-          </div>
-        </div>
-        <div id="autoGenerateSpacing" style="display: block; margin-top: 10px;">
-          <label class="sub-label" data-i18n="distance">Distance</label>
-          <div class="slider-wrapper">
-            <input type="range" id="autoDistance" min="5" max="40" step="1" value="20">
-            <span id="autoDistanceValue">20</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="menu-section">
-        <h3 data-i18n="frequencySpawn">FREQUENCY SPAWN</h3>
-        <label class="checkbox-label">
-          <input type="checkbox" id="frequencySpawnMode">
-          <span data-i18n="active">Enable</span>
-        </label>
-        <div class="info-text">Low: 0-7 | Mid: 8-15 | High: 16+</div>
-      </div>
-
-      <div class="menu-section">
-        <h3>GOLDEN RATIO</h3>
-        <label class="checkbox-label">
-          <input type="checkbox" id="goldenRatioMode">
-          <span>Enable</span>
-        </label>
-        <div class="info-text">φ spiral pattern</div>
-      </div>
-
-      <div class="menu-section">
-        <h3 data-i18n="brainhack">BRAIN HACK</h3>
-
-        <!-- MODE GRID -->
-        <div class="bh-mode-grid">
-          <button class="bh-mode-btn active" data-mode="0">
-            <span class="bh-mode-label">PHANTOM</span>
-          </button>
-          <button class="bh-mode-btn" data-mode="1">
-            <span class="bh-mode-label">BOOLEAN</span>
-          </button>
-          <button class="bh-mode-btn" data-mode="2">
-            <span class="bh-mode-label">RAVEN</span>
-          </button>
-          <button class="bh-mode-btn" data-mode="3">
-            <span class="bh-mode-label">NEURO</span>
-          </button>
-          <button class="bh-mode-btn" data-mode="4">
-            <span class="bh-mode-label">LATTICE</span>
-          </button>
-          <button class="bh-mode-btn" data-mode="5">
-            <span class="bh-mode-label">ORBITAL</span>
-          </button>
-        </div>
-
-        <!-- COLOR SWATCHES -->
-        <div class="bh-color-row">
-          <div class="bh-swatch-wrap">
-            <input type="color" id="brainColorA" value="#00ffcc" class="bh-swatch">
-            <span class="bh-swatch-label">A</span>
-          </div>
-          <div class="bh-swatch-wrap">
-            <input type="color" id="brainColorB" value="#ff00aa" class="bh-swatch">
-            <span class="bh-swatch-label">B</span>
-          </div>
-          <div class="bh-swatch-wrap">
-            <input type="color" id="brainColorC" value="#110033" class="bh-swatch">
-            <span class="bh-swatch-label">C</span>
-          </div>
         </div>
       </div>
 
@@ -6922,11 +6828,11 @@ void main() {
     })();
   </script>
 
-  <!-- ===== エンジン後CSS上書き: グロー・ボーダー・ボタンサイズ統一 ===== -->
+  <!-- ===== エンジン後CSS上書き ===== -->
   <script>
   (function() {
-    const css = `
-      /* ── RA-CHANG 非アクティブ: グローなし・暗く ── */
+    // ① 即時注入CSS: RA-CHANG グロー制御 + ヘッダーボタンサイズ統一
+    const cssImmediate = `
       .dj-name-toggle-container .mode-tag-btn:not(.active),
       .dj-name-effects .mode-tag-btn:not(.active),
       .dj-sub-btn:not(.active) {
@@ -6937,7 +6843,6 @@ void main() {
         color: #555 !important;
         background: transparent !important;
       }
-      /* ── RA-CHANG アクティブ: シアングロー ── */
       .dj-name-toggle-container .mode-tag-btn.active,
       .dj-name-effects .mode-tag-btn.active {
         border-color: rgba(0,229,255,1.0) !important;
@@ -6947,35 +6852,71 @@ void main() {
         background: rgba(0,229,255,0.15) !important;
         animation: cyanGlowPulse 2.2s ease-in-out infinite !important;
       }
-
-      /* ── オブジェクトサムネイル: 選択枠を赤→シアンに変更 ── */
-      .preset-item {
-        border-color: #2a2a2a !important;
-        box-shadow: none !important;
-      }
-      .preset-item.active,
-      .preset-item.selected,
-      .preset-item:focus {
-        border-color: rgba(0,229,255,1.0) !important;
-        box-shadow: 0 0 8px rgba(0,229,255,0.5) !important;
-      }
-
-      /* ── ヘッダー ROW1 モードボタン: フォント・高さを統一 ── */
-      .top-row--modes .mode-btn {
-        font-size: 9px !important;
-        height: 26px !important;
-        min-width: 48px !important;
-        padding: 0 8px !important;
-        letter-spacing: 0.07em !important;
+      .top-row .mode-btn,
+      .top-row .mode-btn span {
+        font-size: 8.5px !important;
+        height: 24px !important;
+        min-height: 24px !important;
+        max-height: 24px !important;
+        line-height: 24px !important;
+        padding: 0 5px !important;
+        letter-spacing: 0.04em !important;
         white-space: nowrap !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
+        box-sizing: border-box !important;
+        font-weight: 600 !important;
+        border-width: 1px !important;
+      }
+      /* BLACKOUT: 他ボタンと同サイズに統一 */
+      #blackoutBtn {
+        font-weight: 600 !important;
+        border-width: 1px !important;
+        height: 24px !important;
+        padding: 0 5px !important;
       }
     `;
-    const el = document.createElement('style');
-    el.textContent = css;
-    document.head.appendChild(el);
+    const s1 = document.createElement('style');
+    s1.textContent = cssImmediate;
+    document.head.appendChild(s1);
+
+    // ② エンジン初期化後: preset-item の赤枠をシアンに変換
+    // - CSS（!importantなし）を後注入してエンジンCSSの赤をデフォルト#2a2a2aに
+    // - MutationObserverでエンジンが選択時に変えるstyle/classをシアンに差し替え
+    function startFix() {
+      // デフォルト枠をダークに（!importantなし→エンジンCSSより後に注入するので勝てる）
+      var s = document.createElement('style');
+      s.textContent = [
+        '.preset-item { border-color: #2a2a2a !important; box-shadow: none !important; outline: none !important; }',
+      ].join('');
+      document.head.appendChild(s);
+
+      // エンジンが style 属性を書き換えたら赤→シアンに置換
+      function recolor(el) {
+        if (!el || !el.classList || !el.classList.contains('preset-item')) return;
+        var st = el.getAttribute('style') || '';
+        // エンジンが赤系色を inline で設定したときだけシアンに
+        if (st && /red|#[Ff][0-9a-fA-F]{4,5}|rgb\s*\(\s*2[0-9]{2}/.test(st)) {
+          el.style.borderColor = 'rgba(0,229,255,1.0)';
+          el.style.boxShadow   = '0 0 10px rgba(0,229,255,0.6)';
+        }
+      }
+
+      var target = document.getElementById('presetGridLeft') || document.getElementById('leftPanel');
+      if (target) {
+        new MutationObserver(function(muts) {
+          muts.forEach(function(m) { recolor(m.target); });
+        }).observe(target, { subtree: true, attributes: true, attributeFilter: ['style', 'class'] });
+      }
+    }
+
+    if (window.mandalaMachine) { startFix(); }
+    else {
+      var t = setInterval(function() {
+        if (window.mandalaMachine) { clearInterval(t); startFix(); }
+      }, 100);
+    }
   })();
   </script>
 </body>
