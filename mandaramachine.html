@@ -622,6 +622,12 @@
     /* オブジェクトグリッド 5列 */
     #presetGridLeft, #visualGridLeft { grid-template-columns: repeat(5, 1fr) !important; }
 
+    /* オブジェクトサムネイル: 背景ダーク＋明るいグレー表示 */
+    #presetGridLeft canvas, #presetGridLeft img,
+    #visualGridLeft canvas, #visualGridLeft img {
+      filter: invert(1) brightness(1.8) !important;
+    }
+
     /* ===== BRAIN HACK REDESIGN ===== */
     .menu-section h3 {
       font-size: 10px;
@@ -4743,29 +4749,29 @@
   <!-- ===== STARTUP TITLE ===== -->
   <script>
   (function() {
-    const TEXT = 'MANDARA MACHINE';
-    const CHAR_DELAY = 90;   // 1文字あたりの遅延 (ms)
-    const HOLD_TIME  = 900;  // 全文字表示後の保持時間 (ms)
+    const TEXT       = 'MANDARA MACHINE';
+    const CHAR_DELAY = 20;   // 1文字あたりの遅延 (ms)
     const FADE_TIME  = 800;  // フェードアウト時間 (ms)
+    const POLL_MS    = 300;  // mandalaMachine 待機ポーリング間隔 (ms)
 
-    // オーバーレイ
+    // 黒背景オーバーレイ（画面全体を覆う）
     const overlay = document.createElement('div');
     overlay.style.cssText =
       'position:fixed;top:0;left:0;width:100%;height:100%;' +
+      'background:#000;' +
       'display:flex;align-items:center;justify-content:center;' +
       'pointer-events:none;z-index:9000;' +
       'transition:opacity ' + FADE_TIME + 'ms ease;';
 
-    // テキストコンテナ
+    // 白文字テキストコンテナ
     const container = document.createElement('div');
     container.style.cssText =
       'font-family:"Helvetica Neue","Helvetica","Arial",sans-serif;' +
       'font-size:clamp(16px,2.4vw,32px);font-weight:200;' +
       'letter-spacing:0.55em;color:#ffffff;' +
-      'text-shadow:0 0 12px rgba(255,255,255,0.25);' +
       'white-space:nowrap;display:flex;gap:0;';
 
-    // 各文字をspan要素として追加（最初は透明）
+    // 各文字を span として追加（最初は透明）
     TEXT.split('').forEach(ch => {
       const span = document.createElement('span');
       span.textContent = ch === ' ' ? '\u00A0' : ch;
@@ -4778,16 +4784,25 @@
 
     // 1文字ずつ表示
     const spans = container.querySelectorAll('span');
-    spans.forEach((span, i) => {
-      setTimeout(() => { span.style.opacity = '1'; }, i * CHAR_DELAY);
+    spans.forEach((sp, i) => {
+      setTimeout(() => { sp.style.opacity = '1'; }, i * CHAR_DELAY);
     });
 
-    // 全文字表示後にフェードアウト
-    const totalDelay = (TEXT.length - 1) * CHAR_DELAY + HOLD_TIME;
+    // 全文字表示完了後、mandalaMachine ロード完了までポーリングして待機
+    const allShownAt = (TEXT.length - 1) * CHAR_DELAY + 200;
+    let pollTimer = null;
+
+    function tryFade() {
+      if (window.mandalaMachine) {
+        clearInterval(pollTimer);
+        overlay.style.opacity = '0';
+        setTimeout(() => overlay.remove(), FADE_TIME);
+      }
+    }
+
     setTimeout(() => {
-      overlay.style.opacity = '0';
-      setTimeout(() => overlay.remove(), FADE_TIME);
-    }, totalDelay);
+      pollTimer = setInterval(tryFade, POLL_MS);
+    }, allShownAt);
   })();
   </script>
 
@@ -6905,6 +6920,63 @@ void main() {
       // グローバルに公開 (AUTOモードなどから利用可能)
       window._objStrobe = { start, stop, setSpeed: (v) => { speed = v; slider.value = v; valLabel.textContent = v; } };
     })();
+  </script>
+
+  <!-- ===== エンジン後CSS上書き: グロー・ボーダー・ボタンサイズ統一 ===== -->
+  <script>
+  (function() {
+    const css = `
+      /* ── RA-CHANG 非アクティブ: グローなし・暗く ── */
+      .dj-name-toggle-container .mode-tag-btn:not(.active),
+      .dj-name-effects .mode-tag-btn:not(.active),
+      .dj-sub-btn:not(.active) {
+        border-color: #2a2a2a !important;
+        box-shadow: none !important;
+        animation: none !important;
+        text-shadow: none !important;
+        color: #555 !important;
+        background: transparent !important;
+      }
+      /* ── RA-CHANG アクティブ: シアングロー ── */
+      .dj-name-toggle-container .mode-tag-btn.active,
+      .dj-name-effects .mode-tag-btn.active {
+        border-color: rgba(0,229,255,1.0) !important;
+        box-shadow: 0 0 15px rgba(0,229,255,0.7) !important;
+        text-shadow: 0 0 8px rgba(0,229,255,0.9) !important;
+        color: #ffffff !important;
+        background: rgba(0,229,255,0.15) !important;
+        animation: cyanGlowPulse 2.2s ease-in-out infinite !important;
+      }
+
+      /* ── オブジェクトサムネイル: 選択枠を赤→シアンに変更 ── */
+      .preset-item {
+        border-color: #2a2a2a !important;
+        box-shadow: none !important;
+      }
+      .preset-item.active,
+      .preset-item.selected,
+      .preset-item:focus {
+        border-color: rgba(0,229,255,1.0) !important;
+        box-shadow: 0 0 8px rgba(0,229,255,0.5) !important;
+      }
+
+      /* ── ヘッダー ROW1 モードボタン: フォント・高さを統一 ── */
+      .top-row--modes .mode-btn {
+        font-size: 9px !important;
+        height: 26px !important;
+        min-width: 48px !important;
+        padding: 0 8px !important;
+        letter-spacing: 0.07em !important;
+        white-space: nowrap !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+    `;
+    const el = document.createElement('style');
+    el.textContent = css;
+    document.head.appendChild(el);
+  })();
   </script>
 </body>
 
