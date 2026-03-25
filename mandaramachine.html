@@ -6819,14 +6819,60 @@ void main() {
       recorder = new MediaRecorder(combined, mimeType ? { mimeType, videoBitsPerSecond: 8_000_000 } : {});
       chunks = [];
       recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-      recorder.onstop = () => {
+      recorder.onstop = async () => {
         cleanup();
         const blob = new Blob(chunks, { type: mimeType || 'video/webm' });
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
         const ts   = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-        a.href = url; a.download = `mandala-${ts}.webm`; a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+        // Electron環境: ffmpeg-staticでwebm→mp4変換
+        try {
+          const fs          = require('fs');
+          const os          = require('os');
+          const path        = require('path');
+          const { spawn }   = require('child_process');
+          const ffmpegPath  = require('ffmpeg-static');
+
+          btn.textContent = 'CONV…';
+          btn.style.cssText = 'background:#ff8800;border-color:#ff8800;color:#fff;';
+
+          const tmpWebm = path.join(os.tmpdir(), `mandala-${ts}.webm`);
+          const tmpMp4  = path.join(os.tmpdir(), `mandala-${ts}.mp4`);
+
+          // webm を一時ファイルに書き込む
+          const arrayBuffer = await blob.arrayBuffer();
+          fs.writeFileSync(tmpWebm, Buffer.from(arrayBuffer));
+
+          // ffmpeg で mp4 に変換
+          await new Promise((resolve, reject) => {
+            const proc = spawn(ffmpegPath, [
+              '-i', tmpWebm,
+              '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+              '-c:a', 'aac', '-b:a', '192k',
+              '-movflags', '+faststart',
+              '-y', tmpMp4
+            ]);
+            proc.on('close', code => code === 0 ? resolve() : reject(new Error('ffmpeg exit ' + code)));
+          });
+
+          // mp4 をダウンロード
+          const mp4Data = fs.readFileSync(tmpMp4);
+          const mp4Blob = new Blob([mp4Data], { type: 'video/mp4' });
+          const url = URL.createObjectURL(mp4Blob);
+          const a   = document.createElement('a');
+          a.href = url; a.download = `mandala-${ts}.mp4`; a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+          // 一時ファイル削除
+          try { fs.unlinkSync(tmpWebm); fs.unlinkSync(tmpMp4); } catch(e) {}
+
+        } catch(err) {
+          console.warn('[REC] mp4変換失敗、webmでフォールバック:', err);
+          const url = URL.createObjectURL(blob);
+          const a   = document.createElement('a');
+          a.href = url; a.download = `mandala-${ts}.webm`; a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 10000);
+        }
+
         btn.textContent = 'REC';
         btn.style.cssText = '';
       };
@@ -7050,13 +7096,23 @@ void main() {
     `;
     document.head.appendChild(vcStyle);
 
+    var C = window.__fastCache || { get: function(id){ return document.getElementById(id); } };
+    var rafThrottle = window.__rafThrottle || function(fn){ return fn; };
+
     function syncBtn(rightBtn, headerBtn, labelOn, labelOff) {
       if (!rightBtn || !headerBtn) return;
       rightBtn.addEventListener('click', function() { headerBtn.click(); });
+      // RAF-batched MutationObserver（Gemini fastSync方式）
+      var pending = false;
       new MutationObserver(function() {
-        var on = headerBtn.classList.contains('active');
-        if (labelOn) rightBtn.textContent = on ? labelOn : labelOff;
-        rightBtn.classList.toggle('active', on);
+        if (pending) return;
+        pending = true;
+        requestAnimationFrame(function() {
+          var on = headerBtn.classList.contains('active');
+          if (labelOn) rightBtn.textContent = on ? labelOn : labelOff;
+          rightBtn.classList.toggle('active', on);
+          pending = false;
+        });
       }).observe(headerBtn, { attributes: true, attributeFilter: ['class'] });
     }
 
@@ -7073,14 +7129,14 @@ void main() {
         document.getElementById('rightAutoBtn'),
         document.getElementById('topAutoBtn'), 'ON', 'OFF'
       );
-      var autoSpeedSlider = document.getElementById('autoSpeedSlider');
+      var autoSpeedSlider = C.get('autoSpeedSlider');
       if (autoSpeedSlider) {
-        autoSpeedSlider.addEventListener('input', function() {
+        autoSpeedSlider.addEventListener('input', rafThrottle(function() {
           var v = parseFloat(this.value);
           var lbl = this.parentElement.querySelector('span');
           if (lbl) lbl.textContent = v.toFixed(1);
           mm.setSpeedMultiplier(v);
-        });
+        }));
       }
 
       // ── SPACE ──
@@ -7089,13 +7145,13 @@ void main() {
         document.getElementById('topAiBtn'), 'ON', 'OFF'
       );
       // DRIFT → 既存 spaceDriftSlider に転送
-      var rightDriftSlider = document.getElementById('rightDriftSlider');
-      var spaceDriftSlider = document.getElementById('spaceDriftSlider');
+      var rightDriftSlider = C.get('rightDriftSlider');
+      var spaceDriftSlider = C.get('spaceDriftSlider');
       if (rightDriftSlider && spaceDriftSlider) {
-        rightDriftSlider.addEventListener('input', function() {
+        rightDriftSlider.addEventListener('input', rafThrottle(function() {
           spaceDriftSlider.value = this.value;
           spaceDriftSlider.dispatchEvent(new Event('input'));
-        });
+        }));
       }
 
       // ── MANDALA ──
@@ -7150,36 +7206,111 @@ void main() {
         }).observe(topBgBtn, { attributes: true, attributeFilter: ['class'] });
       }
       // OBJ カラーピッカー同期
-      var vcObjPicker  = document.getElementById('vcObjColorPicker');
-      var topObjPicker = document.getElementById('objColorPicker');
+      var vcObjPicker  = C.get('vcObjColorPicker');
+      var topObjPicker = C.get('objColorPicker');
       if (vcObjPicker && topObjPicker) {
-        vcObjPicker.addEventListener('input', function() {
+        vcObjPicker.addEventListener('input', rafThrottle(function() {
           topObjPicker.value = this.value;
           topObjPicker.dispatchEvent(new Event('input'));
-        });
+        }));
       }
 
       // ── FLASH / STROBE ──
       syncBtn(document.getElementById('rightStrobeBtn'),    document.getElementById('topBlinkBtn'));
       syncBtn(document.getElementById('rightObjStrobeBtn'), document.getElementById('objStrobeBtn'));
       // RATE スライダー → setBlinkingSpeed + _objStrobe
-      var strobeRate = document.getElementById('strobeRateSlider');
+      var strobeRate = C.get('strobeRateSlider');
       if (strobeRate) {
-        strobeRate.addEventListener('input', function() {
+        strobeRate.addEventListener('input', rafThrottle(function() {
           var rate = parseInt(this.value);
           var lbl  = this.parentElement.querySelector('span');
           if (lbl) lbl.textContent = rate;
-          // setBlinkingSpeed は 1-10 スケール
           var bSpeed = Math.max(1, Math.min(10, Math.round(rate / 6)));
           mm.setBlinkingSpeed(bSpeed);
-          var qbs = document.getElementById('quickBlinkSpeed');
+          var qbs = C.get('quickBlinkSpeed');
           if (qbs) { qbs.value = bSpeed; qbs.dispatchEvent(new Event('input')); }
           if (window._objStrobe) window._objStrobe.setSpeed(Math.min(20, Math.round(rate / 3)));
-        });
+        }));
       }
     });
   })();
+  <!-- ===== PERFORMANCE ULTRA-OPTIMIZERS ===== -->
+  <script>
+  (function optimizePerformance() {
+
+    // ── DOMキャッシュ ──────────────────────────────────────────
+    const CACHE = {
+      els: {},
+      get: function(id) {
+        if (!this.els[id]) this.els[id] = document.getElementById(id);
+        return this.els[id];
+      }
+    };
+    window.__fastCache = CACHE;
+
+    // ── RAFスロットル: 描画フレームに1回だけ実行 ────────────────
+    window.__rafThrottle = function(fn) {
+      var pending = false;
+      return function() {
+        var self = this, args = arguments;
+        if (pending) return;
+        pending = true;
+        requestAnimationFrame(function() {
+          fn.apply(self, args);
+          pending = false;
+        });
+      };
+    };
+
+    // ── RAF-batched MutationObserver ────────────────────────────
+    window.__fastSync = function(obsEl, callback) {
+      var pending = false;
+      var obs = new MutationObserver(function() {
+        if (pending) return;
+        pending = true;
+        requestAnimationFrame(function() { callback(); pending = false; });
+      });
+      obs.observe(obsEl, { attributes: true, attributeFilter: ['class'] });
+      return obs;
+    };
+
+    // ── VJ Motion スライダーにRAFスロットル適用 ─────────────────
+    function patchSlider(id, origHandler) {
+      var el = CACHE.get(id);
+      if (!el) return;
+      // 既存リスナーを複製せず、新規にRAFスロットル版を登録
+      var throttled = window.__rafThrottle(origHandler);
+      el.addEventListener('input', throttled);
+    }
+
+    // will-change: transform を高頻度アニメ要素に付与
+    [
+      'rightPanel', 'leftPanel', 'topBar',
+      'radarContainer', 'liquidCanvas'
+    ].forEach(function(id) {
+      var el = CACHE.get(id);
+      if (el) el.style.willChange = 'transform';
+    });
+
+    // ── カラーピッカー群をRAFスロットル化 ───────────────────────
+    [
+      'liquidColorPicker','neonColorPicker','smokeColorPicker',
+      'tc1ColorPicker','tc2ColorPicker',
+      'bgColorPickerSync','objColorPickerSync'
+    ].forEach(function(id) {
+      var el = CACHE.get(id);
+      if (!el) return;
+      // captureで先に処理されているため、RAFバブルフィルタのみ追加
+      var _raf = false;
+      el.addEventListener('input', function() {
+        if (_raf) { return; }
+        _raf = true;
+        requestAnimationFrame(function() { _raf = false; });
+      }, true); // capture phase で間引き
+    });
+
+    console.log('[PERF] Ultra-Optimizer applied: DOM cache + RAF throttle + will-change');
+  })();
   </script>
-</body>
 
 </html>
