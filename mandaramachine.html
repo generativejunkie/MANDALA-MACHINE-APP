@@ -7234,6 +7234,8 @@ void main() {
       }
     });
   })();
+  </script>
+
   <!-- ===== PERFORMANCE ULTRA-OPTIMIZERS ===== -->
   <script>
   (function optimizePerformance() {
@@ -7283,31 +7285,6 @@ void main() {
       el.addEventListener('input', throttled);
     }
 
-    // will-change: transform を高頻度アニメ要素に付与
-    [
-      'rightPanel', 'leftPanel', 'topBar',
-      'radarContainer', 'liquidCanvas'
-    ].forEach(function(id) {
-      var el = CACHE.get(id);
-      if (el) el.style.willChange = 'transform';
-    });
-
-    // ── カラーピッカー群をRAFスロットル化 ───────────────────────
-    [
-      'liquidColorPicker','neonColorPicker','smokeColorPicker',
-      'tc1ColorPicker','tc2ColorPicker',
-      'bgColorPickerSync','objColorPickerSync'
-    ].forEach(function(id) {
-      var el = CACHE.get(id);
-      if (!el) return;
-      // captureで先に処理されているため、RAFバブルフィルタのみ追加
-      var _raf = false;
-      el.addEventListener('input', function() {
-        if (_raf) { return; }
-        _raf = true;
-        requestAnimationFrame(function() { _raf = false; });
-      }, true); // capture phase で間引き
-    });
 
     console.log('[PERF] Ultra-Optimizer applied: DOM cache + RAF throttle + will-change');
   })();
