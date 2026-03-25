@@ -611,33 +611,16 @@
       grid-template-columns: 0 1fr 300px !important
     }
 
-    #leftPanelToggle {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      z-index: 9999;
-      width: 28px;
-      height: 28px;
-      background: #111;
-      border: 1px solid #2a2a2a;
-      color: #666;
-      font-size: 16px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 3px;
-      transition: left .28s cubic-bezier(.4, 0, .2, 1)
-    }
+    /* 左パネル非表示ボタン削除 */
+    #leftPanelToggle { display: none !important; }
 
-    #leftPanelToggle:hover {
-      color: #e0e0e0;
-      background: #1e1e1e
-    }
+    /* 左パネル常時展開 */
+    #leftPanel { width: 300px !important; opacity: 1 !important; transform: none !important; min-width: 300px !important; }
+    #leftPanel.collapsed { width: 300px !important; min-width: 300px !important; }
+    #app-root, #app-root.left-collapsed { grid-template-columns: 300px 1fr 300px !important; }
 
-    #leftPanelToggle.open {
-      left: calc(var(--left-panel-width) + 10px)
-    }
+    /* オブジェクトグリッド 5列 */
+    #presetGridLeft, #visualGridLeft { grid-template-columns: repeat(5, 1fr) !important; }
 
     /* ===== BRAIN HACK REDESIGN ===== */
     .menu-section h3 {
@@ -1045,6 +1028,11 @@
       width: 100px !important;
       min-width: 0 !important;
     }
+    /* シークバーダークモード */
+    #modeSeekbars { background: #111 !important; border-top: 1px solid #222 !important; }
+    /* AUTO ボタン点滅 */
+    #topAutoBtn.active { background: rgba(255,30,30,0.18) !important; color: #ff4444 !important; border-color: rgba(255,30,30,1.0) !important; box-shadow: 0 0 16px rgba(255,30,30,0.8) !important; }
+    #topAutoBtn.auto-blink-dim { opacity: 0.2 !important; }
 
     /* ── MASTER FLASH: WHT / BLK ── */
     .dj-wht-btn {
@@ -3610,6 +3598,22 @@
           spaceObserver.observe(spaceTopBtn, { attributes: true, attributeFilter: ['class'] });
         }
 
+
+        // ── AUTO ボタン点滅（シンプルなsetIntervalのみ） ─────────────
+        ;(function() {
+          const btn = document.getElementById('topAutoBtn');
+          if (!btn) return;
+          let phase = false;
+          setInterval(function() {
+            if (btn.classList.contains('active')) {
+              phase = !phase;
+              btn.classList.toggle('auto-blink-dim', phase);
+            } else {
+              phase = false;
+              btn.classList.remove('auto-blink-dim');
+            }
+          }, 900);
+        })();
 
         // ── 5. スペースキー → SPACE モードトグル & ボタン点灯 ────────
         document.addEventListener('keydown', function(e) {
