@@ -1248,7 +1248,7 @@
       }
     }
   </style>
-  <!-- V-OUT composite patch: エンジンより先に実行してipcRenderer.sendを差し替える -->
+  <!-- V-OUT composite patch: Execute before engine to replace ipcRenderer.send -->
   <script>
   (function patchVoutCompositeEarly() {
     try {
@@ -1757,8 +1757,98 @@
 
     </div>
 
-    <!-- 右パネル (Settings) -->
+    <!-- 右パネル (VISUAL CONTROLLER) -->
     <div id="rightPanel" class="panel-side">
+      <div class="panel-header" style="margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:8px;">
+        <h3 style="letter-spacing:2px; font-weight:700; color:#00e5ff !important;">VISUAL CONTROLLER</h3>
+      </div>
+
+      <div class="menu-section">
+        <div id="radarContainer" class="radar-container"></div>
+      </div>
+
+      <!-- MOTION MODE -->
+      <div class="menu-section" id="motionModeSection">
+        <h3>MOTION MODE</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">
+          <button id="vcGravityBtn" class="motion-mode-btn">ZERO GRAVITY</button>
+          <button id="vcQuantumBtn" class="motion-mode-btn">QUANTUM</button>
+          <button id="vcOrbitBtn"   class="motion-mode-btn">ORBIT</button>
+          <button id="vcSpinBtn"    class="motion-mode-btn">SPIN</button>
+          <button id="vcBaryonBtn"  class="motion-mode-btn">BARYON</button>
+        </div>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button id="vcBgToggleBtn" class="motion-mode-btn" style="flex:1;">BG●</button>
+          <label style="flex:1;position:relative;cursor:pointer;display:block;">
+            <button class="motion-mode-btn" style="width:100%;pointer-events:none;">OBJ ■</button>
+            <input type="color" id="vcObjColorPicker" value="#ffffff"
+              style="position:absolute;opacity:0;width:100%;height:100%;top:0;left:0;cursor:pointer;">
+          </label>
+        </div>
+      </div>
+
+      <!-- AUTO mode container -->
+      <div class="menu-section" id="autoDjSection">
+        <h3 style="display:flex;align-items:center;justify-content:space-between;">
+          AUTO DJ
+          <button id="rightAutoBtn" class="sub-toggle-btn">OFF</button>
+        </h3>
+        <div class="slider-wrapper" style="margin-top:6px;">
+          <label style="font-size:9px;color:#555;width:64px;">SPEED</label>
+          <input type="range" id="autoSpeedSlider" min="0.1" max="4" step="0.1" value="1.0" style="flex:1;">
+          <span style="width:28px;text-align:right;font-size:10px;">1.0</span>
+        </div>
+      </div>
+
+      <!-- SPACE mode container -->
+      <div class="menu-section" id="rightSpaceSection">
+        <h3 style="display:flex;align-items:center;justify-content:space-between;">
+          SPACE PERSPECTIVE
+          <button id="rightSpaceBtn" class="sub-toggle-btn">OFF</button>
+        </h3>
+        <div class="slider-wrapper" style="margin-top:6px;margin-bottom:6px;">
+          <label style="font-size:9px;color:#555;width:64px;">STARS</label>
+          <input type="range" id="rightStarsSlider" min="100" max="4000" step="100" value="2500" style="flex:1;">
+        </div>
+        <div class="slider-wrapper">
+          <label style="font-size:9px;color:#555;width:64px;">DRIFT</label>
+          <input type="range" id="rightDriftSlider" min="0" max="10" step="0.5" value="2.0" style="flex:1;">
+        </div>
+      </div>
+
+      <!-- MANDALA mode container -->
+      <div class="menu-section" id="mandalaSection">
+        <h3 style="display:flex;align-items:center;justify-content:space-between;">
+          MANDALA
+          <button id="rightMandalaBtn" class="sub-toggle-btn">OFF</button>
+        </h3>
+        <div style="display:flex;gap:4px;margin-top:8px;">
+          <button class="sym-btn active" data-val="4">4</button>
+          <button class="sym-btn" data-val="6">6</button>
+          <button class="sym-btn" data-val="8">8</button>
+          <button class="sym-btn" data-val="12">12</button>
+          <button class="sym-btn" data-val="16">16</button>
+        </div>
+        <div style="margin-top:6px;display:flex;align-items:center;gap:10px;">
+          <label class="checkbox-label" style="font-size:9px;color:#555;">
+            <input type="checkbox" id="rightReflectMode"> REFLECT
+          </label>
+        </div>
+      </div>
+
+      <!-- FLASH / STROBE container -->
+      <div class="menu-section" id="flashStrobeSection">
+        <h3>FLASH / STROBE</h3>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button id="rightStrobeBtn" class="mode-tag-btn" style="flex:1;">MASTER STROBE</button>
+          <button id="rightObjStrobeBtn" class="mode-tag-btn" style="flex:1;">OBJ STROBE</button>
+        </div>
+        <div class="slider-wrapper">
+          <label style="font-size:9px;color:#555;width:64px;">RATE</label>
+          <input type="range" id="strobeRateSlider" min="1" max="60" step="1" value="12" style="flex:1;">
+          <span style="width:28px;text-align:right;font-size:10px;">12</span>
+        </div>
+      </div>
 
       <!-- VJ MOTION CONTROL -->
       <div class="menu-section" id="vjMotionSection">
@@ -1866,10 +1956,6 @@
         </div>
       </div>
 
-      <div class="menu-section">
-        <h3 data-i18n="visualControl">VISUAL CONTROL</h3>
-        <div id="radarContainer" class="radar-container"></div>
-      </div>
       <div class="menu-section">
         <h3 data-i18n="size">SIZE</h3>
         <div class="slider-wrapper">
@@ -6917,6 +7003,181 @@ void main() {
         if (window.mandalaMachine) { clearInterval(t); startFix(); }
       }, 100);
     }
+  })();
+  </script>
+
+  <!-- ===== VISUAL CONTROLLER ブリッジ ===== -->
+  <script>
+  (function initVisualController() {
+    // sub-toggle-btn / sym-btn スタイル
+    var vcStyle = document.createElement('style');
+    vcStyle.textContent = `
+      .sub-toggle-btn {
+        font-size:9px;letter-spacing:1px;padding:2px 10px;
+        background:#1a1a1a;border:1px solid #333;color:#555;
+        cursor:pointer;border-radius:2px;transition:all 0.2s;
+      }
+      .sub-toggle-btn.active {
+        background:rgba(0,229,255,0.15);border-color:rgba(0,229,255,1.0);
+        color:#00e5ff;box-shadow:0 0 8px rgba(0,229,255,0.5);
+      }
+      .sym-btn {
+        flex:1;font-size:9px;font-weight:700;height:24px;
+        background:#1a1a1a;border:1px solid #333;color:#555;
+        cursor:pointer;border-radius:2px;transition:all 0.2s;
+      }
+      .sym-btn.active {
+        background:rgba(0,229,255,0.15);border-color:rgba(0,229,255,1.0);
+        color:#00e5ff;
+      }
+      #autoDjSection h3, #rightSpaceSection h3,
+      #mandalaSection h3, #flashStrobeSection h3,
+      #motionModeSection h3 {
+        font-size:10px;letter-spacing:0.2em;color:#666;
+        border-bottom:1px solid #222;padding-bottom:4px;margin-bottom:8px;
+      }
+      .motion-mode-btn {
+        font-size:9px;font-weight:700;letter-spacing:0.08em;
+        padding:4px 6px;height:24px;
+        background:#1a1a1a;border:1px solid #333;color:#555;
+        cursor:pointer;border-radius:2px;transition:all 0.2s;
+        white-space:nowrap;
+      }
+      .motion-mode-btn.active {
+        background:rgba(0,229,255,0.15);border-color:rgba(0,229,255,1.0);
+        color:#00e5ff;box-shadow:0 0 8px rgba(0,229,255,0.5);
+      }
+    `;
+    document.head.appendChild(vcStyle);
+
+    function syncBtn(rightBtn, headerBtn, labelOn, labelOff) {
+      if (!rightBtn || !headerBtn) return;
+      rightBtn.addEventListener('click', function() { headerBtn.click(); });
+      new MutationObserver(function() {
+        var on = headerBtn.classList.contains('active');
+        if (labelOn) rightBtn.textContent = on ? labelOn : labelOff;
+        rightBtn.classList.toggle('active', on);
+      }).observe(headerBtn, { attributes: true, attributeFilter: ['class'] });
+    }
+
+    function waitForMM(cb) {
+      if (window.mandalaMachine) { cb(window.mandalaMachine); return; }
+      var t = setInterval(function() {
+        if (window.mandalaMachine) { clearInterval(t); cb(window.mandalaMachine); }
+      }, 150);
+    }
+
+    waitForMM(function(mm) {
+      // ── AUTO DJ ──
+      syncBtn(
+        document.getElementById('rightAutoBtn'),
+        document.getElementById('topAutoBtn'), 'ON', 'OFF'
+      );
+      var autoSpeedSlider = document.getElementById('autoSpeedSlider');
+      if (autoSpeedSlider) {
+        autoSpeedSlider.addEventListener('input', function() {
+          var v = parseFloat(this.value);
+          var lbl = this.parentElement.querySelector('span');
+          if (lbl) lbl.textContent = v.toFixed(1);
+          mm.setSpeedMultiplier(v);
+        });
+      }
+
+      // ── SPACE ──
+      syncBtn(
+        document.getElementById('rightSpaceBtn'),
+        document.getElementById('topAiBtn'), 'ON', 'OFF'
+      );
+      // DRIFT → 既存 spaceDriftSlider に転送
+      var rightDriftSlider = document.getElementById('rightDriftSlider');
+      var spaceDriftSlider = document.getElementById('spaceDriftSlider');
+      if (rightDriftSlider && spaceDriftSlider) {
+        rightDriftSlider.addEventListener('input', function() {
+          spaceDriftSlider.value = this.value;
+          spaceDriftSlider.dispatchEvent(new Event('input'));
+        });
+      }
+
+      // ── MANDALA ──
+      syncBtn(
+        document.getElementById('rightMandalaBtn'),
+        document.getElementById('topMandalaBtn'), 'ON', 'OFF'
+      );
+      // 対称ボタン → symmetrySeekbar
+      var symSeekbar = document.getElementById('symmetrySeekbar');
+      document.querySelectorAll('.sym-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.sym-btn').forEach(function(b) { b.classList.remove('active'); });
+          this.classList.add('active');
+          if (symSeekbar) {
+            symSeekbar.value = this.dataset.val;
+            symSeekbar.dispatchEvent(new Event('input'));
+          }
+        });
+      });
+      // REFLECT
+      var rightReflect = document.getElementById('rightReflectMode');
+      var reflectEl    = document.getElementById('reflectMode');
+      if (rightReflect && reflectEl) {
+        rightReflect.addEventListener('change', function() {
+          reflectEl.checked = this.checked;
+          reflectEl.dispatchEvent(new Event('change'));
+        });
+      }
+
+      // ── MOTION MODE ──
+      [
+        ['vcGravityBtn', 'topGravityBtn'],
+        ['vcQuantumBtn',  'topQuantumBtn'],
+        ['vcOrbitBtn',    'topOrbitBtn'],
+        ['vcSpinBtn',     'topSpinBtn'],
+        ['vcBaryonBtn',   'topBaryonBtn'],
+      ].forEach(function(pair) {
+        syncBtn(
+          document.getElementById(pair[0]),
+          document.getElementById(pair[1])
+        );
+      });
+      // BG● — クリック転送 + ラベル同期
+      var vcBgBtn  = document.getElementById('vcBgToggleBtn');
+      var topBgBtn = document.getElementById('topBgToggleBtn');
+      if (vcBgBtn && topBgBtn) {
+        vcBgBtn.addEventListener('click', function() { topBgBtn.click(); });
+        new MutationObserver(function() {
+          var lbl = document.getElementById('topBgToggleLabel');
+          if (lbl) vcBgBtn.textContent = lbl.textContent;
+          vcBgBtn.classList.toggle('active', topBgBtn.classList.contains('active'));
+        }).observe(topBgBtn, { attributes: true, attributeFilter: ['class'] });
+      }
+      // OBJ カラーピッカー同期
+      var vcObjPicker  = document.getElementById('vcObjColorPicker');
+      var topObjPicker = document.getElementById('objColorPicker');
+      if (vcObjPicker && topObjPicker) {
+        vcObjPicker.addEventListener('input', function() {
+          topObjPicker.value = this.value;
+          topObjPicker.dispatchEvent(new Event('input'));
+        });
+      }
+
+      // ── FLASH / STROBE ──
+      syncBtn(document.getElementById('rightStrobeBtn'),    document.getElementById('topBlinkBtn'));
+      syncBtn(document.getElementById('rightObjStrobeBtn'), document.getElementById('objStrobeBtn'));
+      // RATE スライダー → setBlinkingSpeed + _objStrobe
+      var strobeRate = document.getElementById('strobeRateSlider');
+      if (strobeRate) {
+        strobeRate.addEventListener('input', function() {
+          var rate = parseInt(this.value);
+          var lbl  = this.parentElement.querySelector('span');
+          if (lbl) lbl.textContent = rate;
+          // setBlinkingSpeed は 1-10 スケール
+          var bSpeed = Math.max(1, Math.min(10, Math.round(rate / 6)));
+          mm.setBlinkingSpeed(bSpeed);
+          var qbs = document.getElementById('quickBlinkSpeed');
+          if (qbs) { qbs.value = bSpeed; qbs.dispatchEvent(new Event('input')); }
+          if (window._objStrobe) window._objStrobe.setSpeed(Math.min(20, Math.round(rate / 3)));
+        });
+      }
+    });
   })();
   </script>
 </body>
