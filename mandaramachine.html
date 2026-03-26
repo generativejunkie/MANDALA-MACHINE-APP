@@ -1296,16 +1296,19 @@
       const _orig = ipc.send.bind(ipc);
       const comp = document.createElement('canvas');
       const ctx = comp.getContext('2d');
+      let _busy = false;
+      const img = new Image();
 
       ipc.send = function(channel, ...args) {
         if (channel !== 'canvas-frame') return _orig(channel, ...args);
+        if (_busy) return;
         const engineDataURL = args[0];
         const liq = document.getElementById('liquidCanvas');
         const p5c = document.querySelector('#p5-container canvas');
         const hasLiq = liq && liq.style.display !== 'none' && liq.width > 0;
         const hasP5  = p5c && p5c.width > 0;
         if (!hasLiq && !hasP5) return _orig(channel, engineDataURL);
-        const img = new Image();
+        _busy = true;
         img.onload = () => {
           if (comp.width  !== img.width)  comp.width  = img.width;
           if (comp.height !== img.height) comp.height = img.height;
@@ -1313,7 +1316,9 @@
           if (hasLiq) ctx.drawImage(liq, 0, 0, comp.width, comp.height);
           if (hasP5)  ctx.drawImage(p5c, 0, 0, comp.width, comp.height);
           _orig('canvas-frame', comp.toDataURL('image/jpeg', 0.85));
+          _busy = false;
         };
+        img.onerror = () => { _busy = false; };
         img.src = engineDataURL;
       };
       console.log('[V-OUT] Early composite patch applied');
@@ -6896,8 +6901,8 @@ void main() {
         .find(m => MediaRecorder.isTypeSupported(m)) || '';
 
       // --- SECTION: V-OUT QUALITY ---
-      // VP9/Opus優先, 20Mbps固定で映像品質を最大化
-      recorder = new MediaRecorder(combined, mimeType ? { mimeType, videoBitsPerSecond: 20_000_000 } : {});
+      // VP9/Opus優先, 8Mbps（CPU負荷とのバランス）
+      recorder = new MediaRecorder(combined, mimeType ? { mimeType, videoBitsPerSecond: 8_000_000 } : {});
       chunks = [];
       recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
       recorder.onstop = async () => {
@@ -7150,11 +7155,15 @@ void main() {
     // エンジン初期化後に実行
     function waitAndApply() {
       applyEnglish();
-      // エンジンがDOMを書き換えた場合に再適用
+      // disconnect/reconnect パターンで無限ループを防止
       var panel = document.getElementById('leftPanel');
       if (panel) {
-        new MutationObserver(function() { applyEnglish(); })
-          .observe(panel, { subtree: true, childList: true, characterData: true });
+        var obs = new MutationObserver(function() {
+          obs.disconnect();
+          applyEnglish();
+          obs.observe(panel, { subtree: true, childList: true, characterData: true });
+        });
+        obs.observe(panel, { subtree: true, childList: true, characterData: true });
       }
     }
     if (window.mandalaMachine) { waitAndApply(); }
@@ -7484,7 +7493,7 @@ void main() {
   <!-- Bq クラス（バンドル内SVGレーダー）は範囲外値をクランプしないため、
        render() の DOM 変更を同期的に検知してポリゴン・サークルを頂点で止める -->
   <script>
-  // --- SECTION: RADAR_PENTAGON_CLAMP ---
+  // --- SECTION: RADAR_PENTAGON_CLAMP --- (テスト用: 一時無効化)
   (function initRadarPentagonClamp() {
     function waitForSVG(cb) {
       var t = setInterval(function() {
@@ -7547,9 +7556,16 @@ void main() {
         busy = false;
       }
 
-      // childList: render() が全要素を作り直す際に同期で検知
-      new MutationObserver(clampAll)
-        .observe(svg, { childList: true, subtree: true });
+      // RAF デバウンス: 同期コールバックを避けて次フレームに延期
+      // → エンジンが cx/cy setAttribute に反応して再描画しても無限ループしない
+      var _clampRafId = null;
+      new MutationObserver(function() {
+        if (_clampRafId) return;
+        _clampRafId = requestAnimationFrame(function() {
+          _clampRafId = null;
+          clampAll();
+        });
+      }).observe(svg, { childList: true, subtree: true });
 
       clampAll();
     });
@@ -7614,81 +7630,16 @@ void main() {
   <!-- ===== SECTION: MEMORY CLEANUP / BEFOREUNLOAD ===== -->
   <script>
   // --- SECTION: CLEANUP ON UNLOAD ---
-  // beforeunload時にタイマー・RAF・Socket全解放してメモリリークを防止
+  // beforeunload時にSocket・AudioContextのみ解放（RAF/intervalインターセプトは行わない）
   (function initCleanupOnUnload() {
-    // 登録済みRAF IDを一元管理（既存の_pendingRAFsがあれば流用）
-    window._cleanupRegistry = window._cleanupRegistry || {
-      rafs: new Set(),
-      intervals: new Set(),
-      timeouts: new Set()
-    };
-
-    // グローバルなrAF/interval/timeoutをインターセプトして登録
-    const _origRAF    = window.requestAnimationFrame.bind(window);
-    const _origCAF    = window.cancelAnimationFrame.bind(window);
-    const _origSI     = window.setInterval.bind(window);
-    const _origST     = window.setTimeout.bind(window);
-    const _origCI     = window.clearInterval.bind(window);
-    const _origCT     = window.clearTimeout.bind(window);
-
-    // ※ エンジンバンドルが既にパッチ済の場合はスキップ
-    if (!window.__cleanupPatched) {
-      window.__cleanupPatched = true;
-
-      window.requestAnimationFrame = function(cb) {
-        const id = _origRAF(cb);
-        window._cleanupRegistry.rafs.add(id);
-        return id;
-      };
-      window.cancelAnimationFrame = function(id) {
-        window._cleanupRegistry.rafs.delete(id);
-        return _origCAF(id);
-      };
-      window.setInterval = function(cb, ms, ...args) {
-        const id = _origSI(cb, ms, ...args);
-        window._cleanupRegistry.intervals.add(id);
-        return id;
-      };
-      window.setTimeout = function(cb, ms, ...args) {
-        const id = _origST(cb, ms, ...args);
-        window._cleanupRegistry.timeouts.add(id);
-        return id;
-      };
-      window.clearInterval = function(id) {
-        window._cleanupRegistry.intervals.delete(id);
-        return _origCI(id);
-      };
-      window.clearTimeout = function(id) {
-        window._cleanupRegistry.timeouts.delete(id);
-        return _origCT(id);
-      };
-    }
-
     window.addEventListener('beforeunload', function() {
-      const reg = window._cleanupRegistry;
-
-      // 1. 全RAF停止
-      reg.rafs.forEach(id => _origCAF(id));
-      reg.rafs.clear();
-
-      // 2. 全Interval/Timeout停止
-      reg.intervals.forEach(id => _origCI(id));
-      reg.intervals.clear();
-      reg.timeouts.forEach(id => _origCT(id));
-      reg.timeouts.clear();
-
-      // 3. Socket.io接続解除（window.socket が存在する場合）
       if (window.socket && typeof window.socket.off === 'function') {
         window.socket.off();
         window.socket.disconnect();
       }
-
-      // 4. AudioContext停止
       if (window._sharedAudioContext && window._sharedAudioContext.state !== 'closed') {
         window._sharedAudioContext.close().catch(() => {});
       }
-
-      console.log('[CLEANUP] beforeunload: all RAF/interval/socket released.');
     });
   })();
   </script>
