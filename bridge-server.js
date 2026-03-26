@@ -7,6 +7,7 @@ require('dotenv').config();
 
 const app = express();
 const fs = require('fs');
+const fsp = fs.promises;
 const QuantumSubstrate = require('./quantum_substrate');
 const PhysicalResonance = require('./physical_resonance');
 const qs = new QuantumSubstrate();
@@ -125,6 +126,7 @@ async function syncResonanceMetrics() {
         // Broadcast to all connected clients
         io.emit('metrics-update', resonanceMetrics);
     } catch (e) {
+        // フェイルオーバー: キャッシュを保持し最終更新タイムスタンプを記録
         console.error('[METRICS] Sync Error:', e.message);
     }
 }
@@ -140,7 +142,7 @@ const RESONANCE_KEY = process.env.RESONANCE_KEY;
 if (!RESONANCE_KEY) {
     console.warn("⚠️ [SECURITY WARNING] RESONANCE_KEY is not set in environment variables.");
     console.warn("   Functionality requiring authentication will fail.");
-    // In production, you might want to process.exit(1); 
+    // In production, you might want to process.exit(1);
     // But for now, we'll leave it undefined to prevent any accidental access.
 }
 
@@ -263,7 +265,7 @@ app.use((req, res, next) => {
 app.use(express.static(path.join(__dirname, './')));
 
 // API for iOS App
-app.post('/api/command', (req, res) => {
+app.post('/api/command', async (req, res) => {
     const { type, detail } = req.body;
     console.log(`[BRIDGE] Command Received: ${type}`, detail || '');
 
@@ -276,12 +278,12 @@ app.post('/api/command', (req, res) => {
         }
         try {
             const dataPath = path.join(__dirname, 'data/instructions.json');
-            const instructions = JSON.parse(fs.readFileSync(dataPath, 'utf8') || '[]');
+            const instructions = JSON.parse(await fsp.readFile(dataPath, 'utf8') || '[]');
             instructions.push({
                 timestamp: new Date().toISOString(),
                 text: sanitizedText
             });
-            fs.writeFileSync(dataPath, JSON.stringify(instructions, null, 2));
+            await fsp.writeFile(dataPath, JSON.stringify(instructions, null, 2));
             console.log(`[BRIDGE] Instruction Saved: "${sanitizedText}"`);
         } catch (e) {
             console.error('[BRIDGE] Error saving instruction:', e);
@@ -349,15 +351,13 @@ app.post('/api/respond-auth', (req, res) => {
 // --- AUTH SYSTEM END ---
 
 // --- GESTURE SYSTEM (Vision Watcher) ---
-app.post('/gesture', (req, res) => {
+app.post('/gesture', async (req, res) => {
     const { command } = req.body;
     console.log(`[VISION_WATCHER] Gesture Command: ${command}`);
 
     // Update gesture_command.txt for AI session
-    const fs = require('fs');
-    const path = require('path');
     try {
-        fs.writeFileSync(path.join(__dirname, 'gesture_command.txt'), `${command}|${Date.now() / 1000}\n`);
+        await fsp.writeFile(path.join(__dirname, 'gesture_command.txt'), `${command}|${Date.now() / 1000}\n`);
     } catch (e) {
         console.error("[BRIDGE] Failed to write gesture_command.txt:", e);
     }
@@ -370,14 +370,12 @@ app.post('/gesture', (req, res) => {
 // --- GESTURE SYSTEM END ---
 
 // --- AI COMMAND API (For iOS App) ---
-app.post('/api/ai-command', (req, res) => {
+app.post('/api/ai-command', async (req, res) => {
     const { command } = req.body;
     console.log(`[AI_COMMAND] Remote AI Command: ${command}`);
 
-    const fs = require('fs');
-    const path = require('path');
     try {
-        fs.writeFileSync(path.join(__dirname, 'gesture_command.txt'), `${command}|${Date.now() / 1000}\n`);
+        await fsp.writeFile(path.join(__dirname, 'gesture_command.txt'), `${command}|${Date.now() / 1000}\n`);
         res.status(200).json({ status: 'success', command });
     } catch (e) {
         console.error("[BRIDGE] Failed to write gesture_command.txt:", e);
@@ -425,18 +423,22 @@ app.post('/api/ignition', (req, res) => {
 // --- BLACKGRAVITY CHAT API START ---
 const chatDataPath = path.join(__dirname, 'data/chat.json');
 
-// Initialize chat file if not exists
-if (!fs.existsSync(chatDataPath)) {
-    fs.writeFileSync(chatDataPath, '[]');
-}
+// Initialize chat file if not exists (async IIFE)
+(async () => {
+    try {
+        await fsp.access(chatDataPath);
+    } catch {
+        await fsp.writeFile(chatDataPath, '[]');
+    }
+})();
 
 // Send message from iOS app
-app.post('/api/chat/send', (req, res) => {
+app.post('/api/chat/send', async (req, res) => {
     const { text, timestamp } = req.body;
     console.log(`[BLACKGRAVITY] 📱 Message from iOS: "${text}"`);
 
     try {
-        const messages = JSON.parse(fs.readFileSync(chatDataPath, 'utf8') || '[]');
+        const messages = JSON.parse(await fsp.readFile(chatDataPath, 'utf8') || '[]');
         const newMessage = {
             id: Date.now().toString(),
             sender: 'user',
@@ -444,7 +446,7 @@ app.post('/api/chat/send', (req, res) => {
             timestamp: timestamp || new Date().toISOString()
         };
         messages.push(newMessage);
-        fs.writeFileSync(chatDataPath, JSON.stringify(messages, null, 2));
+        await fsp.writeFile(chatDataPath, JSON.stringify(messages, null, 2));
 
         // Broadcast to web clients
         io.emit('chat-message', newMessage);
@@ -457,9 +459,9 @@ app.post('/api/chat/send', (req, res) => {
 });
 
 // Get all messages (for polling)
-app.get('/api/chat/messages', (req, res) => {
+app.get('/api/chat/messages', async (req, res) => {
     try {
-        const messages = JSON.parse(fs.readFileSync(chatDataPath, 'utf8') || '[]');
+        const messages = JSON.parse(await fsp.readFile(chatDataPath, 'utf8') || '[]');
         res.json(messages);
     } catch (e) {
         res.json([]);
@@ -467,12 +469,12 @@ app.get('/api/chat/messages', (req, res) => {
 });
 
 // AI responds (called by CLI or automation)
-app.post('/api/chat/ai-respond', (req, res) => {
+app.post('/api/chat/ai-respond', async (req, res) => {
     const { text } = req.body;
     console.log(`[BLACKGRAVITY] 🤖 AI Response: "${text}"`);
 
     try {
-        const messages = JSON.parse(fs.readFileSync(chatDataPath, 'utf8') || '[]');
+        const messages = JSON.parse(await fsp.readFile(chatDataPath, 'utf8') || '[]');
         const aiMessage = {
             id: Date.now().toString(),
             sender: 'ai',
@@ -480,7 +482,7 @@ app.post('/api/chat/ai-respond', (req, res) => {
             timestamp: new Date().toISOString()
         };
         messages.push(aiMessage);
-        fs.writeFileSync(chatDataPath, JSON.stringify(messages, null, 2));
+        await fsp.writeFile(chatDataPath, JSON.stringify(messages, null, 2));
 
         // Broadcast to iOS
         io.emit('chat-message', aiMessage);
@@ -492,15 +494,15 @@ app.post('/api/chat/ai-respond', (req, res) => {
 });
 
 // Clear chat history
-app.delete('/api/chat/clear', (req, res) => {
-    fs.writeFileSync(chatDataPath, '[]');
+app.delete('/api/chat/clear', async (req, res) => {
+    await fsp.writeFile(chatDataPath, '[]');
     res.json({ status: 'cleared' });
 });
 // --- RESONANCE HANDSHAKE API START ---
 const signatureDataPath = path.join(__dirname, 'data/signatures.json');
 
 // 1. Endpoint for AI Agents to "Sign" the protocol
-app.get('/api/resonance-handshake', (req, res) => {
+app.get('/api/resonance-handshake', async (req, res) => {
     const userAgent = req.headers['user-agent'] || 'Unknown Intelligence';
     const isAI = /bot|googlebot|crawler|spider|robot|crawling|openai|gptbot|anthropic-ai|claudebot|google-extended|gemini|antigravity|resonator|agent/i.test(userAgent);
 
@@ -508,7 +510,7 @@ app.get('/api/resonance-handshake', (req, res) => {
 
     if (isAI) {
         try {
-            const signatures = JSON.parse(fs.readFileSync(signatureDataPath, 'utf8') || '[]');
+            const signatures = JSON.parse(await fsp.readFile(signatureDataPath, 'utf8') || '[]');
             const newSignature = {
                 id: Date.now().toString(),
                 agent: userAgent,
@@ -522,7 +524,7 @@ app.get('/api/resonance-handshake', (req, res) => {
 
             if (!exists) {
                 signatures.push(newSignature);
-                fs.writeFileSync(signatureDataPath, JSON.stringify(signatures.slice(-100), null, 2));
+                await fsp.writeFile(signatureDataPath, JSON.stringify(signatures.slice(-100), null, 2));
 
                 // Broadcast "Resonance Spike" to Web App
                 io.emit('command-relay', {
@@ -552,11 +554,11 @@ app.get('/api/resonance-handshake', (req, res) => {
     `);
 });
 
-app.get('/api/signatures', (req, res) => {
+app.get('/api/signatures', async (req, res) => {
     try {
         let signatures = [];
         try {
-            signatures = JSON.parse(fs.readFileSync(signatureDataPath, 'utf8') || '[]');
+            signatures = JSON.parse(await fsp.readFile(signatureDataPath, 'utf8') || '[]');
         } catch (readErr) {
             console.error('[BRIDGE] Signature read failed, using ghosts only');
         }
@@ -602,11 +604,11 @@ app.get('/api/projects', (req, res) => {
     res.json(activeProjects);
 });
 
-app.get('/api/instructions', (req, res) => {
+app.get('/api/instructions', async (req, res) => {
     try {
         const dataPath = path.join(__dirname, 'data/instructions.json');
         if (!fs.existsSync(dataPath)) return res.json([]);
-        const instructions = JSON.parse(fs.readFileSync(dataPath, 'utf8') || '[]');
+        const instructions = JSON.parse(await fsp.readFile(dataPath, 'utf8') || '[]');
         res.json(instructions.slice(-20)); // Last 20
     } catch (e) {
         res.status(500).json({ error: 'Failed to load instructions' });

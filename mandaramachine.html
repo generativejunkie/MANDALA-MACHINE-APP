@@ -19,6 +19,7 @@
   <!-- FREEZE: requestAnimationFrame patch (must be before any JS loads) -->
   <!-- captureStream FPS 安定化パッチ: 60fps → 30fps 固定でカクカクを解消 -->
   <script>
+    // --- SECTION: CAPTURE_STREAM_PATCH ---
     (function patchCaptureStreamFPS() {
       const _origCS = HTMLCanvasElement.prototype.captureStream;
       HTMLCanvasElement.prototype.captureStream = function(fps) {
@@ -29,6 +30,7 @@
     })();
   </script>
   <script>
+    // --- SECTION: RAF_FREEZE_PATCH ---
     (function patchRAFForFreeze() {
       const _origRAF = window.requestAnimationFrame.bind(window);
       const _origCAF = window.cancelAnimationFrame.bind(window);
@@ -61,6 +63,7 @@
   </script>
   <!-- MIC STREAM SHARING: getUserMedia interceptor (must be before compiled JS) -->
   <script>
+    // --- SECTION: MIC_STREAM_SHARING ---
     (function patchGetUserMediaForSharedAudio() {
       if (!navigator.mediaDevices) return;
       const _origGUM = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
@@ -2639,6 +2642,7 @@
        Web Audio API AnalyserNode (smoothingTimeConstant=0.8)
        ═══════════════════════════════════════════════════════ -->
   <script>
+  // --- SECTION: AUDIO_ANALYZER ---
   (function AudioAnalyzer() {
     const toggleBtn   = document.getElementById('audioSyncToggle');
     const bassBarFill = document.getElementById('bassBarFill');
@@ -2853,6 +2857,7 @@
   </script>
 
   <script>
+  // --- SECTION: ADVANCED_OVERLAYS ---
   (function setupAdvancedOverlays() {
     'use strict';
 
@@ -3119,6 +3124,7 @@
   </script>
   <!-- SPACE MODE: 独立した星空レイヤー（BARYONと干渉しない） -->
   <script>
+    // --- SECTION: SPACE_MODE_PATCH ---
     (function patchSpaceMode() {
       function apply() {
         const mm = window.mandalaMachine;
@@ -4262,6 +4268,7 @@
 
     // V-OUTはコンパイル済みコード(UIController)が vOutBtn に直接ハンドラを設定済み
     // ===== VJ Controls (TAP, INVERT, GLOW) =====
+    // --- SECTION: VJ_CONTROLS ---
     (function initVjControls() {
       const tapBtn = document.getElementById('tapBpmBtn');
       const invertBtn = document.getElementById('invertBtn');
@@ -4338,6 +4345,7 @@
 
   <!-- ===== BPM AUTO DETECTION ===== -->
   <script>
+    // --- SECTION: BPM_AUTO_DETECTION ---
     (function setupAutoBpm() {
       function apply() {
         const btn = document.getElementById('autoBpmBtn');
@@ -4528,6 +4536,7 @@
 
   <!-- ===== BLACKOUT & FREEZE ===== -->
   <script>
+    // --- SECTION: BLACKOUT_FREEZE ---
     (function setupBlackoutFreeze() {
       function apply() {
         const blackoutBtn = document.getElementById('blackoutBtn');
@@ -5319,6 +5328,7 @@
        VJ MOTION CONTROL — Preset / Motion Mode / Sliders
        ============================================================ -->
   <script>
+  // --- SECTION: VJ_MOTION ---
   (function initVJMotion() {
     const mm = window.mandalaMachine;
     if (!mm) { return setTimeout(initVJMotion, 300); }
@@ -5543,6 +5553,7 @@
        LIQUID: base / MERCURY·LAVA·NEON: tint presets
        ═══════════════════════════════════════════════════════ -->
   <script>
+  // --- SECTION: LIQUID_SHADER ---
   (function initLiquidShader() {
     const mm = window.mandalaMachine;
     if (!mm) { return setTimeout(initLiquidShader, 300); }
@@ -6502,8 +6513,48 @@ void main() {
     })();
   </script>
 
+  <!-- ===== ADAPTIVE AUDIO THRESHOLD ENGINE ===== -->
+  <script>
+  // --- SECTION: ADAPTIVE BASS RING BUFFER ---
+  // 直近180フレーム（約3秒）の移動平均で動的閾値を生成。
+  // 固定値 (bass > 0.65等) を廃止し、音源ダイナミクスに自動追従。
+  (function initAdaptiveBassThreshold() {
+    const RING_SIZE = 180;
+    const _ringBuf = new Float32Array(RING_SIZE);
+    let _ringIdx = 0;
+    let _ringSum = 0;
+    let _ringFilled = 0; // 実充填数（起動直後の不安定期対策）
+
+    /**
+     * バス値をリングバッファに記録し現在の移動平均を返す
+     * @param {number} val - 0〜1のbass intensity
+     * @returns {number} 移動平均
+     */
+    window._bassRingUpdate = function(val) {
+      _ringSum -= _ringBuf[_ringIdx];
+      _ringBuf[_ringIdx] = val;
+      _ringSum += val;
+      _ringIdx = (_ringIdx + 1) % RING_SIZE;
+      if (_ringFilled < RING_SIZE) _ringFilled++;
+      return _ringSum / _ringFilled;
+    };
+
+    /**
+     * 動的バースト閾値を返す
+     * Threshold = MovingAverage * sensitivityFactor
+     * @param {number} sensitivityFactor - スライダー由来の係数 (推奨: 1.2〜2.0)
+     * @returns {number} バースト判定閾値 (最低0.15保証)
+     */
+    window._bassAdaptiveThreshold = function(sensitivityFactor) {
+      const avg = _ringFilled > 0 ? _ringSum / _ringFilled : 0.3;
+      return Math.max(0.15, avg * sensitivityFactor);
+    };
+  })();
+  </script>
+
   <!-- ===== SINGULARITY / BLACKHOLE ===== -->
   <script>
+    // --- SECTION: SINGULARITY_BLACKHOLE ---
     (function setupSingularityAndBlackhole() {
 
       function getMM() { return window.mandalaMachine; }
@@ -6534,7 +6585,12 @@ void main() {
         if (!mm) { sngRaf = requestAnimationFrame(sngLoop); return; }
 
         const bass = window._liquidBassIntensity || 0;
-        const isBurst = (bass > 0.68 && sngLastBass <= 0.68);
+        // 適応型閾値: MovingAverage * SensitivityFactor (スライダー値を反映)
+        // sngPullMult: 0〜2 → sensitivity: 2.0〜1.2 (高Pull=より敏感)
+        const _bassAvg = window._bassRingUpdate ? window._bassRingUpdate(bass) : 0.3;
+        const _sensFactor = 2.0 - sngPullMult * 0.4;
+        const _burstThr = window._bassAdaptiveThreshold ? window._bassAdaptiveThreshold(_sensFactor) : 0.68;
+        const isBurst = (bass > _burstThr && sngLastBass <= _burstThr);
         sngLastBass = bass;
 
         if (sngPhase === 'pull') {
@@ -6839,7 +6895,9 @@ void main() {
       const mimeType = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
         .find(m => MediaRecorder.isTypeSupported(m)) || '';
 
-      recorder = new MediaRecorder(combined, mimeType ? { mimeType, videoBitsPerSecond: 8_000_000 } : {});
+      // --- SECTION: V-OUT QUALITY ---
+      // VP9/Opus優先, 20Mbps固定で映像品質を最大化
+      recorder = new MediaRecorder(combined, mimeType ? { mimeType, videoBitsPerSecond: 20_000_000 } : {});
       chunks = [];
       recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
       recorder.onstop = async () => {
@@ -6922,6 +6980,7 @@ void main() {
 
   <!-- ===== OBJ STROBE ===== -->
   <script>
+    // --- SECTION: OBJ_STROBE ---
     (function() {
       const btn      = document.getElementById('objStrobeBtn');
       const overlay  = document.getElementById('objStrobeOverlay');
@@ -6985,6 +7044,7 @@ void main() {
 
   <!-- ===== エンジン後CSS上書き ===== -->
   <script>
+  // --- SECTION: ENGINE_CSS_OVERRIDES ---
   (function() {
     // ① 即時注入CSS: RA-CHANG グロー制御 + ヘッダーボタンサイズ統一
     const cssImmediate = `
@@ -7072,6 +7132,7 @@ void main() {
 
   <!-- ===== 左パネル i18n 英語強制上書き ===== -->
   <script>
+  // --- SECTION: I18N_OVERRIDE ---
   (function forceLeftPanelEnglish() {
     var I18N_MAP = {
       objects: 'OBJECTS', visuals: 'VISUALS', autoBg: 'AUTO BG',
@@ -7107,6 +7168,7 @@ void main() {
 
   <!-- ===== VISUAL CONTROLLER ブリッジ ===== -->
   <script>
+  // --- SECTION: VISUAL_CONTROLLER_BRIDGE ---
   (function initVisualController() {
     // sub-toggle-btn / sym-btn スタイル
     var vcStyle = document.createElement('style');
@@ -7291,6 +7353,7 @@ void main() {
 
   <!-- ===== RADAR GUARD OVERLAY ===== -->
   <script>
+  // --- SECTION: RADAR_GUARD_OVERLAY ---
   (function initRadarGuard() {
     function waitForRadar(cb) {
       var t = setInterval(function() {
@@ -7421,6 +7484,7 @@ void main() {
   <!-- Bq クラス（バンドル内SVGレーダー）は範囲外値をクランプしないため、
        render() の DOM 変更を同期的に検知してポリゴン・サークルを頂点で止める -->
   <script>
+  // --- SECTION: RADAR_PENTAGON_CLAMP ---
   (function initRadarPentagonClamp() {
     function waitForSVG(cb) {
       var t = setInterval(function() {
@@ -7494,6 +7558,7 @@ void main() {
 
   <!-- ===== PERFORMANCE ULTRA-OPTIMIZERS ===== -->
   <script>
+  // --- SECTION: PERFORMANCE_OPTIMIZERS ---
   (function optimizePerformance() {
 
     // ── DOMキャッシュ ──────────────────────────────────────────
@@ -7508,9 +7573,9 @@ void main() {
 
     // ── RAFスロットル: 描画フレームに1回だけ実行 ────────────────
     window.__rafThrottle = function(fn) {
-      var pending = false;
+      let pending = false;
       return function() {
-        var self = this, args = arguments;
+        const self = this, args = arguments;
         if (pending) return;
         pending = true;
         requestAnimationFrame(function() {
@@ -7522,7 +7587,7 @@ void main() {
 
     // ── RAF-batched MutationObserver ────────────────────────────
     window.__fastSync = function(obsEl, callback) {
-      var pending = false;
+      let pending = false;
       var obs = new MutationObserver(function() {
         if (pending) return;
         pending = true;
@@ -7543,6 +7608,88 @@ void main() {
 
 
     console.log('[PERF] Ultra-Optimizer applied: DOM cache + RAF throttle + will-change');
+  })();
+  </script>
+
+  <!-- ===== SECTION: MEMORY CLEANUP / BEFOREUNLOAD ===== -->
+  <script>
+  // --- SECTION: CLEANUP ON UNLOAD ---
+  // beforeunload時にタイマー・RAF・Socket全解放してメモリリークを防止
+  (function initCleanupOnUnload() {
+    // 登録済みRAF IDを一元管理（既存の_pendingRAFsがあれば流用）
+    window._cleanupRegistry = window._cleanupRegistry || {
+      rafs: new Set(),
+      intervals: new Set(),
+      timeouts: new Set()
+    };
+
+    // グローバルなrAF/interval/timeoutをインターセプトして登録
+    const _origRAF    = window.requestAnimationFrame.bind(window);
+    const _origCAF    = window.cancelAnimationFrame.bind(window);
+    const _origSI     = window.setInterval.bind(window);
+    const _origST     = window.setTimeout.bind(window);
+    const _origCI     = window.clearInterval.bind(window);
+    const _origCT     = window.clearTimeout.bind(window);
+
+    // ※ エンジンバンドルが既にパッチ済の場合はスキップ
+    if (!window.__cleanupPatched) {
+      window.__cleanupPatched = true;
+
+      window.requestAnimationFrame = function(cb) {
+        const id = _origRAF(cb);
+        window._cleanupRegistry.rafs.add(id);
+        return id;
+      };
+      window.cancelAnimationFrame = function(id) {
+        window._cleanupRegistry.rafs.delete(id);
+        return _origCAF(id);
+      };
+      window.setInterval = function(cb, ms, ...args) {
+        const id = _origSI(cb, ms, ...args);
+        window._cleanupRegistry.intervals.add(id);
+        return id;
+      };
+      window.setTimeout = function(cb, ms, ...args) {
+        const id = _origST(cb, ms, ...args);
+        window._cleanupRegistry.timeouts.add(id);
+        return id;
+      };
+      window.clearInterval = function(id) {
+        window._cleanupRegistry.intervals.delete(id);
+        return _origCI(id);
+      };
+      window.clearTimeout = function(id) {
+        window._cleanupRegistry.timeouts.delete(id);
+        return _origCT(id);
+      };
+    }
+
+    window.addEventListener('beforeunload', function() {
+      const reg = window._cleanupRegistry;
+
+      // 1. 全RAF停止
+      reg.rafs.forEach(id => _origCAF(id));
+      reg.rafs.clear();
+
+      // 2. 全Interval/Timeout停止
+      reg.intervals.forEach(id => _origCI(id));
+      reg.intervals.clear();
+      reg.timeouts.forEach(id => _origCT(id));
+      reg.timeouts.clear();
+
+      // 3. Socket.io接続解除（window.socket が存在する場合）
+      if (window.socket && typeof window.socket.off === 'function') {
+        window.socket.off();
+        window.socket.disconnect();
+      }
+
+      // 4. AudioContext停止
+      if (window._sharedAudioContext && window._sharedAudioContext.state !== 'closed') {
+        window._sharedAudioContext.close().catch(() => {});
+      }
+
+      console.log('[CLEANUP] beforeunload: all RAF/interval/socket released.');
+    });
   })();
   </script>
 
