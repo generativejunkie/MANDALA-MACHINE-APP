@@ -109,7 +109,7 @@ export class VisualController {
         let firstPoint = null;
 
         this.params.forEach((param, i) => {
-            const normalized = (param.value - param.min) / (param.max - param.min);
+            const normalized = Math.min(1, Math.max(0, (param.value - param.min) / (param.max - param.min)));
             const dist = normalized * this.radius;
             const p = this.getPointOnCircle(i * angleStep, dist);
 
@@ -134,7 +134,7 @@ export class VisualController {
 
         // Draw handles and labels
         this.params.forEach((param, i) => {
-            const normalized = (param.value - param.min) / (param.max - param.min);
+            const normalized = Math.min(1, Math.max(0, (param.value - param.min) / (param.max - param.min)));
             const dist = normalized * this.radius;
             const p = this.getPointOnCircle(i * angleStep, dist);
 

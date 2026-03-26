@@ -6987,12 +6987,13 @@ void main() {
         font-weight: 600 !important;
         border-width: 1px !important;
       }
-      /* BLACKOUT: 他ボタンと同サイズに統一 */
+      /* BLACKOUT: RESET（.top-row .mode-btn = h26px, p 3px 7px）と同サイズに統一 */
       #blackoutBtn {
         font-weight: 600 !important;
         border-width: 1px !important;
-        height: 24px !important;
-        padding: 0 5px !important;
+        height: 26px !important;
+        min-height: 26px !important;
+        padding: 3px 7px !important;
       }
     `;
     const s1 = document.createElement('style');
@@ -7288,7 +7289,7 @@ void main() {
 
         var cx = W * 0.5;
         var cy = H * 0.5;
-        var R  = Math.min(W, H) * 0.43;
+        var R  = Math.min(W, H) * (80 / 240); // VisualController の radius/canvasSize に合わせる
 
         var ang = [];
         for (var i = 0; i < 5; i++) ang.push(-Math.PI / 2 + (2 * Math.PI / 5) * i);
@@ -7346,6 +7347,81 @@ void main() {
         requestAnimationFrame(draw);
       }
       draw();
+    });
+  })();
+  </script>
+
+  <!-- ===== RADAR PENTAGON CLAMP ===== -->
+  <!-- Bq クラス（バンドル内SVGレーダー）は範囲外値をクランプしないため、
+       render() の DOM 変更を同期的に検知してポリゴン・サークルを頂点で止める -->
+  <script>
+  (function initRadarPentagonClamp() {
+    function waitForSVG(cb) {
+      var t = setInterval(function() {
+        var rc = document.getElementById('radarContainer');
+        var sv = rc && rc.querySelector('svg');
+        if (sv) { clearInterval(t); cb(sv); }
+      }, 200);
+    }
+
+    waitForSVG(function(svg) {
+      var CX = 140, CY = 140, R = 100, COUNT = 5;
+      var busy = false;
+
+      function clampPt(px, py, i) {
+        var dx = px - CX, dy = py - CY;
+        var ang = Math.PI * 2 * i / COUNT - Math.PI / 2;
+        var axX = Math.cos(ang), axY = Math.sin(ang);
+        // 軸方向射影が負 → min 未満なので中心
+        if (dx * axX + dy * axY < 0) return { x: CX, y: CY, ok: false };
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        // R+0.5 より大きい場合のみ修正（収束判定のマージン）
+        if (dist > R + 0.5) return { x: CX + axX * R, y: CY + axY * R, ok: false };
+        return { x: px, y: py, ok: true };
+      }
+
+      function clampAll() {
+        if (busy) return;
+        busy = true;
+
+        // 値ポリゴン（青い rgba fill）の頂点をクランプ
+        svg.querySelectorAll('polygon').forEach(function(el) {
+          var fill = el.getAttribute('fill') || '';
+          if (fill === 'none' || fill === '') return;
+          var rawPts = (el.getAttribute('points') || '').trim().split(/\s+/);
+          if (rawPts.length !== COUNT) return;
+          var dirty = false;
+          var newPts = rawPts.map(function(pt, i) {
+            var p = pt.split(',');
+            if (p.length !== 2) return pt;
+            var r = clampPt(parseFloat(p[0]), parseFloat(p[1]), i);
+            if (!r.ok) dirty = true;
+            return r.x + ',' + r.y;
+          });
+          if (dirty) el.setAttribute('points', newPts.join(' '));
+        });
+
+        // コントロールポイント（circle）をクランプ
+        svg.querySelectorAll('circle').forEach(function(el, i) {
+          if (i >= COUNT) return;
+          var r = clampPt(
+            parseFloat(el.getAttribute('cx')),
+            parseFloat(el.getAttribute('cy')), i
+          );
+          if (!r.ok) {
+            el.setAttribute('cx', r.x.toString());
+            el.setAttribute('cy', r.y.toString());
+          }
+        });
+
+        busy = false;
+      }
+
+      // childList: render() が全要素を作り直す際に同期で検知
+      new MutationObserver(clampAll)
+        .observe(svg, { childList: true, subtree: true });
+
+      clampAll();
     });
   })();
   </script>
