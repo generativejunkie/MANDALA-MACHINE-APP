@@ -573,9 +573,30 @@
     .preset-item {
       background: #111 !important
     }
-    /* panel-headerが透明でサムネイルに重なるのを防ぐ */
+
+    /* upload-section / text-input-section: 上下に罫線 */
+    .upload-section,
+    .text-input-section {
+      border-top: 1px solid #222 !important;
+      border-bottom: 1px solid #222 !important;
+    }
+
+    /* 左パネルのsectionヘッダーを右パネルのmenu-sectionスタイルに合わせる */
     #leftPanel .panel-header {
-      background: #0f0f0f !important;
+      background: transparent !important;
+      border-top: 1px solid #222 !important;
+      padding: 12px 0 0 0 !important;
+      margin-top: 8px !important;
+    }
+    #leftPanel .panel-header:first-child {
+      border-top: none !important;
+      padding-top: 0 !important;
+      margin-top: 0 !important;
+    }
+    #leftPanel .panel-header h3 {
+      border-bottom: none !important;
+      padding-bottom: 0 !important;
+      margin-bottom: 8px !important;
     }
 
     .icon {
@@ -622,12 +643,10 @@
     /* オブジェクトグリッド 5列 */
     #presetGridLeft, #visualGridLeft { grid-template-columns: repeat(5, 1fr) !important; }
 
-    /* グリッド全体: hue-rotate(180deg) で赤枠→シアン枠に変換 */
-    /* 白/グレー/黒は色相なしのため影響なし */
+    /* グリッド全体: hue-rotate(180deg) でエンジンの赤枠→シアンに変換 */
     #presetGridLeft, #visualGridLeft {
       filter: hue-rotate(180deg) !important;
     }
-
     /* サムネイル: invert後にhue-rotateが重ならないよう逆回転で相殺 */
     #presetGridLeft canvas, #presetGridLeft img,
     #visualGridLeft canvas, #visualGridLeft img {
@@ -1190,16 +1209,34 @@
     }
 
     /* =====================================================
-       OBJECTS PANEL — preset-item ホバー強調
+       OBJECTS PANEL — preset-item 選択グロー
+       hue-rotate(180deg)環境下でmode-btn.activeと同一のシアングローにする。
+       #00e5ff (hue≈186°) → hue-rotate(180°) → hue≈6° → rgb(255,26,0)
        ===================================================== */
+    @keyframes presetItemGlowPulse {
+      0%,100% {
+        box-shadow: 0 0 15px rgba(255,26,0,0.7), inset 0 0 6px rgba(255,26,0,0.15);
+        border-color: rgba(255,26,0,1.0);
+      }
+      50% {
+        box-shadow: 0 0 6px rgba(255,26,0,0.25);
+        border-color: rgba(255,26,0,0.5);
+      }
+    }
     .preset-item:hover {
       border-color: rgba(255, 255, 255, 0.5) !important;
       box-shadow: 0 0 6px rgba(255, 255, 255, 0.2) !important;
     }
     .preset-item.active,
-    .preset-item.selected {
-      border-color: #00e5ff !important;
-      box-shadow: 0 0 8px rgba(0, 229, 255, 0.35) !important;
+    .preset-item.selected,
+    .preset-item.active-in-scene {
+      background: rgba(255,26,0,0.15) !important;
+      border-color: rgba(255,26,0,1.0) !important;
+      border-width: 1px !important;
+      box-shadow: 0 0 15px rgba(255,26,0,0.7), inset 0 0 6px rgba(255,26,0,0.15) !important;
+      animation: presetItemGlowPulse 2.2s ease-in-out infinite !important;
+      transform: none !important;
+      z-index: 5;
     }
 
 
@@ -7011,16 +7048,10 @@ void main() {
       ].join('');
       document.head.appendChild(s);
 
-      // エンジンが style 属性を書き換えたら赤→シアンに置換
-      function recolor(el) {
-        if (!el || !el.classList || !el.classList.contains('preset-item')) return;
-        var st = el.getAttribute('style') || '';
-        // エンジンが赤系色を inline で設定したときだけシアンに
-        if (st && /red|#[Ff][0-9a-fA-F]{4,5}|rgb\s*\(\s*2[0-9]{2}/.test(st)) {
-          el.style.borderColor = 'rgba(0,229,255,1.0)';
-          el.style.boxShadow   = '0 0 10px rgba(0,229,255,0.6)';
-        }
-      }
+      // hue-rotate(180deg)がグリッド親に適用されているため、
+      // recolorで明示的にcyanをセットするとhue-rotateで赤に戻ってしまう。
+      // エンジンの赤枠はhue-rotateが自動的にシアンに変換するため無効化。
+      function recolor(el) { /* disabled: hue-rotate handles coloring */ }
 
       var target = document.getElementById('presetGridLeft') || document.getElementById('leftPanel');
       if (target) {
@@ -7034,6 +7065,41 @@ void main() {
     else {
       var t = setInterval(function() {
         if (window.mandalaMachine) { clearInterval(t); startFix(); }
+      }, 100);
+    }
+  })();
+  </script>
+
+  <!-- ===== 左パネル i18n 英語強制上書き ===== -->
+  <script>
+  (function forceLeftPanelEnglish() {
+    var I18N_MAP = {
+      objects: 'OBJECTS', visuals: 'VISUALS', autoBg: 'AUTO BG',
+      blinkingMode: 'BLINKING', active: 'ACTIVE', blinkingSpeed: 'SPEED',
+      upload: '+ MEDIA', strobe: 'STROBE'
+    };
+    function applyEnglish() {
+      var panel = document.getElementById('leftPanel');
+      if (!panel) return;
+      panel.querySelectorAll('[data-i18n]').forEach(function(el) {
+        var key = el.getAttribute('data-i18n');
+        if (I18N_MAP[key]) el.textContent = I18N_MAP[key];
+      });
+    }
+    // エンジン初期化後に実行
+    function waitAndApply() {
+      applyEnglish();
+      // エンジンがDOMを書き換えた場合に再適用
+      var panel = document.getElementById('leftPanel');
+      if (panel) {
+        new MutationObserver(function() { applyEnglish(); })
+          .observe(panel, { subtree: true, childList: true, characterData: true });
+      }
+    }
+    if (window.mandalaMachine) { waitAndApply(); }
+    else {
+      var t = setInterval(function() {
+        if (window.mandalaMachine) { clearInterval(t); setTimeout(waitAndApply, 300); }
       }, 100);
     }
   })();
