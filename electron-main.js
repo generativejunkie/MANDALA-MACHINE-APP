@@ -8,6 +8,7 @@ app.commandLine.appendSwitch('ignore-gpu-blocklist');
 app.commandLine.appendSwitch('enable-hardware-overlays', 'single-fullscreen,single-on-top,underlay');
 app.commandLine.appendSwitch('enable-accelerated-video-decode');
 app.commandLine.appendSwitch('disable-frame-rate-limit');
+app.commandLine.appendSwitch('enable-features', 'WebGPU,WebGPUDeveloperFeatures');
 
 let mainWindow;
 let projectorWindow;
@@ -15,8 +16,8 @@ let popupWindow;  // エンジンの Mandara Output ポップアップ
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1440,
-    height: 900,
+    width: 1920,
+    height: 1080,
     fullscreen: false,
     autoHideMenuBar: true,
     webPreferences: {
