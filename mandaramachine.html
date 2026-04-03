@@ -74,6 +74,7 @@
 
     function _tick(now) {
       _rafId = requestAnimationFrame(_tick);
+      if (now < _pauseUntil) return;  // モード切替中はスキップ
       for (const [, sub] of _subs) {
         if (now - sub.lastT >= sub.interval) {
           sub.lastT = now;
@@ -81,6 +82,8 @@
         }
       }
     }
+
+    let _pauseUntil = 0;
 
     // fps: 呼び出し上限fps (デフォルト30)
     window.__vjSched = {
@@ -96,7 +99,22 @@
         const s = _subs.get(name);
         if (s) s.interval = 1000 / fps;
       },
+      // エンジン負荷ピーク時にオーバーレイを一時停止 (ms)
+      pause(ms = 350) {
+        _pauseUntil = performance.now() + ms;
+      },
     };
+
+    // モード切替ボタン押下時にオーバーレイを一時停止
+    // エンジンの物理再初期化に全フレーム予算を渡す
+    document.addEventListener('click', function(e) {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const id = btn.id || '';
+      if (/topOrbitBtn|topSpinBtn|topQuantumBtn|topGravityBtn|topBaryonBtn|vcOrbitBtn|vcSpinBtn|vcQuantumBtn|vcGravityBtn|vcBaryonBtn/.test(id)) {
+        window.__vjSched.pause(400);
+      }
+    }, true);
   })();
   </script>
 
