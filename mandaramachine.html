@@ -61,6 +61,45 @@
       };
     })();
   </script>
+
+  <!-- ═══════════════════════════════════════════════════════
+       UNIFIED RAF SCHEDULER — 全オーバーレイのRAFを1本化
+       マンダラエンジン(60fps)に影響せず、オーバーレイを30fps上限で管理
+       ═══════════════════════════════════════════════════════ -->
+  <script>
+  (function initVjScheduler() {
+    // name → { cb, interval(ms), lastT }
+    const _subs = new Map();
+    let _rafId = null;
+
+    function _tick(now) {
+      _rafId = requestAnimationFrame(_tick);
+      for (const [, sub] of _subs) {
+        if (now - sub.lastT >= sub.interval) {
+          sub.lastT = now;
+          try { sub.cb(now); } catch(e) {}
+        }
+      }
+    }
+
+    // fps: 呼び出し上限fps (デフォルト30)
+    window.__vjSched = {
+      add(name, cb, fps = 30) {
+        _subs.set(name, { cb, interval: 1000 / fps, lastT: 0 });
+        if (!_rafId) _rafId = requestAnimationFrame(_tick);
+      },
+      remove(name) {
+        _subs.delete(name);
+        if (_subs.size === 0 && _rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
+      },
+      setFps(name, fps) {
+        const s = _subs.get(name);
+        if (s) s.interval = 1000 / fps;
+      },
+    };
+  })();
+  </script>
+
   <!-- MIC STREAM SHARING: getUserMedia interceptor (must be before compiled JS) -->
   <script>
     // --- SECTION: MIC_STREAM_SHARING ---
@@ -6228,9 +6267,8 @@ void main() {
     }
 
     // ── レンダーループ ──────────────────────────────────────
-    function render() {
+    function render(now) {
       if (!active) return;
-      rafId = requestAnimationFrame(render);
       const cw = srcCanvas.width  || overlay.clientWidth;
       const ch = srcCanvas.height || overlay.clientHeight;
       if (!cw || !ch) return;
@@ -6241,7 +6279,6 @@ void main() {
       const sh = Math.max(1, Math.round(ch * scale));
       if (cw !== W || ch !== H || sw !== simW || sh !== simH) resizeFBOs(cw, ch, sw, sh);
 
-      const now       = performance.now();
       const dt        = Math.min((now - _prevRafTime) * 0.001, 0.05);
       _prevRafTime    = now;
       const t         = (now - startTime) * 0.001;
@@ -6348,6 +6385,7 @@ void main() {
         startStream();
         overlay.style.display = 'block';
         startTime = performance.now();
+        _prevRafTime = performance.now();
         pingPong = 0;
         if (W > 0) {
           for (let i = 0; i < 2; i++) {
@@ -6356,16 +6394,16 @@ void main() {
           }
           gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         }
-        render();
-        console.log('[LIQUID] ON — sim scale:', getSimScale());
+        window.__vjSched.add('liquid', render, 30);
+        console.log('[LIQUID/GL2] ON — sim scale:', getSimScale());
       } else {
         if (!active) return;
         active = false;
-        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+        window.__vjSched.remove('liquid');
         overlay.style.display = 'none';
         if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
         vid.srcObject = null; videoReady = false;
-        console.log('[LIQUID] OFF');
+        console.log('[LIQUID/GL2] OFF');
       }
     };
 
@@ -6739,12 +6777,10 @@ fn sfbm(pi:vec2f)->f32 {
       // ── レンダーループ ────────────────────────────────────────
       let active    = false;
       let startTime = performance.now();
-      let rafId     = null;
       let _prevRaf  = performance.now();
 
-      function render() {
+      function render(now) {
         if (!active) return;
-        rafId = requestAnimationFrame(render);
         const cw = srcCanvas.width  || overlay.clientWidth;
         const ch = srcCanvas.height || overlay.clientHeight;
         if (!cw || !ch) return;
@@ -6756,7 +6792,6 @@ fn sfbm(pi:vec2f)->f32 {
           resizeGPU(cw, ch, sw, sh);
         }
 
-        const now   = performance.now();
         const dt    = Math.min((now - _prevRaf) * 0.001, 0.05);
         _prevRaf    = now;
         const t     = (now - startTime) * 0.001;
@@ -6844,14 +6879,15 @@ fn sfbm(pi:vec2f)->f32 {
           startStream();
           overlay.style.display = 'block';
           startTime = performance.now();
+          _prevRaf = performance.now();
           pingPong = 0;
           if (W > 0) { for (let i = 0; i < 2; i++) clearSimTex(simTex[i]); }
-          render();
+          window.__vjSched.add('liquid', render, 30);
           console.log('[LIQUID/GPU] ON');
         } else {
           if (!active) return;
           active = false;
-          if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+          window.__vjSched.remove('liquid');
           overlay.style.display = 'none';
           if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
           vid.srcObject = null; videoReady = false;
@@ -8883,8 +8919,7 @@ struct VOut { @builtin(position) pos: vec4<f32>, @location(0) lp: vec2<f32>, @lo
 
     // ── GPUドローループ ──────────────────────────────────────────────
     function drawGPU(now) {
-      if (!_active) { _raf = null; return; }
-      _raf = requestAnimationFrame(drawGPU);
+      if (!_active) return;
       if (!gpuReady) return;
       var dt = Math.min(now - _lastT, 50) / 16.67;
       _lastT = now;
@@ -8918,10 +8953,11 @@ struct VOut { @builtin(position) pos: vec4<f32>, @location(0) lp: vec2<f32>, @lo
       resize();
       _active = true; _lastT = performance.now();
       if (gpuReady) {
-        initNodesGPU(); _raf = requestAnimationFrame(drawGPU);
+        initNodesGPU();
+        window.__vjSched.add('neuro', drawGPU, 30);
       } else {
         var tid = setInterval(function() {
-          if (gpuReady) { clearInterval(tid); initNodesGPU(); _raf = requestAnimationFrame(drawGPU); }
+          if (gpuReady) { clearInterval(tid); initNodesGPU(); window.__vjSched.add('neuro', drawGPU, 30); }
         }, 100);
       }
     }
@@ -8929,7 +8965,7 @@ struct VOut { @builtin(position) pos: vec4<f32>, @location(0) lp: vec2<f32>, @lo
     function stopGPU() {
       _active = false;
       canvas.style.display = 'none';
-      if (_raf) { cancelAnimationFrame(_raf); _raf = null; }
+      window.__vjSched.remove('neuro');
     }
 
     window.addEventListener('resize', function() { if (_active) resize(); });
@@ -8993,8 +9029,7 @@ struct VOut { @builtin(position) pos: vec4<f32>, @location(0) lp: vec2<f32>, @lo
           nodes.push({ x:Math.random()*W, y:Math.random()*H, vx:(Math.random()-0.5)*0.6, vy:(Math.random()-0.5)*0.6 });
       }
       function draw2D(now) {
-        if (!_active) { _raf = null; return; }
-        _raf = requestAnimationFrame(draw2D);
+        if (!_active) return;
         var dt = Math.min(now - _lastT, 50) / 16.67; _lastT = now;
         var bass = window._liquidBassIntensity || 0;
         var bassBoost = 1 + bass * 3.5;
@@ -9036,11 +9071,12 @@ struct VOut { @builtin(position) pos: vec4<f32>, @location(0) lp: vec2<f32>, @lo
       function start2D() {
         if (_active) return;
         canvas.style.display='block'; resize(); initNodes2D();
-        _active=true; _lastT=performance.now(); _raf=requestAnimationFrame(draw2D);
+        _active=true; _lastT=performance.now();
+        window.__vjSched.add('neuro', draw2D, 30);
       }
       function stop2D() {
         _active=false; canvas.style.display='none';
-        if(_raf){cancelAnimationFrame(_raf);_raf=null;} ctx2.clearRect(0,0,W,H);
+        window.__vjSched.remove('neuro'); ctx2.clearRect(0,0,W,H);
       }
       var toggleBtn=document.getElementById('neuroLinkToggle'); if(!toggleBtn) return;
       toggleBtn.addEventListener('click',function(){
