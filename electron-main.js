@@ -37,7 +37,6 @@ function createWindow() {
     if (msg.includes('[STAR]')) console.log('[R]', msg);
   });
 
-
   // window.open() で開く "Mandara Output" ポップアップを捕捉
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     return {

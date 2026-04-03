@@ -5384,7 +5384,7 @@
 
       function checkColorSync() {
         if (!window._liquidColorAuto) return;  // 手動オーバーライド中
-        const idx = getCurrentIdx();
+        const idx = currentIdx();
         if (idx < 0 || idx >= SCHEDULE.length) return;
         const row = SCHEDULE[idx];
         if (!row.color || !HEX_RE.test(row.color)) return;
@@ -5653,18 +5653,89 @@
   </script>
 
   <!-- ═══════════════════════════════════════════════════════
-       LIQUID SHADER — Optimized: Resolution Scaling + HALF_FLOAT + VAO
-       LIQUID: base / MERCURY·LAVA·NEON: tint presets
+       LIQUID SHADER — WebGPU (+ WebGL2 fallback)
+       LIQUID: base / MERCURY·LAVA·NEON·SMOKE·TRICOLOR
        ═══════════════════════════════════════════════════════ -->
   <script>
   // --- SECTION: LIQUID_SHADER ---
-  (function initLiquidShader() {
+  (async function initLiquidShader() {
     const mm = window.mandalaMachine;
     if (!mm) { return setTimeout(initLiquidShader, 300); }
     const srcCanvas = document.querySelector('#canvasContainer canvas');
     if (!srcCanvas) { return setTimeout(initLiquidShader, 200); }
 
     const overlay = document.getElementById('liquidCanvas');
+
+    // ── 共有ステート (color picker・setFluidPresetから参照される変数) ──
+    const PRESETS = {
+      liquid:   { tint: [0.30, 0.58, 1.00], viscosity: 5, tension: 5,  smoke: 0 },
+      mercury:  { tint: [0.85, 0.93, 1.00], viscosity: 4, tension: 9,  smoke: 0 },
+      lava:     { tint: [1.00, 0.24, 0.00], viscosity: 9, tension: 2,  smoke: 0 },
+      neon:     { tint: [0.00, 1.00, 0.62], viscosity: 2, tension: 5,  smoke: 0 },
+      metallic: { tint: [0.75, 0.78, 0.82], viscosity: 8, tension: 10, smoke: 0, tricolor: 0 },
+      smoke:    { tint: [0.62, 0.68, 0.72], viscosity: 7, tension: 0,  smoke: 1, tricolor: 0 },
+      tricolor: { tint: [1.00, 1.00, 1.00], viscosity: 7, tension: 0,  smoke: 1, tricolor: 1 },
+    };
+    // lerp ステート (WebGPU / WebGL2 両パスで共有)
+    let _targetTint  = [0.30, 0.58, 1.00];
+    let _lerpTint    = [0.30, 0.58, 1.00];
+    let _targetVisc  = 0.5,  _lerpVisc    = 0.5;
+    let _targetTen   = 0.5,  _lerpTen     = 0.5;
+    let _targetSmoke = 0.0,  _lerpSmoke   = 0.0;
+    let _targetTricolor = 0.0, _lerpTricolor = 0.0;
+    let _tc1 = [0.533, 0.0, 1.0], _tc2 = [0.0, 0.0, 1.0];
+    const _tc3 = [1.0, 1.0, 1.0];
+    let _fadeOut = 1.0;
+    let _bassIntensity = 0.0, _trebleIntensity = 0.0, _audioSync = 0.0;
+    let _gpuResizeForce = false;
+
+    // ── 共有パブリック API ────────────────────────────────────
+    window.setLiquidFadeOut = v => { _fadeOut = Math.max(0, Math.min(1, v)); };
+    window.getLiquidFadeOut = ()  => _fadeOut;
+    window.setLiquidColor   = hex => {
+      if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
+      _targetTint[0] = parseInt(hex.slice(1,3),16)/255;
+      _targetTint[1] = parseInt(hex.slice(3,5),16)/255;
+      _targetTint[2] = parseInt(hex.slice(5,7),16)/255;
+    };
+    window.setFluidPreset = name => {
+      const p = PRESETS[name] || PRESETS.liquid;
+      _targetTint[0]=p.tint[0]; _targetTint[1]=p.tint[1]; _targetTint[2]=p.tint[2];
+      _targetVisc = p.viscosity/10.0; _targetTen = p.tension/10.0;
+      _targetSmoke = p.smoke||0.0; _targetTricolor = p.tricolor||0.0;
+      requestAnimationFrame(() => {
+        const vs=document.getElementById('liquidViscositySlider');
+        const ts=document.getElementById('elasticitySlider');
+        if(vs) vs.value=p.viscosity; if(ts) ts.value=p.tension;
+        const cp=document.getElementById('liquidColorPicker');
+        if(cp){ const r=Math.round(p.tint[0]*255).toString(16).padStart(2,'0'),
+                       g=Math.round(p.tint[1]*255).toString(16).padStart(2,'0'),
+                       b=Math.round(p.tint[2]*255).toString(16).padStart(2,'0');
+                cp.value='#'+r+g+b; }
+      });
+      console.log('[LIQUID] Preset→', name, p.smoke?'(SMOKE)':'');
+    };
+    document.getElementById('liquidColorPicker')?.addEventListener('input', function() {
+      _targetTint[0]=parseInt(this.value.slice(1,3),16)/255;
+      _targetTint[1]=parseInt(this.value.slice(3,5),16)/255;
+      _targetTint[2]=parseInt(this.value.slice(5,7),16)/255;
+    });
+
+    // ── WebGPU 試行 ───────────────────────────────────────────
+    let _gpuOK = false;
+    if (navigator.gpu) {
+      try { await _initWebGPU(); _gpuOK = true; }
+      catch(e) { console.warn('[LIQUID] WebGPU failed, falling back to WebGL2:', e.message||e); }
+    }
+    if (_gpuOK) {
+      _setupColorPickers();
+      return;
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // WebGL2 フォールバック (既存実装 - ブロックスコープで変数衝突を回避)
+    // ════════════════════════════════════════════════════════════
+    {
     const gl = overlay.getContext('webgl2', { antialias: false, preserveDrawingBuffer: false, alpha: false });
     if (!gl) { console.warn('[LIQUID] WebGL2 unavailable'); return; }
 
@@ -5672,7 +5743,7 @@
     const extHF      = gl.getExtension('EXT_color_buffer_half_float');
     const internalFmt = extHF ? gl.RGBA16F  : gl.RGBA8;
     const dataType    = extHF ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE;
-    console.log('[LIQUID] HALF_FLOAT:', !!extHF);
+    console.log('[LIQUID] WebGL2 fallback — HALF_FLOAT:', !!extHF);
 
     // ── VERTEX SHADER (location=0 固定でVAO共有) ────────────
     const VS = `#version 300 es
@@ -6106,46 +6177,12 @@ void main() {
       u_tc3:            gl.getUniformLocation(progDisplay, 'u_tc3'),
     };
 
-    // ── プリセット ──────────────────────────────────────────
-    const PRESETS = {
-      liquid:   { tint: [0.30, 0.58, 1.00], viscosity: 5, tension: 5,  smoke: 0 },
-      mercury:  { tint: [0.85, 0.93, 1.00], viscosity: 4, tension: 9,  smoke: 0 },
-      lava:     { tint: [1.00, 0.24, 0.00], viscosity: 9, tension: 2,  smoke: 0 },
-      neon:     { tint: [0.00, 1.00, 0.62], viscosity: 2, tension: 5,  smoke: 0 },
-      metallic: { tint: [0.75, 0.78, 0.82], viscosity: 8, tension: 10, smoke: 0,              tricolor: 0 },
-      smoke:    { tint: [0.62, 0.68, 0.72], viscosity: 7, tension: 0,  smoke: 1,              tricolor: 0 },
-      tricolor: { tint: [1.00, 1.00, 1.00], viscosity: 7, tension: 0,  smoke: 1, tricolor: 1            }, // R/B/W — no green
-    };
-    let currentTint = PRESETS.liquid.tint;
-
-    // ── ステート ────────────────────────────────────────────
+    // ── ステート (WebGL2ローカル) ────────────────────────────
     let pingPong  = 0;
     let startTime = performance.now();
     let active    = false;
     let rafId     = null;
-    let _srcTexW  = 0, _srcTexH = 0;  // texSubImage2D サイズ追跡
-
-    // ── Preset Lerp — DOM イベントなしで 0.25s かけてスムーズ遷移 ──
-    let _targetTint  = [0.30, 0.58, 1.00];
-    let _lerpTint    = [0.30, 0.58, 1.00];
-    let _targetVisc  = 0.5;   // normalized 0-1
-    let _targetTen   = 0.5;
-    let _lerpVisc    = 0.5;
-    let _lerpTen     = 0.5;
-    let _targetSmoke    = 0.0;   // 0=solid, 1=smoke
-    let _lerpSmoke      = 0.0;
-    let _targetTricolor = 0.0;   // 0=normal, 1=tricolor R/B/W
-    let _lerpTricolor   = 0.0;
-    // Tricolor: 縁2色（カスタム）+ 中心は白固定
-    let _tc1 = [0.533, 0.0, 1.0]; // 縁カラー1 (デフォルト: 紫 #8800ff)
-    let _tc2 = [0.0, 0.0, 1.0];  // 縁カラー2 (デフォルト: 青)
-    const _tc3 = [1.0, 1.0, 1.0];  // 中心: 白固定
-    // Fade-out tween (RESET animation)
-    let _fadeOut        = 1.0;   // 1.0=normal, 0.0=full black
-    // Audio-reactive state (updated by AudioAnalyzer IIFE via globals)
-    let _bassIntensity   = 0.0;  // boosted bass   0-1
-    let _trebleIntensity = 0.0;  // boosted treble 0-1
-    let _audioSync       = 0.0;  // 0=off, 1=on
+    let _srcTexW  = 0, _srcTexH = 0;
     let _prevRafTime = performance.now();
 
     // ── オーディオビート — プール済みバッファで GC ゼロ ────
@@ -6303,10 +6340,6 @@ void main() {
       if (disp) disp.textContent = parseFloat(val).toFixed(1);
     }
 
-    // ── Fade-out tween (public) ──
-    window.setLiquidFadeOut = function(v) { _fadeOut = Math.max(0, Math.min(1, v)); };
-    window.getLiquidFadeOut = function()  { return _fadeOut; };
-
     // ── パブリック API ──────────────────────────────────────
     window.toggleLiquidMode = function(on) {
       if (on) {
@@ -6336,32 +6369,6 @@ void main() {
       }
     };
 
-    window.setFluidPreset = function(name) {
-      const p = PRESETS[name] || PRESETS.liquid;
-      // Lerp ターゲットをセット — DOM イベント・スライダー変更なし → ゼロラグ
-      _targetTint[0] = p.tint[0]; _targetTint[1] = p.tint[1]; _targetTint[2] = p.tint[2];
-      _targetVisc     = p.viscosity / 10.0;
-      _targetTen      = p.tension   / 10.0;
-      _targetSmoke    = p.smoke     || 0.0;
-      _targetTricolor = p.tricolor  || 0.0;
-      // スライダーUI + カラーピッカーの見た目のみ次フレームで更新
-      requestAnimationFrame(() => {
-        const vs = document.getElementById('liquidViscositySlider');
-        const ts = document.getElementById('elasticitySlider');
-        if (vs) vs.value = p.viscosity;
-        if (ts) ts.value = p.tension;
-        // カラーピッカーをプリセットカラーに同期
-        const cp = document.getElementById('liquidColorPicker');
-        if (cp) {
-          const r = Math.round(p.tint[0]*255).toString(16).padStart(2,'0');
-          const g = Math.round(p.tint[1]*255).toString(16).padStart(2,'0');
-          const b = Math.round(p.tint[2]*255).toString(16).padStart(2,'0');
-          cp.value = '#' + r + g + b;
-        }
-      });
-      console.log('[LIQUID] Preset→', name, p.smoke ? '(SMOKE)' : '');
-    };
-
     // ── FBO フィードバッククリア (RESET から呼ばれる) ──────
     // Hard FBO purge — call AFTER setFluidPreset() so targets are already Mercury
     window.clearLiquidFBO = function() {
@@ -6388,84 +6395,482 @@ void main() {
       _audioSync       = 0;
     };
 
-    // ── カラーピッカー → リアルタイムに _targetTint を更新 ──
-    document.getElementById('liquidColorPicker')?.addEventListener('input', function() {
-      const hex = this.value;
-      _targetTint[0] = parseInt(hex.slice(1,3), 16) / 255;
-      _targetTint[1] = parseInt(hex.slice(3,5), 16) / 255;
-      _targetTint[2] = parseInt(hex.slice(5,7), 16) / 255;
-      // 手動操作フラグは TIME TABLE IIFE 側で設定される
-    });
-
-    // ── パブリック: CSV COLOR SYNC から呼ばれる ──
-    window.setLiquidColor = function(hex) {
-      if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
-      _targetTint[0] = parseInt(hex.slice(1,3), 16) / 255;
-      _targetTint[1] = parseInt(hex.slice(3,5), 16) / 255;
-      _targetTint[2] = parseInt(hex.slice(5,7), 16) / 255;
-    };
-
-    // ── NEON / SMOKE / TRI カスタムカラーピッカー ──
-    let _currentPreset = 'liquid';
-    const _origPresets = {
-      neon:     [...PRESETS.neon.tint],
-      smoke:    [...PRESETS.smoke.tint],
-      tricolor: [...PRESETS.tricolor.tint],
-    };
-
-    function hexToTint(hex) {
-      return [
-        parseInt(hex.slice(1,3), 16) / 255,
-        parseInt(hex.slice(3,5), 16) / 255,
-        parseInt(hex.slice(5,7), 16) / 255,
-      ];
-    }
-
-    function applyCustomColor(presetName, hex) {
-      const t = hexToTint(hex);
-      PRESETS[presetName].tint = t;
-      // 現在そのプリセットが選択されていれば即反映
-      if (_currentPreset === presetName) {
-        _targetTint[0] = t[0]; _targetTint[1] = t[1]; _targetTint[2] = t[2];
-      }
-    }
-
-    // プリセット選択時に追跡 + TRICOLOR時は背景を黒固定
-    const _origSetFluidPreset = window.setFluidPreset;
-    window.setFluidPreset = function(name) {
-      _currentPreset = name;
-      _origSetFluidPreset?.(name);
-      if (name === 'tricolor') {
-        // 背景を黒に強制
-        window.mandalaMachine?.setBackgroundColor?.({ r: 0, g: 0, b: 0 });
-        const bgPicker = document.getElementById('bgColorPickerSync');
-        if (bgPicker) bgPicker.value = '#000000';
-      }
-    };
-
-    // マウスオーバーでカラーピッカーを開く
-    ['neonColorPicker','smokeColorPicker','tc1ColorPicker','tc2ColorPicker'].forEach(id => {
-      document.getElementById(id)?.addEventListener('mouseenter', function() { this.click(); });
-    });
-
-    document.getElementById('neonColorPicker')?.addEventListener('input', function() {
-      applyCustomColor('neon', this.value);
-    });
-    document.getElementById('smokeColorPicker')?.addEventListener('input', function() {
-      applyCustomColor('smoke', this.value);
-    });
-    // TRI 3色ピッカー → _tc1/_tc2/_tc3 直接更新
-    function pickerToRGB(hex) {
-      return [parseInt(hex.slice(1,3),16)/255, parseInt(hex.slice(3,5),16)/255, parseInt(hex.slice(5,7),16)/255];
-    }
-    document.getElementById('tc1ColorPicker')?.addEventListener('input', function() {
-      _tc1 = pickerToRGB(this.value);
-    });
-    document.getElementById('tc2ColorPicker')?.addEventListener('input', function() {
-      _tc2 = pickerToRGB(this.value);
-    });
-
     console.log('[LIQUID] Ready — HALF_FLOAT:', !!extHF, '| VAO | Resolution Scaling');
+    } // ── WebGL2 フォールバック END ──────────────────────────
+    _setupColorPickers();
+
+    // ══════════════════════════════════════════════════════════════
+    // カラーピッカーセットアップ (WebGPU / WebGL2 共通)
+    // ══════════════════════════════════════════════════════════════
+    function _setupColorPickers() {
+      let _currentPreset = 'liquid';
+
+      function hexToTint(hex) {
+        return [parseInt(hex.slice(1,3),16)/255, parseInt(hex.slice(3,5),16)/255, parseInt(hex.slice(5,7),16)/255];
+      }
+      function pickerToRGB(hex) {
+        return [parseInt(hex.slice(1,3),16)/255, parseInt(hex.slice(3,5),16)/255, parseInt(hex.slice(5,7),16)/255];
+      }
+      function applyCustomColor(presetName, hex) {
+        const t = hexToTint(hex);
+        PRESETS[presetName].tint = t;
+        if (_currentPreset === presetName) {
+          _targetTint[0] = t[0]; _targetTint[1] = t[1]; _targetTint[2] = t[2];
+        }
+      }
+
+      // プリセット選択追跡 + TRICOLOR時は背景を黒固定
+      const _origSetFluidPreset = window.setFluidPreset;
+      window.setFluidPreset = function(name) {
+        _currentPreset = name;
+        _origSetFluidPreset?.(name);
+        if (name === 'tricolor') {
+          window.mandalaMachine?.setBackgroundColor?.({ r: 0, g: 0, b: 0 });
+          const bgPicker = document.getElementById('bgColorPickerSync');
+          if (bgPicker) bgPicker.value = '#000000';
+        }
+      };
+
+      ['neonColorPicker','smokeColorPicker','tc1ColorPicker','tc2ColorPicker'].forEach(id => {
+        document.getElementById(id)?.addEventListener('mouseenter', function() { this.click(); });
+      });
+      document.getElementById('neonColorPicker')?.addEventListener('input', function() {
+        applyCustomColor('neon', this.value);
+      });
+      document.getElementById('smokeColorPicker')?.addEventListener('input', function() {
+        applyCustomColor('smoke', this.value);
+      });
+      document.getElementById('tc1ColorPicker')?.addEventListener('input', function() {
+        _tc1 = pickerToRGB(this.value);
+      });
+      document.getElementById('tc2ColorPicker')?.addEventListener('input', function() {
+        _tc2 = pickerToRGB(this.value);
+      });
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // WebGPU 実装 — ADVECT (流体シミュ) + DISPLAY (金属/煙描画)
+    // ══════════════════════════════════════════════════════════════
+    async function _initWebGPU() {
+      const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
+      if (!adapter) throw new Error('[LIQUID] No WebGPU adapter');
+      const device  = await adapter.requestDevice();
+
+      const gpuCtx   = overlay.getContext('webgpu');
+      const canvasFmt = navigator.gpu.getPreferredCanvasFormat();
+      function configureGPUCtx(w, h) {
+        overlay.width = w; overlay.height = h;
+        gpuCtx.configure({ device, format: canvasFmt, alphaMode: 'opaque' });
+      }
+
+      // ── ソース映像 ────────────────────────────────────────────
+      const vid = document.createElement('video');
+      vid.muted = true; vid.playsInline = true; vid.autoplay = true;
+      let stream = null, videoReady = false;
+      vid.addEventListener('playing',    () => { videoReady = true; });
+      vid.addEventListener('loadeddata', () => { videoReady = true; });
+      function startStream() {
+        try {
+          stream = srcCanvas.captureStream(30);
+          vid.srcObject = stream;
+          vid.play().catch(() => {});
+        } catch(e) { console.warn('[LIQUID/GPU] captureStream failed', e); }
+      }
+
+      // ── サンプラー ────────────────────────────────────────────
+      const sampler = device.createSampler({
+        minFilter:'linear', magFilter:'linear',
+        addressModeU:'clamp-to-edge', addressModeV:'clamp-to-edge',
+      });
+
+      // ── ユニフォームバッファ ──────────────────────────────────
+      // ADVECT: [u_res.xy, u_time, u_viscosity, u_beat, u_elasticity, u_tricolor, pad] = 8×f32 = 32B
+      const advectUBuf = device.createBuffer({ size:32, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+      // DISPLAY: vec3×4(pad to 4f) + vec2 + 14×f32 + pad = 32×f32 = 128B
+      const displayUBuf = device.createBuffer({ size:128, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+      const advU  = new Float32Array(8);
+      const dispU = new Float32Array(32);
+
+      // ── WGSL シェーダー ───────────────────────────────────────
+      const WS_VS = `
+struct VSOut { @builtin(position) pos:vec4f, @location(0) uv:vec2f }
+@vertex fn main(@builtin(vertex_index) i:u32)->VSOut {
+  var P=array<vec2f,4>(vec2f(-1,-1),vec2f(1,-1),vec2f(-1,1),vec2f(1,1));
+  let p=P[i];
+  return VSOut(vec4f(p,0,1), p*0.5+0.5);
+}`;
+
+      const WS_ADVECT = `
+struct AU { u_res:vec2f, u_time:f32, u_viscosity:f32, u_beat:f32, u_elasticity:f32, u_tricolor:f32, _p:f32 }
+@group(0) @binding(0) var<uniform> u:AU;
+@group(0) @binding(1) var smp:sampler;
+@group(0) @binding(2) var u_src:texture_2d<f32>;
+@group(0) @binding(3) var u_prev:texture_2d<f32>;
+fn hsh(p:vec2f)->f32 { var q=fract(p*vec2f(127.1,311.7)); return fract(dot(q,q+78.233)); }
+fn vno(p:vec2f)->f32 {
+  let i=floor(p); let f=fract(p); let s=f*f*(3.0-2.0*f);
+  return mix(mix(hsh(i),hsh(i+vec2f(1,0)),s.x),mix(hsh(i+vec2f(0,1)),hsh(i+vec2f(1,1)),s.x),s.y);
+}
+fn fbm(pi:vec2f)->f32 {
+  var p=pi; var v=0.5714*vno(p); p*=2.0; v+=0.2857*vno(p); p*=2.0; v+=0.1429*vno(p); return v;
+}
+@fragment fn main(@location(0) uv:vec2f)->@location(0) vec4f {
+  let fs=0.025+(1.0-u.u_viscosity)*0.055;
+  let fa=0.0015+(1.0-u.u_viscosity)*0.0055+u.u_beat*0.003;
+  let fx=fbm(uv*2.2+vec2f(u.u_time*fs,0.3))-0.5;
+  let fy=fbm(uv*2.2+vec2f(0.7,u.u_time*fs*0.85)+vec2f(4.1,2.3))-0.5;
+  var fl=vec2f(fx,fy)*fa*12.0;
+  fl+=(uv-0.5)*max(0.0,u.u_beat-0.4)*0.025;
+  fl+=(uv-0.5)*smoothstep(0.55,0.95,u.u_beat)*u.u_elasticity*0.10;
+  let pu=clamp(uv+fl,vec2f(0.001),vec2f(0.999));
+  let br=(0.5+(1.0-u.u_viscosity)*1.5)/min(u.u_res.x,u.u_res.y);
+  let nb=textureSample(u_prev,smp,clamp(pu+vec2f(br,0),vec2f(0.001),vec2f(0.999)))
+        +textureSample(u_prev,smp,clamp(pu-vec2f(br,0),vec2f(0.001),vec2f(0.999)))
+        +textureSample(u_prev,smp,clamp(pu+vec2f(0,br),vec2f(0.001),vec2f(0.999)))
+        +textureSample(u_prev,smp,clamp(pu-vec2f(0,br),vec2f(0.001),vec2f(0.999)));
+  let pm=mix(nb*0.25,textureSample(u_prev,smp,pu),0.30+u.u_viscosity*0.60);
+  let ps=clamp(0.78+u.u_viscosity*0.15+u.u_beat*0.015+u.u_tricolor*0.036,0.0,0.98);
+  return mix(textureSample(u_src,smp,uv),pm,ps);
+}`;
+
+      const WS_DISPLAY = `
+struct DU {
+  u_tint:vec3f,_p0:f32, u_tc1:vec3f,_p1:f32, u_tc2:vec3f,_p2:f32, u_tc3:vec3f,_p3:f32,
+  u_res:vec2f, u_time:f32, u_tension:f32, u_viscosity:f32, u_beat:f32,
+  u_elasticity:f32, u_smoke:f32, u_tricolor:f32,
+  u_bassIntensity:f32, u_trebleIntensity:f32, u_colorGain:f32,
+  u_audioSync:f32, u_whiteCore:f32, u_fadeOut:f32, _p4:f32
+}
+@group(0) @binding(0) var<uniform> u:DU;
+@group(0) @binding(1) var smp:sampler;
+@group(0) @binding(2) var u_fbo:texture_2d<f32>;
+@group(0) @binding(3) var u_src:texture_2d<f32>;
+fn h21(p_in:vec2f)->f32 { var p=fract(p_in*vec2f(127.1,311.7)); p+=dot(p,p+17.31); return fract(p.x*p.y); }
+fn vn2(p:vec2f)->f32 {
+  let i=floor(p); let f=fract(p); let uv2=f*f*(3.0-2.0*f);
+  return mix(mix(h21(i),h21(i+vec2f(1,0)),uv2.x),mix(h21(i+vec2f(0,1)),h21(i+vec2f(1,1)),uv2.x),uv2.y);
+}
+fn sfbm(pi:vec2f)->f32 {
+  var p=pi; var v=0.500*vn2(p); p*=2.1; v+=0.250*vn2(p); p*=2.1; v+=0.125*vn2(p); p*=2.1; v+=0.063*vn2(p); return v;
+}
+@fragment fn main(@location(0) uv:vec2f)->@location(0) vec4f {
+  let txl=1.0/u.u_res; let LUM=vec3f(0.2126,0.7152,0.0722);
+  let dc=textureSample(u_fbo,smp,uv);
+  let d=dot(dc.rgb,LUM); let e=txl.x*2.2;
+  let dL=dot(textureSample(u_fbo,smp,uv+vec2f(-e,0)).rgb,LUM);
+  let dR=dot(textureSample(u_fbo,smp,uv+vec2f(e,0)).rgb,LUM);
+  let dD=dot(textureSample(u_fbo,smp,uv+vec2f(0,-e)).rgb,LUM);
+  let dU=dot(textureSample(u_fbo,smp,uv+vec2f(0,e)).rgb,LUM);
+  let grad=vec2f(dR-dL,dU-dD)*0.5; let gm=length(grad); let gn=grad/(gm+0.0001);
+  let mTh=0.30+u.u_viscosity*0.05; let mEW=max(0.0008,0.010-u.u_tension*0.009);
+  let mmk=pow(smoothstep(mTh-mEW,mTh+mEW,d),0.50);
+  let mN=normalize(vec3f(grad*5.5,1.0)); let vd=vec3f(0,0,1);
+  var s1=pow(max(0.0,dot(mN,normalize(normalize(vec3f(-0.52,0.82,1.0))+vd))),140.0+u.u_tension*320.0);
+  s1*=mmk*clamp(gm*14.0,0.0,1.0)*(1.0+u.u_beat);
+  var s2=pow(max(0.0,dot(mN,normalize(normalize(vec3f(0.55,-0.38,0.7))+vd))),20.0+u.u_tension*50.0);
+  s2*=mmk*clamp(gm*7.0,0.0,1.0)*0.38;
+  var fr=pow(1.0-clamp(dot(mN,vd),0.0,1.0),3.5); fr*=mmk*clamp(gm*10.0,0.0,1.0);
+  var men=exp(-abs(d-mTh)*(90.0+u.u_tension*440.0))*clamp(gm*20.0,0.0,1.0);
+  men=clamp(men*(1.0+u.u_beat*1.4),0.0,1.0);
+  let rS=0.024*mmk*clamp(gm*10.0,0.0,1.0)+u.u_beat*0.010*mmk;
+  let ref2=textureSample(u_src,smp,clamp(uv-gn*rS,vec2f(0.001),vec2f(0.999))).rgb;
+  var mBase=mix(vec3f(0),u.u_tint*0.12,mmk*0.65); mBase=mix(mBase,ref2*0.28,mmk*0.45);
+  var mCol=mBase+u.u_tint*men*(0.65+u.u_tension*0.35)+vec3f(men*0.40);
+  mCol+=u.u_tint*s1*(0.55+u.u_tension*0.45)*(1.0+u.u_beat*0.9)+vec3f(s1*0.50);
+  mCol+=u.u_tint*s2+u.u_tint*fr*0.45+vec3f(u.u_beat*0.06*mmk);
+  var mg=exp(-max(0.0,mTh-d)*16.0)*(1.0-mmk)*clamp(gm*14.0,0.0,1.0);
+  mCol+=u.u_tint*clamp(mg*(1.0+u.u_beat*1.8),0.0,0.75)*0.55;
+  let nUV=uv*3.8+vec2f(u.u_time*0.038,u.u_time*0.025);
+  let sw=sfbm(nUV)*0.5+0.5; let sw2=sfbm(nUV*1.7+4.3)*0.5+0.5;
+  let sDn=pow(max(0.0,d),1.35)*(0.80+sw*0.20);
+  let sMk=pow(clamp(sDn*2.8,0.0,1.0),0.75);
+  var em=pow(max(0.0,d-0.04),0.65)*(0.6+sw2*0.4); em=clamp(em*(1.0+u.u_beat*2.5),0.0,1.0);
+  var sCol=u.u_tint*sDn*1.5+u.u_tint*em*0.70;
+  var sB=exp(-max(0.0,0.14-d)*2.8)*(1.0-sMk);
+  sB=mix(sB,smoothstep(0.0,0.18,d)*(1.0-sMk)*sw,0.55);
+  sB=clamp(sB*(1.0+u.u_beat*3.2),0.0,1.0);
+  sCol+=u.u_tint*sB+u.u_tint*(sw-0.5)*sMk*0.18;
+  let tf=sin(u.u_time*1.8)*0.5+0.5;
+  let bI=clamp(u.u_bassIntensity*u.u_colorGain,0.0,1.0);
+  let tI=clamp(u.u_trebleIntensity*u.u_colorGain,0.0,1.0);
+  let bF=mix(1.0-tf,bI,u.u_audioSync); let tF=mix(tf,tI,u.u_audioSync);
+  let aA=clamp((bF+tF)*0.6+max(bF,tF)*0.5,0.4,1.0);
+  let sRB=(u.u_tc1*(1.0-smoothstep(0.35,0.65,uv.x))+u.u_tc2*smoothstep(0.35,0.65,uv.x))*aA;
+  let rG=smoothstep(0.08,0.42,length(uv-0.5));
+  let cW=(1.0-rG)*clamp(0.55+bI*u.u_whiteCore*1.6+u.u_beat*0.7,0.0,1.3)*(1.0-u.u_tricolor);
+  var tcC=mix(u.u_tc3*cW,sRB,smoothstep(0.10,0.50,rG))*sDn*2.4;
+  tcC+=u.u_tc3*cW*sMk*0.55+u.u_tc3*em*0.75*(1.0-rG*0.85)*(1.0-u.u_tricolor);
+  tcC+=sRB*mix(sB,sMk*(0.6+u.u_beat*1.8),u.u_tricolor)*1.6+sRB*(sw-0.5)*sMk*0.28;
+  sCol=mix(sCol,tcC,u.u_tricolor);
+  let fM=mix(mmk,sMk,u.u_smoke); var fRGB=mix(mCol,sCol,u.u_smoke);
+  let rD=normalize(uv-0.5+vec2f(0.0001)); let cD=mix(gn,rD,u.u_smoke);
+  let cS=mix(0.007*mmk*clamp(gm*9.0,0.0,1.0)*(1.0+u.u_beat*2.2)*u.u_elasticity,
+             0.0015*sMk*(1.0+u.u_beat*0.6),u.u_smoke);
+  var rgb3:vec3f;
+  rgb3.r=textureSample(u_src,smp,clamp(uv+cD*cS,vec2f(0.001),vec2f(0.999))).r;
+  rgb3.g=fRGB.g;
+  rgb3.b=textureSample(u_src,smp,clamp(uv-cD*cS*0.60,vec2f(0.001),vec2f(0.999))).b;
+  fRGB=mix(fRGB,rgb3,mix(men*0.65+mmk*0.14,sMk*0.08,u.u_smoke));
+  let gr=fract(sin(dot(uv*1000.0+fract(u.u_time*0.07),vec2f(127.1,311.7)))*43758.5453)-0.5;
+  fRGB+=gr*mix(0.010,0.034,u.u_smoke)*(1.0-fM*0.45);
+  return vec4f(clamp(fRGB,vec3f(0),vec3f(1))*u.u_fadeOut,1.0);
+}`;
+
+      // ── パイプライン ──────────────────────────────────────────
+      const vsMod  = device.createShaderModule({ code: WS_VS });
+      const advMod = device.createShaderModule({ code: WS_ADVECT });
+      const dspMod = device.createShaderModule({ code: WS_DISPLAY });
+      // シェーダーコンパイルエラーチェック
+      for (const [name, mod] of [['VS',vsMod],['ADVECT',advMod],['DISPLAY',dspMod]]) {
+        mod.getCompilationInfo().then(info => {
+          const errs = info.messages.filter(m => m.type === 'error');
+          if (errs.length) console.error('[LIQUID/GPU] WGSL error in', name, errs);
+          else console.log('[LIQUID/GPU]', name, 'compiled OK');
+        });
+      }
+
+      const advectPipeline = device.createRenderPipeline({
+        layout: 'auto',
+        vertex:   { module: vsMod,  entryPoint: 'main' },
+        fragment: { module: advMod, entryPoint: 'main', targets: [{ format: 'rgba16float' }] },
+        primitive: { topology: 'triangle-strip' },
+      });
+      const displayPipeline = device.createRenderPipeline({
+        layout: 'auto',
+        vertex:   { module: vsMod,  entryPoint: 'main' },
+        fragment: { module: dspMod, entryPoint: 'main', targets: [{ format: canvasFmt }] },
+        primitive: { topology: 'triangle-strip' },
+      });
+
+      // ── テクスチャ + BindGroup ────────────────────────────────
+      let W = 0, H = 0, simW = 0, simH = 0;
+      let simTex = [null, null], srcTex = null;
+      let pingPong = 0;
+      let advBG = [null, null], dspBG = [null, null];
+
+      const QUALITY_SCALES = [0.25, 0.5, 0.75, 1.0];
+      const QLABELS = ['LOW','MED','HI','MAX'];
+      function getSimScale() {
+        const v = parseInt(document.getElementById('simQualitySlider')?.value ?? 2);
+        return QUALITY_SCALES[Math.max(0, Math.min(3, v-1))] || 0.5;
+      }
+      const qSlider = document.getElementById('simQualitySlider');
+      const qLabel  = document.getElementById('simQualityValue');
+      if (qSlider && qLabel) {
+        qSlider.addEventListener('input', () => {
+          qLabel.textContent = QLABELS[(qSlider.value|0)-1] || 'MED';
+          W = 0;
+        });
+      }
+
+      function clearSimTex(t) {
+        const enc = device.createCommandEncoder();
+        enc.beginRenderPass({ colorAttachments: [{
+          view: t.createView(), clearValue:{r:0,g:0,b:0,a:1}, loadOp:'clear', storeOp:'store'
+        }]}).end();
+        device.queue.submit([enc.finish()]);
+      }
+
+      function resizeGPU(nw, nh, sw, sh) {
+        W = nw; H = nh; simW = sw; simH = sh;
+        configureGPUCtx(W, H);
+        for (let i = 0; i < 2; i++) {
+          if (simTex[i]) simTex[i].destroy();
+          simTex[i] = device.createTexture({
+            size:[sw,sh], format:'rgba16float',
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST,
+          });
+          clearSimTex(simTex[i]);
+        }
+        if (srcTex) srcTex.destroy();
+        srcTex = device.createTexture({
+          size:[nw,nh], format:'rgba8unorm',
+          usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+        });
+        pingPong = 0;
+        // BindGroup 再構築 (pingPong=i のとき: write→simTex[i], read←simTex[1-i])
+        for (let i = 0; i < 2; i++) {
+          advBG[i] = device.createBindGroup({
+            layout: advectPipeline.getBindGroupLayout(0),
+            entries: [
+              { binding:0, resource:{ buffer: advectUBuf } },
+              { binding:1, resource: sampler },
+              { binding:2, resource: srcTex.createView() },
+              { binding:3, resource: simTex[1-i].createView() },
+            ]
+          });
+          dspBG[i] = device.createBindGroup({
+            layout: displayPipeline.getBindGroupLayout(0),
+            entries: [
+              { binding:0, resource:{ buffer: displayUBuf } },
+              { binding:1, resource: sampler },
+              { binding:2, resource: simTex[i].createView() },
+              { binding:3, resource: srcTex.createView() },
+            ]
+          });
+        }
+        _gpuResizeForce = false;
+        console.log('[LIQUID/GPU] resize →', nw, nh, '| sim:', sw, sh);
+      }
+
+      // ── ビート取得 ────────────────────────────────────────────
+      let _beatBuf = null;
+      function getBeat() {
+        try {
+          const am = mm.audioManager;
+          if (!am) return 0;
+          const bands = am.getFrequencyBands?.();
+          if (bands?.low !== undefined) return Math.min(bands.low/255, 1.0);
+          const analyser = am.analyser || am._analyser;
+          if (analyser) {
+            if (!_beatBuf || _beatBuf.length !== analyser.frequencyBinCount)
+              _beatBuf = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(_beatBuf);
+            let s = 0; for (let i = 0; i < 8; i++) s += _beatBuf[i];
+            return Math.min(s/(8*255), 1.0);
+          }
+        } catch(e) {}
+        return 0;
+      }
+      function getSlider(id, def) {
+        return parseFloat(document.getElementById(id)?.value ?? def) / 10.0;
+      }
+
+      // ── レンダーループ ────────────────────────────────────────
+      let active    = false;
+      let startTime = performance.now();
+      let rafId     = null;
+      let _prevRaf  = performance.now();
+
+      function render() {
+        if (!active) return;
+        rafId = requestAnimationFrame(render);
+        const cw = srcCanvas.width  || overlay.clientWidth;
+        const ch = srcCanvas.height || overlay.clientHeight;
+        if (!cw || !ch) return;
+
+        const scale = getSimScale();
+        const sw = Math.max(1, Math.round(cw * scale));
+        const sh = Math.max(1, Math.round(ch * scale));
+        if (cw !== W || ch !== H || sw !== simW || sh !== simH || _gpuResizeForce) {
+          resizeGPU(cw, ch, sw, sh);
+        }
+
+        const now   = performance.now();
+        const dt    = Math.min((now - _prevRaf) * 0.001, 0.05);
+        _prevRaf    = now;
+        const t     = (now - startTime) * 0.001;
+        const lerpK = 1.0 - Math.exp(-dt * 14.0);
+        _lerpTint[0] += (_targetTint[0] - _lerpTint[0]) * lerpK;
+        _lerpTint[1] += (_targetTint[1] - _lerpTint[1]) * lerpK;
+        _lerpTint[2] += (_targetTint[2] - _lerpTint[2]) * lerpK;
+        _lerpVisc     += (_targetVisc     - _lerpVisc)     * lerpK;
+        _lerpTen      += (_targetTen      - _lerpTen)      * lerpK;
+        _lerpSmoke    += (_targetSmoke    - _lerpSmoke)    * lerpK;
+        _lerpTricolor += (_targetTricolor - _lerpTricolor) * lerpK;
+
+        const beat      = getBeat();
+        const viscosity = _lerpVisc;
+        const tension   = _lerpTen;
+
+        if (window._liquidBassIntensity   !== undefined) _bassIntensity   = window._liquidBassIntensity;
+        if (window._liquidTrebleIntensity !== undefined) _trebleIntensity = window._liquidTrebleIntensity;
+        if (window._liquidAudioSync       !== undefined) _audioSync       = window._liquidAudioSync;
+
+        // ソースフレームを GPU テクスチャへアップロード
+        if (videoReady && vid.readyState >= 2 && vid.videoWidth > 0) {
+          try {
+            device.queue.copyExternalImageToTexture(
+              { source: vid, flipY: true },
+              { texture: srcTex },
+              [Math.min(vid.videoWidth, W), Math.min(vid.videoHeight, H)]
+            );
+          } catch(e) { console.warn('[LIQUID/GPU] copy error:', e?.message||e); }
+        }
+
+        // ADVECT ユニフォーム (8×f32)
+        advU[0]=simW; advU[1]=simH; advU[2]=t; advU[3]=viscosity;
+        advU[4]=beat; advU[5]=getSlider('warpIntensitySlider',3); advU[6]=_lerpTricolor;
+        device.queue.writeBuffer(advectUBuf, 0, advU);
+
+        // DISPLAY ユニフォーム (32×f32)
+        const cg = parseFloat(document.getElementById('colorGainSlider')?.value ?? 2.0);
+        dispU[0]=_lerpTint[0];  dispU[1]=_lerpTint[1];  dispU[2]=_lerpTint[2];
+        dispU[4]=_tc1[0]; dispU[5]=_tc1[1]; dispU[6]=_tc1[2];
+        dispU[8]=_tc2[0]; dispU[9]=_tc2[1]; dispU[10]=_tc2[2];
+        dispU[12]=_tc3[0]; dispU[13]=_tc3[1]; dispU[14]=_tc3[2];
+        dispU[16]=simW; dispU[17]=simH;
+        dispU[18]=t; dispU[19]=tension; dispU[20]=viscosity; dispU[21]=beat;
+        dispU[22]=getSlider('warpIntensitySlider',3); dispU[23]=_lerpSmoke;
+        dispU[24]=_lerpTricolor; dispU[25]=_bassIntensity; dispU[26]=_trebleIntensity;
+        dispU[27]=cg; dispU[28]=_audioSync; dispU[29]=1.0; dispU[30]=_fadeOut;
+        device.queue.writeBuffer(displayUBuf, 0, dispU);
+
+        const enc = device.createCommandEncoder();
+
+        // PASS 1: ADVECT → simTex[pingPong]
+        {
+          const pass = enc.beginRenderPass({ colorAttachments: [{
+            view: simTex[pingPong].createView(),
+            loadOp:'load', storeOp:'store',
+          }]});
+          pass.setPipeline(advectPipeline);
+          pass.setBindGroup(0, advBG[pingPong]);
+          pass.draw(4);
+          pass.end();
+          pingPong = 1 - pingPong;
+        }
+
+        // PASS 2: DISPLAY → canvas
+        {
+          const pass = enc.beginRenderPass({ colorAttachments: [{
+            view: gpuCtx.getCurrentTexture().createView(),
+            clearValue:{r:0,g:0,b:0,a:1}, loadOp:'clear', storeOp:'store',
+          }]});
+          pass.setPipeline(displayPipeline);
+          pass.setBindGroup(0, dspBG[pingPong]);
+          pass.draw(4);
+          pass.end();
+        }
+
+        device.queue.submit([enc.finish()]);
+      }
+
+      // ── パブリック API ────────────────────────────────────────
+      window.toggleLiquidMode = function(on) {
+        if (on) {
+          if (active) return;
+          active = true;
+          startStream();
+          overlay.style.display = 'block';
+          startTime = performance.now();
+          pingPong = 0;
+          if (W > 0) { for (let i = 0; i < 2; i++) clearSimTex(simTex[i]); }
+          render();
+          console.log('[LIQUID/GPU] ON');
+        } else {
+          if (!active) return;
+          active = false;
+          if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+          overlay.style.display = 'none';
+          if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+          vid.srcObject = null; videoReady = false;
+          console.log('[LIQUID/GPU] OFF');
+        }
+      };
+
+      window.clearLiquidFBO = function() {
+        if (W === 0) return;
+        for (let i = 0; i < 2; i++) clearSimTex(simTex[i]);
+        pingPong = 0;
+        _lerpTint[0]=_targetTint[0]; _lerpTint[1]=_targetTint[1]; _lerpTint[2]=_targetTint[2];
+        _lerpVisc=_targetVisc; _lerpTen=_targetTen;
+        _lerpSmoke=_targetSmoke; _lerpTricolor=_targetTricolor;
+        _bassIntensity=0; _trebleIntensity=0; _audioSync=0;
+      };
+
+      console.log('[LIQUID] WebGPU initialized ✓  (copyExternalImageToTexture / rgba16float)');
+    }
   })();
   </script>
 
