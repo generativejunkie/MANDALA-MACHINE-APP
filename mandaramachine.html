@@ -118,17 +118,25 @@
   })();
   </script>
 
-  <!-- FPS ゼロ埋め5桁表示: エンジンが書き換えるたびにゼロパディング -->
+  <!-- FPS ゼロ埋め5桁表示: 250ms間隔でスロットル（エンジンが毎フレーム書き換えるためMO過負荷を防止） -->
   <script>
   document.addEventListener('DOMContentLoaded', function() {
     const el = document.getElementById('fpsValue');
     if (!el) return;
     const pad = v => String(Math.min(99999, Math.max(0, parseInt(v) || 0))).padStart(5, '0');
     el.textContent = pad(el.textContent);
+    let _pending = null;
+    let _lastRaw = '';
     new MutationObserver(() => {
       const raw = el.textContent.replace(/\D/g, '');
-      const padded = pad(raw);
-      if (el.textContent !== padded) el.textContent = padded;
+      if (raw === _lastRaw) return;       // 同じ値なら無視
+      _lastRaw = raw;
+      if (_pending) return;               // 既にタイマー待機中なら無視
+      _pending = setTimeout(() => {
+        _pending = null;
+        const padded = pad(_lastRaw);
+        if (el.textContent !== padded) el.textContent = padded;
+      }, 250);                            // 250ms = 最大4fps更新
     }).observe(el, { childList: true, characterData: true, subtree: true });
   });
   </script>
@@ -510,6 +518,19 @@
       border-color: #ff0000 !important;
       box-shadow: 0 0 14px rgba(255,0,0,0.7) !important;
       text-shadow: 0 0 8px rgba(255,0,0,0.9) !important;
+    }
+    /* 確認待ち状態 */
+    #topResetBtn.reset-armed {
+      background: rgba(255,0,0,0.25) !important;
+      color: #ff0000 !important;
+      border-color: #ff0000 !important;
+      box-shadow: 0 0 22px rgba(255,0,0,0.9) !important;
+      text-shadow: 0 0 10px rgba(255,0,0,1.0) !important;
+      animation: resetArmedPulse 0.5s ease-in-out infinite alternate !important;
+    }
+    @keyframes resetArmedPulse {
+      from { box-shadow: 0 0 14px rgba(255,0,0,0.7); }
+      to   { box-shadow: 0 0 30px rgba(255,0,0,1.0); }
     }
 
     /* ── TAP — Cyan + rhythmic pulse on hover ── */
@@ -1047,7 +1068,12 @@
       transition: all 0.15s;
     }
     .preset-swatch-btn:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); }
-    .preset-swatch-btn.active .swatch-circle { border: 2px solid #fff; box-shadow: 0 0 10px rgba(255,255,255,0.6); }
+    .preset-swatch-btn.active {
+      background: rgba(0,255,180,0.12) !important;
+      border: 1px solid rgba(0,255,180,0.7) !important;
+      box-shadow: 0 0 12px rgba(0,255,180,0.5), inset 0 0 6px rgba(0,255,180,0.08) !important;
+    }
+    .preset-swatch-btn.active .swatch-circle { border: 2px solid #00ffb4 !important; box-shadow: 0 0 10px rgba(0,255,180,0.8) !important; }
     .swatch-circle {
       width: 24px;
       height: 24px;
@@ -1393,32 +1419,46 @@
       const comp = document.createElement('canvas');
       const ctx = comp.getContext('2d');
       let _busy = false;
-      const img = new Image();
+      let _lastSent = 0;
+      const _VOUT_INTERVAL = 1000 / 24; // 24fps上限
 
+      const img = new Image();
       ipc.send = function(channel, ...args) {
         if (channel !== 'canvas-frame') return _orig(channel, ...args);
         window._latestEngineDataURL = args[0]; // CODE mode 用フレームキャッシュ
-        if (_busy) return;
-        const engineDataURL = args[0];
+        const now = performance.now();
         const liq = document.getElementById('liquidCanvas');
         const p5c = document.querySelector('#p5-container canvas');
         const hasLiq = liq && liq.style.display !== 'none' && liq.width > 0;
         const hasP5  = p5c && p5c.width > 0;
-        if (!hasLiq && !hasP5) return _orig(channel, engineDataURL);
+        // オーバーレイなし → そのまま送信
+        if (!hasLiq && !hasP5) return _orig(channel, args[0]);
+        // 24fps 超は間引く
+        if (_busy || now - _lastSent < _VOUT_INTERVAL) return;
         _busy = true;
+        _lastSent = now;
+        const engineDataURL = args[0];
+
+        // createImageBitmap で LIQUID を非同期読み取り（メインスレッドをブロックしない）
+        const bitmapPromise = hasLiq
+          ? createImageBitmap(liq).catch(() => null)
+          : Promise.resolve(null);
+
         img.onload = () => {
           if (comp.width  !== img.width)  comp.width  = img.width;
           if (comp.height !== img.height) comp.height = img.height;
-          ctx.drawImage(img, 0, 0);
-          if (hasLiq) ctx.drawImage(liq, 0, 0, comp.width, comp.height);
-          if (hasP5)  ctx.drawImage(p5c, 0, 0, comp.width, comp.height);
-          _orig('canvas-frame', comp.toDataURL('image/jpeg', 0.85));
-          _busy = false;
+          bitmapPromise.then(bmp => {
+            ctx.drawImage(img, 0, 0);
+            if (bmp) { ctx.drawImage(bmp, 0, 0, comp.width, comp.height); bmp.close(); }
+            if (hasP5) ctx.drawImage(p5c, 0, 0, comp.width, comp.height);
+            _orig('canvas-frame', comp.toDataURL('image/jpeg', 0.78));
+            _busy = false;
+          });
         };
         img.onerror = () => { _busy = false; };
         img.src = engineDataURL;
       };
-      console.log('[V-OUT] Early composite patch applied');
+      console.log('[V-OUT] Early composite patch applied (24fps + async bitmap)');
     } catch(e) {}
   })();
   </script>
@@ -1653,15 +1693,15 @@
                 </div>
                 <div class="quick-row speed-row" style="padding-top:6px;border-top:1px solid rgba(255,255,255,0.1);flex-wrap:wrap;gap:4px;justify-content:center;">
                   <button class="preset-swatch-btn vj-preset-item" data-preset="mercury" title="MERCURY">
-                    <span class="swatch-circle" style="background:linear-gradient(135deg,#bcd0e1 50%,#8898a6 50%);"></span>
+                    <span class="swatch-circle" style="background:radial-gradient(circle at 35% 30%, #f0f4f8 0%, #c8d8e8 25%, #8aa0b4 55%, #4a5a6a 80%, #1a2530 100%); box-shadow: inset 0 1px 3px rgba(255,255,255,0.6), inset 0 -1px 3px rgba(0,0,0,0.5);"></span>
                     <span class="swatch-label">MERCURY</span>
                   </button>
                   <button class="preset-swatch-btn vj-preset-item" data-preset="lava" title="LAVA">
-                    <span class="swatch-circle" style="background:linear-gradient(135deg,#ff5c1a 50%,#8b1a00 50%);"></span>
+                    <span class="swatch-circle" style="background:radial-gradient(circle at 40% 35%, #ffdd44 0%, #ff6600 30%, #cc1100 60%, #550000 85%, #110000 100%); box-shadow: inset 0 1px 3px rgba(255,180,0,0.5), inset 0 -1px 3px rgba(0,0,0,0.7);"></span>
                     <span class="swatch-label">LAVA</span>
                   </button>
                   <button class="preset-swatch-btn vj-preset-item" data-preset="neon" title="NEON INK">
-                    <span class="swatch-circle" style="background:linear-gradient(135deg,#1affbe 50%,#0080ff 50%);"></span>
+                    <span class="swatch-circle" style="background:radial-gradient(circle at 38% 32%, #ffffff 0%, #00ffe0 18%, #00aaff 40%, #cc00ff 65%, #0a0020 100%); box-shadow: inset 0 1px 3px rgba(0,255,220,0.6), inset 0 -1px 3px rgba(160,0,255,0.5);"></span>
                     <span class="swatch-label">NEON INK</span>
                   </button>
                   <button class="preset-swatch-btn vj-preset-item" data-preset="metallic" title="METALLIC">
@@ -3077,9 +3117,29 @@
         const btn = document.getElementById('topResetBtn');
         if (!mm || !btn) return setTimeout(applyReset, 200);
 
+        // ── 2ステップ確認: 1回目→armed、2回目→実行、2秒放置→キャンセル ──
+        let _armTimer = null;
+        function disarm() {
+          clearTimeout(_armTimer);
+          _armTimer = null;
+          btn.classList.remove('reset-armed');
+          btn.querySelector('span').textContent = 'RESET';
+        }
+
         btn.addEventListener('click', () => {
           // Guard: prevent double-fire during tween
           if (btn.dataset.resetting === '1') return;
+
+          // 1回目クリック: armed 状態に
+          if (!btn.classList.contains('reset-armed')) {
+            btn.classList.add('reset-armed');
+            btn.querySelector('span').textContent = 'OK?';
+            _armTimer = setTimeout(disarm, 2000);
+            return;
+          }
+
+          // 2回目クリック: 実行
+          disarm();
           btn.dataset.resetting = '1';
 
           // ══════════════════════════════════════════════════════
@@ -4082,6 +4142,8 @@
         }
 
         function cycle() {
+          // モード切替時はオーバーレイを一時停止（エンジン物理再初期化に帯域を渡す）
+          window.__vjSched?.pause(400);
           // 各処理を1フレームずつ分散してガクつきゼロ
           randomizePreset();
           requestAnimationFrame(() => {
@@ -4169,6 +4231,7 @@
           function triggerClimax() {
             climaxActive = true;
             currentPhase = 'PEAK';
+            window.__vjSched?.pause(600);
             // 全モードOFF→ランダムに3〜4個一気にON
             MODES.forEach(m => m.off());
             const shuffled = [...MODES].sort(() => Math.random() - 0.5);
@@ -4208,6 +4271,7 @@
 
               requestAnimationFrame(() => {
                 // モード切り替え（直近と被らないよう）
+                window.__vjSched?.pause(400);
                 MODES.forEach(m => m.off());
                 const count = rand(cfg.minModes, cfg.maxModes);
                 const shuffled = [...MODES].sort(() => Math.random() - 0.5);
@@ -5557,7 +5621,31 @@
       set('liquidViscositySlider','liquidViscosityValue', applyViscosity,  p.viscosity);
       set('elasticitySlider',     'elasticityValue',      applyElasticity, p.elasticity);
       set('audioReactSlider',     'audioReactValue',      applyAudioReact, p.audioReact);
-      if (p.spacing !== undefined) mm.setSpacingMultiplier(p.spacing);
+      if (p.spacing  !== undefined) mm.setSpacingMultiplier(p.spacing);
+      // 拡張: マテリアル・カラーゲイン
+      if (p.objectColor !== undefined) {
+        mm.setDefaultObjectColor?.(p.objectColor);
+        const hex = '#' + [p.objectColor.r, p.objectColor.g, p.objectColor.b]
+          .map(v => Math.round(v).toString(16).padStart(2,'0')).join('');
+        const op1 = document.getElementById('objColorPickerSync');
+        const op2 = document.getElementById('objColorPicker');
+        if (op1) op1.value = hex;
+        if (op2) op2.value = hex;
+      }
+      if (p.wireframe !== undefined) {
+        mm.setWireframeMode?.(p.wireframe);
+        const wfIdMap = { solid: 'topSolidBtn', wire: 'topWireBtn', mix: 'topMixBtn' };
+        ['topSolidBtn', 'topWireBtn', 'topMixBtn'].forEach(id => {
+          const b = document.getElementById(id);
+          if (b) b.classList.toggle('active', id === wfIdMap[p.wireframe]);
+        });
+      }
+      if (p.colorGain !== undefined) {
+        const cgSl = document.getElementById('colorGainSlider');
+        const cgLb = document.getElementById('colorGainValue');
+        if (cgSl) cgSl.value = p.colorGain;
+        if (cgLb) cgLb.textContent = parseFloat(p.colorGain).toFixed(1);
+      }
     }
 
     // ── Presets ─────────────────────────────────────────────
@@ -5580,15 +5668,18 @@
       },
       mercury: {
         modes: { topSpinBtn: true, topOrbitBtn: true },
-        params: { warp: 7,   viscosity: 5,   elasticity: 9,   audioReact: 5,   spacing: 10 }
+        params: { warp: 5, viscosity: 3, elasticity: 10, audioReact: 4, spacing: 8,
+                  objectColor: { r: 215, g: 228, b: 240 }, wireframe: 'solid', colorGain: 1.8 }
       },
       lava: {
         modes: { topGravityBtn: true },
-        params: { warp: 3,   viscosity: 9,   elasticity: 2,   audioReact: 4,   spacing: 18 }
+        params: { warp: 2, viscosity: 10, elasticity: 1, audioReact: 3, spacing: 22,
+                  objectColor: { r: 140, g: 15, b: 0 }, wireframe: 'solid', colorGain: 2.5 }
       },
       neon: {
-        modes: { topAutoBtn: true, topBlinkBtn: true },
-        params: { warp: 8,   viscosity: 2,   elasticity: 5,   audioReact: 8,   spacing: 6 }
+        modes: {},
+        params: { warp: 9, viscosity: 1, elasticity: 6, audioReact: 9, spacing: 5,
+                  objectColor: { r: 255, g: 230, b: 0 }, wireframe: 'wire', colorGain: 4.0 }
       },
       metallic: {
         modes: { topSpinBtn: true },
@@ -5619,11 +5710,37 @@
 
         const fluidPresets = ['liquid', 'mercury', 'lava', 'neon', 'metallic', 'smoke', 'tricolor'];
         const isFluid = fluidPresets.includes(btn.dataset.preset);
+        const isActive = btn.classList.contains('active');
+
+        if (isActive) {
+          // ── 2回目: 解除 ──
+          document.querySelectorAll('.vj-preset-item').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.vj-motion-btn').forEach(b => b.classList.remove('active'));
+          if (isFluid) {
+            window.toggleLiquidMode?.(false);
+          } else {
+            clearAllModes();
+          }
+          presetDropdown?.classList.remove('open');
+          return;
+        }
 
         if (isFluid) {
-          // ── Zero-Lag Fluid Path: DOM イベント一切なし、Uniform のみ更新 ──
+          // ── Fluid Path: LIQUIDシェーダー更新 + エンジンモード・パラメータも適用 ──
+          window.__vjSched?.pause(500);
+          clearAllModes();
+          // objectColor等を先に適用してからLIQUID起動（紫混入を防ぐ）
+          if (cfg.params) applyAll(cfg.params);
           window.toggleLiquidMode?.(true);
           window.setFluidPreset?.(btn.dataset.preset);
+          // FBOを黒にリセット（前プリセットの色残り・背景の紫を消す）
+          setTimeout(() => window.clearLiquidFBO?.(), 50);
+          // エンジンモードを適用
+          if (cfg.modes) {
+            setTimeout(() => {
+              Object.entries(cfg.modes).forEach(([id, on]) => setModeBtn(id, on));
+            }, 80);
+          }
           document.querySelectorAll('.vj-preset-item').forEach(b => b.classList.remove('active'));
           document.querySelectorAll('.vj-motion-btn').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
@@ -5681,12 +5798,16 @@
     document.querySelectorAll('.vj-motion-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const isActive = btn.classList.contains('active');
+        // モード切替時はオーバーレイを長めに停止（エンジン物理再初期化に帯域を渡す）
+        window.__vjSched?.pause(800);
         document.querySelectorAll('.vj-motion-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.vj-preset-item').forEach(b => b.classList.remove('active'));
 
         if (isActive) {
-          // 2回目クリック → 全モードオフ
+          // 2回目クリック → 全モードオフ、LIQUID fps復元
           clearAllModes();
+          window.__vjSched?.setFps('liquid', 30);
+          window.__vjSched?.setFps('neuro', 30);
           return;
         }
 
@@ -5701,6 +5822,14 @@
           Object.entries(cfg.modes).forEach(([id, on]) => setModeBtn(id, on));
           applyAll(cfg.params);
           btn.classList.add('active');
+          // KINETIC(SPIN+ORBIT同時)は最重負荷 → LIQUID/NEUROを20fpsに下げる
+          if (btn.dataset.motion === 'kinetic') {
+            window.__vjSched?.setFps('liquid', 20);
+            window.__vjSched?.setFps('neuro', 20);
+          } else {
+            window.__vjSched?.setFps('liquid', 30);
+            window.__vjSched?.setFps('neuro', 30);
+          }
         }, 80);
       });
     });
@@ -5745,9 +5874,9 @@
     // ── 共有ステート (color picker・setFluidPresetから参照される変数) ──
     const PRESETS = {
       liquid:   { tint: [0.30, 0.58, 1.00], viscosity: 5, tension: 5,  smoke: 0 },
-      mercury:  { tint: [0.85, 0.93, 1.00], viscosity: 4, tension: 9,  smoke: 0 },
-      lava:     { tint: [1.00, 0.24, 0.00], viscosity: 9, tension: 2,  smoke: 0 },
-      neon:     { tint: [0.00, 1.00, 0.62], viscosity: 2, tension: 5,  smoke: 0 },
+      mercury:  { tint: [0.78, 0.88, 0.96], viscosity: 3, tension: 10, smoke: 0.08 }, // 高張力＋微スモークで水銀感
+      lava:     { tint: [1.00, 0.18, 0.00], viscosity: 10, tension: 1, smoke: 0.55 }, // 超高粘度＋煙で溶岩感
+      neon:     { tint: [0.00, 0.94, 1.00], viscosity: 1, tension: 6,  smoke: 0 },    // 超低粘度＋高張力でネオン発光感
       metallic: { tint: [0.75, 0.78, 0.82], viscosity: 8, tension: 10, smoke: 0, tricolor: 0 },
       smoke:    { tint: [0.62, 0.68, 0.72], viscosity: 7, tension: 0,  smoke: 1, tricolor: 0 },
       tricolor: { tint: [1.00, 1.00, 1.00], viscosity: 7, tension: 0,  smoke: 1, tricolor: 1 },
@@ -6400,7 +6529,6 @@ void main() {
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texFBO[pingPong]);
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, srcTex);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
       gl.bindVertexArray(null);
     }
 
