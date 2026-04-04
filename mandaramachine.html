@@ -118,6 +118,21 @@
   })();
   </script>
 
+  <!-- FPS ゼロ埋め5桁表示: エンジンが書き換えるたびにゼロパディング -->
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const el = document.getElementById('fpsValue');
+    if (!el) return;
+    const pad = v => String(Math.min(99999, Math.max(0, parseInt(v) || 0))).padStart(5, '0');
+    el.textContent = pad(el.textContent);
+    new MutationObserver(() => {
+      const raw = el.textContent.replace(/\D/g, '');
+      const padded = pad(raw);
+      if (el.textContent !== padded) el.textContent = padded;
+    }).observe(el, { childList: true, characterData: true, subtree: true });
+  });
+  </script>
+
   <!-- MIC STREAM SHARING: getUserMedia interceptor (must be before compiled JS) -->
   <script>
     // --- SECTION: MIC_STREAM_SHARING ---
@@ -335,12 +350,21 @@
       font-weight: 700 !important;
       color: #ff3355 !important;
       letter-spacing: 0.02em;
+      display: inline-block;
+      min-width: 3ch;
+      text-align: right;
     }
     #fpsValue {
       font-size: 15px !important;
       font-weight: 700 !important;
       color: #00e875 !important;
       letter-spacing: 0.02em;
+      display: inline-block;
+      width: 5ch;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+      overflow: hidden;
     }
 
     /* ── V-OUT button ── */
@@ -1870,15 +1894,12 @@
           <button id="vOutBtn" class="v-out-btn" title="Projector Output">V-OUT</button>
           <div class="mp-sep"></div>
           <button id="recBtn" class="v-out-btn" title="Record Audio + Video">REC</button>
-          <div class="mp-sep"></div>
           <input type="file" id="trackFileInput"
             accept=".mp3,.wav,.ogg,.m4a,.aac,.flac,.aiff,.aif,.wma,.opus,.mp4,.webm"
             style="display:none;">
-          <button id="trackSelectBtn" class="mode-btn" title="曲ファイルを選択 (MP3/WAV/AIFF他)">MUSIC</button>
-          <button id="trackPlayBtn"   class="mode-btn" title="再生 / 一時停止" style="display:none;min-width:28px;">▶</button>
-          <span   id="trackTitleDisplay"
-            style="display:none;font-size:9px;color:#aaa;max-width:90px;overflow:hidden;
-                   text-overflow:ellipsis;white-space:nowrap;cursor:default;letter-spacing:0.05em;"></span>
+          <button id="trackSelectBtn" style="display:none;"></button>
+          <button id="trackPlayBtn"   style="display:none;"></button>
+          <span   id="trackTitleDisplay" style="display:none;"></span>
         </div>
 
       </div>
@@ -3503,7 +3524,6 @@
           let lastBeatMs = 0;
 
           function tick(now) {
-            _starRafId = requestAnimationFrame(tick);
             if (!_starGroupObj) return;
 
             // ── グループ全体を回転（O(1) — 星ごとのloop不要）──
@@ -3555,10 +3575,11 @@
               _starIMesh.instanceMatrix.needsUpdate = true;
             }
           }
-          tick(performance.now());
+          window.__vjSched.add('star', tick, 30);
         }
         function stopStarAnimation() {
-          if (_starRafId !== null) { cancelAnimationFrame(_starRafId); _starRafId = null; }
+          window.__vjSched.remove('star');
+          _starRafId = null;
         }
 
         // ── 2. Star Size スライダー ──────────────────────────────────
@@ -6951,9 +6972,7 @@ fn sfbm(pi:vec2f)->f32 {
           const autoBtn = document.getElementById('topAutoBtn');
           if (window.mandalaMachine && autoBtn) {
             clearInterval(tryEnableAuto);
-            if (!autoBtn.classList.contains('active')) {
-              autoBtn.click(); // AUTO ON
-            }
+            // Electron環境ではAUTO自動発動しない（pointer:coarseの誤検知対策）
           }
           if (attempts > 50) clearInterval(tryEnableAuto);
         }, 100);
@@ -7143,7 +7162,7 @@ fn sfbm(pi:vec2f)->f32 {
       function sngLoop() {
         if (!sngActive) return;
         const mm = getMM();
-        if (!mm) { sngRaf = requestAnimationFrame(sngLoop); return; }
+        if (!mm) return;
 
         const bass = window._liquidBassIntensity || 0;
         // 適応型閾値: MovingAverage * SensitivityFactor (スライダー値を反映)
@@ -7186,7 +7205,6 @@ fn sfbm(pi:vec2f)->f32 {
           }
         }
 
-        sngRaf = requestAnimationFrame(sngLoop);
       }
 
       function sngSetActive(on) {
@@ -7195,9 +7213,10 @@ fn sfbm(pi:vec2f)->f32 {
         sngSubBtn?.classList.toggle('active', on);
         if (on) {
           sngLastBass = 0; sngSize = 1.0; sngPhase = 'pull';
-          sngLoop();
+          window.__vjSched.add('sng', sngLoop, 30);
         } else {
-          cancelAnimationFrame(sngRaf); sngRaf = null;
+          window.__vjSched.remove('sng');
+          sngRaf = null;
           getMM()?.setSizeMultiplier?.(1.0); // サイズ復元
         }
       }
@@ -7236,7 +7255,6 @@ fn sfbm(pi:vec2f)->f32 {
         const instances = getBhInstances();
 
         if (instances.length === 0) {
-          bhRaf = requestAnimationFrame(bhLoop);
           return;
         }
 
@@ -7297,7 +7315,6 @@ fn sfbm(pi:vec2f)->f32 {
           });
         }
 
-        bhRaf = requestAnimationFrame(bhLoop);
       }
 
       function bhSetActive(on) {
@@ -7308,9 +7325,10 @@ fn sfbm(pi:vec2f)->f32 {
           sngSetActive(false);
           // エンジンを低速にしてBHが勝てるようにする
           getMM()?.setSpeedMultiplier?.(0.05);
-          bhLoop();
+          window.__vjSched.add('bh', bhLoop, 30);
         } else {
-          cancelAnimationFrame(bhRaf); bhRaf = null;
+          window.__vjSched.remove('bh');
+          bhRaf = null;
           getMM()?.setSpeedMultiplier?.(1.0);
           // スケール復元
           (_bhInstCache || []).forEach(p => { p.scale = 1; p._bhR = undefined; });
@@ -8488,8 +8506,7 @@ fn sfbm(pi:vec2f)->f32 {
     var _raf = null, _active = false, _lastT = 0;
 
     function draw(now) {
-      if (!_active) { _raf = null; return; }
-      _raf = requestAnimationFrame(draw);
+      if (!_active) return;
       var dt = Math.min(now - _lastT, 50);
       _lastT = now;
 
@@ -8548,13 +8565,14 @@ fn sfbm(pi:vec2f)->f32 {
       updateBlendMode();
       overlay.style.display = 'block';
       _lastT = performance.now();
-      requestAnimationFrame(draw);
+      window.__vjSched.add('coderain', draw, 30);
     }
 
     function stop() {
       _active = false;
       overlay.style.display = 'none';
-      if (_raf) { cancelAnimationFrame(_raf); _raf = null; }
+      window.__vjSched.remove('coderain');
+      _raf = null;
       ctx.clearRect(0, 0, w, h);
     }
 
