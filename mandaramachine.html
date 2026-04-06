@@ -1464,6 +1464,8 @@
   </script>
   <script type="module" crossorigin src="./assets/index-Dwl_9uI6.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-_3glWkjg.css">
+  <!-- Babylon.js (ローカル npm パッケージ) -->
+  <script src="node_modules/babylonjs/babylon.js"></script>
 </head>
 
 <body tabindex="0">
@@ -1767,6 +1769,7 @@
               <span data-i18n="mix">MIX</span>
             </button>
 
+            <button id="topBjsBtn" class="mode-btn" title="Babylon.js Particles">BJS</button>
             <div class="top-row-divider"></div>
             <button id="blackoutBtn" class="mode-btn" title="Blackout [B]" style="color:#ff4444;border-color:#ff4444;"><span>BLACKOUT</span></button>
             <button id="topResetBtn" class="mode-btn top-row--reset" title="RESET ALL"><span>RESET</span></button>
@@ -1848,6 +1851,8 @@
         <div id="objStrobeOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:3;mix-blend-mode:color-dodge;background:black;display:none;will-change:background-color;"></div>
         <!-- Liquid shader overlay canvas -->
         <canvas id="liquidCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:4;display:none;"></canvas>
+        <!-- Babylon.js particle overlay canvas -->
+        <canvas id="babylonCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:6;display:none;mix-blend-mode:screen;"></canvas>
 
         <div id="centerGlow" class="center-glow hidden"></div>
         <div id="p5-container"
@@ -9340,6 +9345,276 @@ struct VOut { @builtin(position) pos: vec4<f32>, @location(0) lp: vec2<f32>, @lo
     if (sbEl) {
       new MutationObserver(function() { setTimeout(updateLines, 50); })
         .observe(sbEl, { attributes: true, attributeFilter: ['style', 'class'] });
+    }
+  })();
+  </script>
+
+  <!-- ===== BABYLON.JS PARTICLE FORMATION SYSTEM ===== -->
+  <script>
+  // --- SECTION: BABYLON_PARTICLES ---
+  (function setupBabylonParticles() {
+    const btn    = document.getElementById('topBjsBtn');
+    const canvas = document.getElementById('babylonCanvas');
+    if (!btn || !canvas) return;
+
+    let _initialized = false;
+    let _active      = false;
+
+    btn.addEventListener('click', async function () {
+      _active = this.classList.toggle('active');
+      if (_active) {
+        if (!_initialized) {
+          const ok = await _initBjs();
+          if (!ok) { this.classList.remove('active'); _active = false; return; }
+        }
+        canvas.style.display = 'block';
+      } else {
+        canvas.style.display = 'none';
+      }
+    });
+
+    async function _initBjs() {
+      if (typeof BABYLON === 'undefined') { console.error('[BJS] BABYLON not loaded'); return false; }
+
+      // canvasを表示してサイズ確定
+      canvas.style.display = 'block';
+      canvas.style.opacity = '0';
+      await new Promise(r => setTimeout(r, 60));
+      const cw = canvas.clientWidth  || 800;
+      const ch = canvas.clientHeight || 600;
+      canvas.width = cw; canvas.height = ch;
+      console.log('[BJS] Canvas:', cw, 'x', ch);
+
+      // ── エンジン (WebGPU → WebGL) ──
+      let engine, isGPU = false;
+      try {
+        if (navigator.gpu) {
+          engine = new BABYLON.WebGPUEngine(canvas, { antialias: false, adaptToDeviceRatio: false, audioEngine: false });
+          await engine.initAsync();
+          isGPU = true;
+          console.log('[BJS] WebGPU Engine ✓');
+        } else throw new Error('no WebGPU');
+      } catch (e) {
+        console.warn('[BJS] WebGPU failed → WebGL:', e.message);
+        engine = new BABYLON.Engine(canvas, false, { preserveDrawingBuffer: false, stencil: false, alpha: true, audioEngine: false });
+      }
+
+      // ── シーン (黒不透明 + mix-blend-mode:screen) ──
+      const scene = new BABYLON.Scene(engine);
+      scene.clearColor = new BABYLON.Color4(0, 0, 0, 1);
+
+      // ── 正投影カメラ ──
+      const cam = new BABYLON.FreeCamera('bjs-cam', new BABYLON.Vector3(0, 0, -10), scene);
+      cam.setTarget(BABYLON.Vector3.Zero());
+      cam.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+      const H = 5;
+      const asp = cw / ch;
+      cam.orthoLeft = -asp*H; cam.orthoRight = asp*H;
+      cam.orthoBottom = -H;   cam.orthoTop   =  H;
+
+      // ════════════════════════════════════════════════
+      // SPS のみ (floatPS 廃止) — 浮遊 ↔ Formation を同一パーティクルで実現
+      // ════════════════════════════════════════════════
+      const FORM_N = 5000;
+      const sps = new BABYLON.SolidParticleSystem('bjs-sps', scene, { isPickable: false });
+      // 軽量ディスク (5角形近似) を粒子として使用
+      const tmpDisc = BABYLON.MeshBuilder.CreateDisc('_d', { radius: 0.025, tessellation: 5 }, scene);
+      sps.addShape(tmpDisc, FORM_N);
+      tmpDisc.dispose();
+      const spsMesh = sps.buildMesh();
+
+      // マテリアル (加算合成)
+      const spsMat = new BABYLON.StandardMaterial('bjs-mat', scene);
+      spsMat.emissiveColor = new BABYLON.Color3(0.0, 1.0, 0.9);
+      spsMat.disableLighting = true;
+      spsMesh.material = spsMat;
+
+      // 速度バッファ
+      const _vel = new Float32Array(FORM_N * 2); // [vx0,vy0, vx1,vy1, ...]
+
+      // 初期化: 画面全体にランダム配置
+      sps.initParticles = () => {
+        for (let i = 0; i < sps.nbParticles; i++) {
+          const p = sps.particles[i];
+          p.position.x = (Math.random() - 0.5) * asp * H * 2;
+          p.position.y = (Math.random() - 0.5) * H * 2;
+          p.position.z = 0;
+          p.scaling.setAll(1);
+          _vel[i*2]   = (Math.random() - 0.5) * 0.04;
+          _vel[i*2+1] = (Math.random() - 0.5) * 0.04;
+          p.props = { tx: 0, ty: 0 };
+        }
+      };
+      sps.initParticles();
+      sps.setParticles();
+
+      // ── ステート管理 ──
+      let _formMode  = 'float'; // 'float' | 'forming' | 'formed' | 'dispersing'
+      let _formTimer = 0;
+
+      // ── サムネール (64×64 に正規化) → 座標リスト ──
+      function sampleThumb(el) {
+        let src = el;
+        if (el.tagName !== 'CANVAS' && el.tagName !== 'IMG')
+          src = el.querySelector('canvas') || el.querySelector('img');
+        if (!src) return [];
+        const S = 64;
+        const oc = new OffscreenCanvas(S, S);
+        try { oc.getContext('2d').drawImage(src, 0, 0, S, S); }
+        catch (e) { return []; }
+        const data = oc.getContext('2d').getImageData(0, 0, S, S).data;
+        const pts = [];
+        for (let y = 0; y < S; y += 2) {
+          for (let x = 0; x < S; x += 2) {
+            const i4 = (y * S + x) * 4;
+            if (data[i4] + data[i4+1] + data[i4+2] > 150) {
+              pts.push({
+                x:  (x/S - 0.5) * asp * H * 1.6,
+                y: -(y/S - 0.5) * H * 1.6,
+              });
+            }
+          }
+        }
+        return pts;
+      }
+
+      // ── Formation 起動 ──
+      function triggerFormation(pts) {
+        if (!_active || pts.length < 5) return;
+        _formMode  = 'forming';
+        _formTimer = 0;
+        for (let i = 0; i < sps.nbParticles; i++) {
+          const t = pts[i % pts.length];
+          sps.particles[i].props.tx = t.x + (Math.random()-0.5)*0.2;
+          sps.particles[i].props.ty = t.y + (Math.random()-0.5)*0.2;
+          sps.particles[i].scaling.setAll(1);
+          _vel[i*2]   *= 0.2;
+          _vel[i*2+1] *= 0.2;
+        }
+        console.log('[BJS] Formation:', pts.length, 'pts →', FORM_N, 'particles');
+      }
+
+      // ── MutationObserver で preset-item の active クラスを監視 ──
+      function watchObjectPanel() {
+        const grid = document.getElementById('presetGridLeft');
+        if (!grid) return;
+        function observe(item) {
+          new MutationObserver(() => {
+            if (!_active) return;
+            if (item.classList.contains('active') || item.classList.contains('active-in-scene')) {
+              const pts = sampleThumb(item);
+              if (pts.length > 5) triggerFormation(pts);
+            }
+          }).observe(item, { attributes: true, attributeFilter: ['class'] });
+        }
+        grid.querySelectorAll('.preset-item').forEach(observe);
+        new MutationObserver(muts => {
+          muts.forEach(m => m.addedNodes.forEach(n => {
+            if (n.nodeType !== 1) return;
+            if (n.classList?.contains('preset-item')) observe(n);
+            n.querySelectorAll?.('.preset-item').forEach(observe);
+          }));
+        }).observe(grid, { childList: true, subtree: true });
+      }
+      watchObjectPanel();
+
+      // ── SPS updateParticle ──
+      sps.updateParticle = (p) => {
+        const i   = p.idx;
+        const bass = window._liquidBassIntensity || 0;
+
+        if (_formMode === 'float') {
+          // ブラウン運動 + 画面ラップ
+          _vel[i*2]   += (Math.random()-0.5) * 0.003;
+          _vel[i*2+1] += (Math.random()-0.5) * 0.003;
+          const maxV = 0.06 + bass * 0.08;
+          if (Math.abs(_vel[i*2])   > maxV) _vel[i*2]   *= 0.75;
+          if (Math.abs(_vel[i*2+1]) > maxV) _vel[i*2+1] *= 0.75;
+          p.position.x += _vel[i*2];
+          p.position.y += _vel[i*2+1];
+          const W = asp*H*1.1, HH = H*1.1;
+          if (p.position.x >  W) p.position.x = -W;
+          if (p.position.x < -W) p.position.x =  W;
+          if (p.position.y >  HH) p.position.y = -HH;
+          if (p.position.y < -HH) p.position.y =  HH;
+
+        } else if (_formMode === 'forming') {
+          // ターゲットへ急速収束
+          const spd = 0.09 + bass * 0.06;
+          p.position.x += (p.props.tx - p.position.x) * spd + _vel[i*2] * 0.2;
+          p.position.y += (p.props.ty - p.position.y) * spd + _vel[i*2+1] * 0.2;
+          _vel[i*2]   *= 0.88;
+          _vel[i*2+1] *= 0.88;
+
+        } else if (_formMode === 'formed') {
+          // 形状キープ + BASS でビート振動
+          p.position.x += (p.props.tx - p.position.x) * 0.04;
+          p.position.y += (p.props.ty - p.position.y) * 0.04;
+          p.position.x += (Math.random()-0.5) * bass * 0.14;
+          p.position.y += (Math.random()-0.5) * bass * 0.14;
+
+        } else if (_formMode === 'dispersing') {
+          // 外側に向かって加速 + スケール縮小
+          _vel[i*2]   *= 1.04;
+          _vel[i*2+1] *= 1.04;
+          p.position.x += _vel[i*2];
+          p.position.y += _vel[i*2+1];
+          p.scaling.setAll(Math.max(0.01, p.scaling.x - 0.022));
+        }
+        return p;
+      };
+
+      // ── レンダーループ (30fps 制限) ──
+      let _lastT = 0;
+      engine.runRenderLoop(() => {
+        if (!_active) return;
+        const now = performance.now();
+        if (now - _lastT < 33) return;
+        const dt  = Math.min(now - _lastT, 100);
+        _lastT = now;
+
+        const bass   = window._liquidBassIntensity   || 0;
+        const treble = window._liquidTrebleIntensity || 0;
+
+        // SPS カラー (BASS/TREBLE 連動)
+        spsMat.emissiveColor.r = treble * 0.5 + bass * 0.4;
+        spsMat.emissiveColor.g = 1.0 - bass * 0.15;
+        spsMat.emissiveColor.b = 0.9 + treble * 0.1;
+
+        // ステートマシン
+        if (_formMode !== 'float') {
+          _formTimer += dt;
+          sps.setParticles();
+          if (_formMode === 'forming' && _formTimer > 2000) {
+            _formMode = 'formed'; _formTimer = 0;
+          } else if (_formMode === 'formed' && _formTimer > 4000) {
+            _formMode = 'dispersing'; _formTimer = 0;
+            for (let i = 0; i < sps.nbParticles; i++) {
+              const ang = Math.random() * Math.PI * 2;
+              const spd = 0.05 + Math.random() * 0.15;
+              _vel[i*2]   = Math.cos(ang) * spd;
+              _vel[i*2+1] = Math.sin(ang) * spd;
+              sps.particles[i].scaling.setAll(1);
+            }
+          } else if (_formMode === 'dispersing' && _formTimer > 1500) {
+            _formMode = 'float'; _formTimer = 0;
+            sps.initParticles();
+            sps.setParticles();
+          }
+        } else {
+          sps.setParticles();
+        }
+
+        scene.render();
+      });
+
+      window.addEventListener('resize', () => engine.resize());
+      window.__bjs = { engine, scene, sps, triggerFormation, get active() { return _active; } };
+      _initialized = true;
+      canvas.style.opacity = '1';
+      console.log('[BJS] Ready —', isGPU ? 'WebGPU' : 'WebGL',
+        '| SPS', FORM_N, 'particles (float + formation)');
+      return true;
     }
   })();
   </script>
