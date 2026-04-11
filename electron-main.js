@@ -31,6 +31,10 @@ function createWindow() {
     const allowed = ['media', 'microphone', 'camera', 'audioCapture', 'videoCapture'];
     callback(allowed.includes(permission));
   });
+  mainWindow.webContents.session.setPermissionCheckHandler((webContents, permission) => {
+    const allowed = ['media', 'microphone', 'camera', 'audioCapture', 'videoCapture'];
+    return allowed.includes(permission);
+  });
 
   mainWindow.loadFile('mandaramachine.html');
   mainWindow.webContents.on('console-message', (e, level, msg) => {

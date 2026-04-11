@@ -1524,8 +1524,25 @@
         </div>
       </div>
 
-      <!-- ── TIME TABLE ─────────────────────────────────────────── -->
+      <!-- ── BOOT OVERLAY ──────────────────────────────────────── -->
       <div class="panel-header" style="margin-top: 20px;">
+        <h3>BOOT OVERLAY</h3>
+      </div>
+      <div style="padding: 0 10px 16px;">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;">
+          <button id="leftBootClassicBtn" class="mode-tag-btn active" style="font-size:9px;letter-spacing:1px;">CLASSIC</button>
+          <button id="leftBootMosaicBtn"  class="mode-tag-btn"        style="font-size:9px;letter-spacing:1px;">MOSAIC</button>
+          <button id="leftBootScanBtn"    class="mode-tag-btn"        style="font-size:9px;letter-spacing:1px;">SCAN</button>
+          <button id="leftBootGlitchBtn"  class="mode-tag-btn"        style="font-size:9px;letter-spacing:1px;">GLITCH</button>
+        </div>
+        <div style="display:flex;gap:4px;">
+          <button id="frostOverlayBtn" class="mode-tag-btn" style="font-size:9px;letter-spacing:1px;">FROST</button>
+          <button id="bigTextBtn"      class="mode-tag-btn" style="font-size:9px;letter-spacing:1px;">BIG TEXT</button>
+        </div>
+      </div>
+
+      <!-- ── TIME TABLE ─────────────────────────────────────────── -->
+      <div class="panel-header" style="margin-top: 0px;">
         <h3>TIME TABLE</h3>
       </div>
       <div style="padding: 0 10px 12px; font-family: 'Courier New', monospace;">
@@ -1773,6 +1790,7 @@
             <div class="top-row-divider"></div>
             <button id="blackoutBtn" class="mode-btn" title="Blackout [B]" style="color:#ff4444;border-color:#ff4444;"><span>BLACKOUT</span></button>
             <button id="topResetBtn" class="mode-btn top-row--reset" title="RESET ALL"><span>RESET</span></button>
+            <button id="bootOverlayBtn" class="mode-btn" title="BOOT SEQUENCE" style="letter-spacing:0.08em;"><span>BOOT</span></button>
 
           </div>
 
@@ -1849,7 +1867,6 @@
         <div class="canvas-container" id="canvasContainer"></div>
         <!-- OBJ STROBE overlay (mix-blend-mode:color-dodge でオブジェクトだけフラッシュ) -->
         <div id="objStrobeOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:3;mix-blend-mode:color-dodge;background:black;display:none;will-change:background-color;"></div>
-        <!-- Liquid shader overlay canvas -->
         <canvas id="liquidCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:4;display:none;"></canvas>
         <!-- Babylon.js particle overlay canvas -->
         <canvas id="babylonCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:6;display:none;mix-blend-mode:screen;"></canvas>
@@ -5021,62 +5038,391 @@
 
   <!-- ===== STARTUP TITLE ===== -->
   <script>
-  (function() {
-    const TEXT       = 'MANDARA MACHINE';
-    const CHAR_DELAY = 20;   // 1文字あたりの遅延 (ms)
-    const FADE_TIME  = 800;  // フェードアウト時間 (ms)
-    const POLL_MS    = 300;  // mandalaMachine 待機ポーリング間隔 (ms)
+  window._bootDesign = -1;
 
-    // 黒背景オーバーレイ（画面全体を覆う）
+  // ── デザイン設定テーブル（5種） ──
+  const _BOOT_DS = [
+    { // 0: CLASSIC — 透明背景・白テキスト
+      name:'CLASSIC', bg:'transparent', bd:'none',
+      rc: a => `rgba(255,255,255,${a})`,
+      font:'11px/1.4 monospace', lsp:'0.08em', shadow:'none',
+      bc:{label:'rgba(255,255,255,0.5)',track:'rgba(255,255,255,0.12)',fill:'rgba(255,255,255,0.85)',pct:'rgba(255,255,255,0.35)'},
+      blockBar:false, scan:false, glitch:false,
+    },
+    { // 1: MOSAIC — 透明背景・ティール
+      name:'MOSAIC', bg:'transparent', bd:'none',
+      rc: a => `rgba(0,255,200,${a})`,
+      font:'14px/1.6 "Courier New",monospace', lsp:'0.14em', shadow:'0 0 8px rgba(0,255,200,0.35)',
+      bc:{label:'rgba(0,255,200,0.55)',track:'rgba(0,255,200,0.15)',fill:'rgba(0,255,200,0.9)',pct:'rgba(0,255,200,0.4)'},
+      blockBar:true, scan:false, glitch:false,
+    },
+    { // 2: SCAN — 透明背景・グリーン
+      name:'SCAN', bg:'transparent', bd:'none',
+      rc: a => `rgba(0,255,90,${a})`,
+      font:'10px/1.35 monospace', lsp:'0.06em', shadow:'none',
+      bc:{label:'rgba(0,255,90,0.55)',track:'rgba(0,255,90,0.12)',fill:'rgba(0,255,90,0.9)',pct:'rgba(0,255,90,0.45)'},
+      blockBar:false, scan:true, glitch:false, hex:true,
+    },
+    { // 3: GLITCH — 透明背景・マゼンタ
+      name:'GLITCH', bg:'transparent', bd:'none',
+      rc: a => `rgba(255,50,200,${a})`,
+      font:'11px/1.35 monospace', lsp:'0.08em', shadow:'none',
+      bc:{label:'rgba(255,50,200,0.6)',track:'rgba(255,50,200,0.15)',fill:'rgba(255,50,200,0.85)',pct:'rgba(255,50,200,0.4)'},
+      blockBar:false, scan:false, glitch:true,
+    },
+  ];
+
+  // ── オーバーレイを即時切替 ──
+  window._switchBootDesign = function(idx) {
+    const ex = document.getElementById('__boot_overlay__');
+    if (ex) { ex._cleanup && ex._cleanup(); ex.remove(); }
+    window._bootDesign = idx;
+    _openBootOverlay();
+    document.getElementById('bootOverlayBtn')?.classList.add('active');
+  };
+
+  // ── 左パネルボタン同期 ──
+  const _LEFT_BOOT_BTNS = [
+    { id:'leftBootClassicBtn', idx:0 },
+    { id:'leftBootMosaicBtn',  idx:1 },
+    { id:'leftBootScanBtn',    idx:2 },
+    { id:'leftBootGlitchBtn',  idx:3 },
+  ];
+
+  function _syncLeftBootBtns() {
+    _LEFT_BOOT_BTNS.forEach(({ id, idx }) => {
+      const b = document.getElementById(id);
+      if (!b) return;
+      const isOn  = document.getElementById('__boot_overlay__') != null;
+      const isCur = idx === window._bootDesign;
+      b.classList.toggle('active', isOn && isCur);
+    });
+  }
+
+  function _bindLeftBootBtns() {
+    _LEFT_BOOT_BTNS.forEach(({ id, idx }) => {
+      const b = document.getElementById(id);
+      if (!b) return;
+      b.addEventListener('click', () => {
+        const ex = document.getElementById('__boot_overlay__');
+        if (ex && window._bootDesign === idx) {
+          // 同じデザインをクリック → OFF
+          ex._cleanup && ex._cleanup();
+          ex.style.opacity = '0';
+          setTimeout(() => ex.remove(), 400);
+          document.getElementById('bootOverlayBtn')?.classList.remove('active');
+          _syncLeftBootBtns();
+        } else {
+          window._switchBootDesign(idx);
+          _syncLeftBootBtns();
+        }
+      });
+    });
+  }
+
+  // DOM ready 後にバインド
+  (function _waitBind() {
+    if (document.getElementById('leftBootClassicBtn')) { _bindLeftBootBtns(); }
+    else { requestAnimationFrame(_waitBind); }
+  })();
+
+  // ── 手動オーバーレイ構築 ──
+  function _openBootOverlay() {
+    const FADE_TIME = 600;
+    document.getElementById('__boot_overlay__')?.remove();
+
     const overlay = document.createElement('div');
-    overlay.style.cssText =
-      'position:fixed;top:0;left:0;width:100%;height:100%;' +
-      'background:#000;' +
-      'display:flex;align-items:center;justify-content:center;' +
-      'pointer-events:none;z-index:9000;' +
+    overlay.id = '__boot_overlay__';
+    overlay.style.cssText = 'position:fixed;pointer-events:none;z-index:9000;overflow:hidden;' +
       'transition:opacity ' + FADE_TIME + 'ms ease;';
 
-    // 白文字テキストコンテナ
-    const container = document.createElement('div');
-    container.style.cssText =
-      'font-family:"Helvetica Neue","Helvetica","Arial",sans-serif;' +
-      'font-size:clamp(16px,2.4vw,32px);font-weight:200;' +
-      'letter-spacing:0.55em;color:#ffffff;' +
-      'white-space:nowrap;display:flex;gap:0;';
+    const cw = document.getElementById('canvasWrapper');
+    const cfg = _BOOT_DS[window._bootDesign] || _BOOT_DS[0];
 
-    // 各文字を span として追加（最初は透明）
-    TEXT.split('').forEach(ch => {
-      const span = document.createElement('span');
-      span.textContent = ch === ' ' ? '\u00A0' : ch;
-      span.style.cssText = 'opacity:0;transition:opacity 80ms ease;display:inline-block;';
-      container.appendChild(span);
-    });
-
-    overlay.appendChild(container);
+    function _setPos() {
+      const r = cw ? cw.getBoundingClientRect() : {top:0,left:0,width:innerWidth,height:innerHeight};
+      overlay.style.top    = Math.round(r.top)    + 'px';
+      overlay.style.left   = Math.round(r.left)   + 'px';
+      overlay.style.width  = Math.round(r.width)  + 'px';
+      overlay.style.height = Math.round(r.height) + 'px';
+      overlay.style.background = cfg.bg;
+      overlay.style.backdropFilter = cfg.bd;
+    }
+    _setPos();
     document.body.appendChild(overlay);
 
-    // 1文字ずつ表示
-    const spans = container.querySelectorAll('span');
-    spans.forEach((sp, i) => {
-      setTimeout(() => { sp.style.opacity = '1'; }, i * CHAR_DELAY);
+    // リサイズ追従
+    let _ro = null;
+    const _onResize = () => _setPos();
+    if (cw) {
+      _ro = new ResizeObserver(_onResize);
+      _ro.observe(cw);
+      window.addEventListener('resize', _onResize);
+    }
+
+    // ── 共通バー生成 ──
+    function _makeBar(pos, c) {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'position:absolute;pointer-events:none;' + pos;
+      const label = document.createElement('div');
+      label.style.cssText = 'font-family:monospace;font-size:15px;font-weight:400;letter-spacing:0.16em;' +
+        'color:' + c.label + ';white-space:nowrap;margin-bottom:10px;';
+      const bw = document.createElement('div');
+      bw.style.cssText = 'width:260px;height:5px;background:' + c.track + ';border-radius:3px;overflow:hidden;';
+      const bf = document.createElement('div');
+      bf.style.cssText = 'height:100%;width:0%;background:' + c.fill + ';border-radius:3px;transition:width 0.09s linear;';
+      bw.appendChild(bf);
+      const pct = document.createElement('div');
+      pct.style.cssText = 'font-family:monospace;font-size:16px;font-weight:500;letter-spacing:0.1em;color:' + c.pct + ';margin-top:8px;';
+      wrap.appendChild(label); wrap.appendChild(bw); wrap.appendChild(pct);
+      return { wrap, label, barFill:bf, pct };
+    }
+
+    // ── スニペット ──
+    const _cc = '0123456789ABCDEFabcdef_xX:./<>[]{}#@!%&*=+-|\\?';
+    const _std = [
+      () => '0x' + Math.floor(Math.random()*0xFFFFFF).toString(16).toUpperCase().padStart(6,'0'),
+      () => Math.random().toString(36).slice(2,14).toUpperCase(),
+      () => ['INIT','LOAD','SYNC','EXEC','RECV','SEND','BIND','PULL','PUSH','HASH','SCAN','WAIT'][Math.floor(Math.random()*12)] + '_' + Math.floor(Math.random()*9999).toString().padStart(4,'0'),
+      () => Array.from({length:Math.floor(Math.random()*8)+4},()=>_cc[Math.floor(Math.random()*_cc.length)]).join(''),
+      () => (Math.random()*999).toFixed(3) + 'ms',
+      () => ['▓','▒','░'][Math.floor(Math.random()*3)].repeat(Math.floor(Math.random()*10)+3),
+    ];
+    const _hex = [
+      () => Math.floor(Math.random()*0xFFFFFFFF).toString(16).toUpperCase().padStart(8,'0') + ':  ' +
+            Array.from({length:8},()=>Math.floor(Math.random()*256).toString(16).padStart(2,'0').toUpperCase()).join(' '),
+      () => 'ADDR 0x' + Math.floor(Math.random()*0xFFFF).toString(16).toUpperCase().padStart(4,'0') +
+            '  [' + Array.from({length:6},()=>Math.floor(Math.random()*256).toString(16).padStart(2,'0').toUpperCase()).join(' ') + ']',
+      () => ['READ','WRITE','EXEC','SEEK'][Math.floor(Math.random()*4)] + '  +' +
+            Math.floor(Math.random()*0xFFF).toString(16).toUpperCase().padStart(3,'0') + 'h  ' +
+            (Math.random()*999).toFixed(2) + 'ms',
+    ];
+
+    // ── コードレイン（タイピングエフェクト・全白） ──
+    const snips = cfg.hex ? _hex : _std;
+    const LINE_COUNT = 16;
+    const COL_MAX    = 72;   // 折り返し文字数
+    const CHAR_MS    = 8;    // 1文字あたりのms（超高速）
+    const WHITE_HI   = 'rgba(255,255,255,0.92)'; // アクティブ行
+    const WHITE_DIM  = 'rgba(255,255,255,0.38)'; // 過去行
+
+    const rainEl = document.createElement('div');
+    rainEl.style.cssText =
+      'position:absolute;top:84px;left:0;width:55%;height:calc(100% - 140px);' +
+      'overflow:hidden;pointer-events:none;display:flex;flex-direction:column;' +
+      'justify-content:flex-start;padding:0 24px;box-sizing:border-box;gap:3px;';
+    const lines = [];
+    for (let i = 0; i < LINE_COUNT; i++) {
+      const line = document.createElement('div');
+      line.style.cssText = 'font:11px/1.45 monospace;letter-spacing:0.07em;' +
+        'color:' + WHITE_DIM + ';' +
+        'white-space:nowrap;overflow:hidden;text-overflow:clip;flex-shrink:0;';
+      line.textContent = '';
+      lines.push(line); rainEl.appendChild(line);
+    }
+    overlay.appendChild(rainEl);
+
+    // 過去行を初期テキストで埋める
+    function _genSnip() { return snips[Math.floor(Math.random()*snips.length)](); }
+    for (let i = 0; i < LINE_COUNT - 1; i++) {
+      let t = '';
+      while (t.length < COL_MAX) t += _genSnip() + '  ';
+      lines[i].textContent = t.slice(0, COL_MAX);
+      lines[i].style.color = WHITE_DIM;
+    }
+
+    // タイピング状態
+    let _activeLine  = LINE_COUNT - 1;
+    let _charBuf     = '';
+    let _charQueue   = [];
+    let _cursorOn    = true;
+
+    function _enqueue() {
+      const s = _genSnip() + '  ';
+      _charQueue.push(...s.split(''));
+    }
+    _enqueue(); _enqueue();
+
+    const _ci = setInterval(() => {
+      // カーソル点滅
+      _cursorOn = !_cursorOn;
+
+      // キュー補充
+      if (_charQueue.length < 10) _enqueue();
+
+      // 複数文字を一度に打つ（速度感）
+      const burst = Math.random() < 0.3 ? 2 : 1;
+      for (let b = 0; b < burst && _charQueue.length > 0; b++) {
+        _charBuf += _charQueue.shift();
+      }
+
+      // アクティブ行を更新
+      lines[_activeLine].textContent = _charBuf + (_cursorOn ? '▌' : ' ');
+      lines[_activeLine].style.color = WHITE_HI;
+
+      // 折り返し
+      if (_charBuf.length >= COL_MAX) {
+        lines[_activeLine].textContent = _charBuf.slice(0, COL_MAX);
+        lines[_activeLine].style.color = WHITE_DIM;
+
+        if (_activeLine < LINE_COUNT - 1) {
+          _activeLine++;
+        } else {
+          // スクロール
+          for (let i = 0; i < LINE_COUNT - 1; i++) {
+            lines[i].textContent = lines[i + 1].textContent;
+            lines[i].style.color  = WHITE_DIM;
+          }
+          lines[LINE_COUNT - 1].textContent = '';
+          lines[LINE_COUNT - 1].style.color  = WHITE_HI;
+        }
+        _charBuf = '';
+        _enqueue();
+      }
+    }, CHAR_MS);
+
+    // ── SCAN: スキャンライン ──
+    let _scanRaf = null;
+    if (cfg.scan) {
+      const sl = document.createElement('div');
+      sl.style.cssText = 'position:absolute;left:0;width:100%;height:2px;pointer-events:none;' +
+        'background:linear-gradient(to right,transparent,rgba(0,255,90,0.55),transparent);top:0;';
+      overlay.appendChild(sl);
+      let sy = 0;
+      function _animScan() {
+        const h = cw ? (cw.getBoundingClientRect().height|0) : innerHeight;
+        sy = (sy + 1.5) % h; sl.style.top = sy + 'px';
+        _scanRaf = requestAnimationFrame(_animScan);
+      }
+      _scanRaf = requestAnimationFrame(_animScan);
+    }
+
+    // ── GLITCH: グリッチ帯 ──
+    let _glitchTO = null;
+    if (cfg.glitch) {
+      const gls = Array.from({length:4},() => {
+        const g = document.createElement('div');
+        g.style.cssText = 'position:absolute;left:0;width:100%;pointer-events:none;display:none;background:rgba(255,50,200,0.25);';
+        overlay.appendChild(g); return g;
+      });
+      function _doGlitch() {
+        const h = cw ? (cw.getBoundingClientRect().height|0) : innerHeight;
+        gls.forEach(g => { g.style.top=Math.floor(Math.random()*h)+'px'; g.style.height=(Math.floor(Math.random()*4)+1)+'px'; g.style.display='block'; });
+        setTimeout(() => gls.forEach(g => g.style.display='none'), 40+Math.random()*80);
+        _glitchTO = setTimeout(_doGlitch, 400+Math.random()*1800);
+      }
+      _glitchTO = setTimeout(_doGlitch, 600);
+    }
+
+    // ── プログレスバー（右下） ──
+    const bar = _makeBar('bottom:80px;right:20px;text-align:right;', cfg.bc);
+    overlay.appendChild(bar.wrap);
+
+    // 左パネルのアクティブボタンを同期
+    _syncLeftBootBtns();
+
+    // ── プログレスアニメ ──
+    let elapsed = 0;
+    const _pi = setInterval(() => {
+      elapsed += 0.1;
+      if (elapsed > 100/4.8) elapsed = 0;
+      const p = Math.min(100, Math.round(elapsed*4.8));
+      bar.label.textContent = 'processing  |  ' + elapsed.toFixed(1) + 's';
+      if (cfg.blockBar) {
+        bar.pct.textContent = '▓'.repeat(Math.round(p/5)) + '░'.repeat(20-Math.round(p/5)) + '  ' + p + '%';
+        bar.barFill.style.width = p + '%';
+      } else {
+        bar.barFill.style.width = p + '%';
+        bar.pct.textContent = p + '%';
+      }
+    }, 100);
+
+    overlay._cleanup = function() {
+      clearInterval(_pi); if (_ci) clearInterval(_ci);
+      if (_ro) { _ro.disconnect(); window.removeEventListener('resize', _onResize); }
+      if (_scanRaf) cancelAnimationFrame(_scanRaf);
+      if (_glitchTO) clearTimeout(_glitchTO);
+    };
+  }
+
+  window.playBootSequence = function(autoFade) {
+    const FADE_TIME = 600;
+
+    // ── 手動トグル ──
+    if (!autoFade) {
+      const ex = document.getElementById('__boot_overlay__');
+      if (ex) {
+        ex._cleanup && ex._cleanup();
+        ex.style.opacity = '0';
+        setTimeout(() => ex.remove(), FADE_TIME);
+        document.getElementById('bootOverlayBtn')?.classList.remove('active');
+        return;
+      }
+      window._bootDesign = ((window._bootDesign) + 1) % _BOOT_DS.length;
+      document.getElementById('bootOverlayBtn')?.classList.add('active');
+      _openBootOverlay();
+      return;
+    }
+
+    // ── 起動時タイトル（autoFade） ──
+    document.getElementById('__boot_overlay__')?.remove();
+    const overlay = document.createElement('div');
+    overlay.id = '__boot_overlay__';
+    overlay.style.cssText =
+      'position:fixed;top:0;left:0;width:100%;height:100%;background:#000;' +
+      'display:flex;align-items:center;justify-content:center;' +
+      'pointer-events:none;z-index:9000;transition:opacity ' + FADE_TIME + 'ms ease;';
+    document.body.appendChild(overlay);
+
+    const TEXT = 'MANDARA MACHINE';
+    const cnt = document.createElement('div');
+    cnt.style.cssText = 'font-family:"Helvetica Neue",sans-serif;font-size:clamp(16px,2.4vw,32px);' +
+      'font-weight:200;letter-spacing:0.55em;color:#fff;white-space:nowrap;display:flex;pointer-events:none;';
+    TEXT.split('').forEach(ch => {
+      const sp = document.createElement('span');
+      sp.textContent = ch === ' ' ? '\u00A0' : ch;
+      sp.style.cssText = 'opacity:0;transition:opacity 80ms ease;display:inline-block;';
+      cnt.appendChild(sp);
     });
+    overlay.appendChild(cnt);
 
-    // 全文字表示完了後、mandalaMachine ロード完了までポーリングして待機
-    const allShownAt = (TEXT.length - 1) * CHAR_DELAY + 200;
-    let pollTimer = null;
+    // 起動時バー
+    const bw2 = document.createElement('div');
+    bw2.style.cssText = 'position:absolute;bottom:18px;right:18px;text-align:right;pointer-events:none;';
+    const bl = document.createElement('div');
+    bl.style.cssText = 'font-family:monospace;font-size:13px;font-weight:300;letter-spacing:0.16em;color:rgba(255,255,255,0.5);margin-bottom:8px;';
+    const btrack = document.createElement('div');
+    btrack.style.cssText = 'width:220px;height:2px;background:rgba(255,255,255,0.12);border-radius:2px;overflow:hidden;';
+    const bfill = document.createElement('div');
+    bfill.style.cssText = 'height:100%;width:0%;background:rgba(255,255,255,0.85);border-radius:2px;transition:width 0.09s linear;';
+    btrack.appendChild(bfill);
+    const bpct = document.createElement('div');
+    bpct.style.cssText = 'font-family:monospace;font-size:11px;letter-spacing:0.1em;color:rgba(255,255,255,0.35);margin-top:6px;';
+    bw2.appendChild(bl); bw2.appendChild(btrack); bw2.appendChild(bpct);
+    overlay.appendChild(bw2);
 
-    function tryFade() {
+    let el = 0;
+    const _pi = setInterval(() => {
+      el += 0.1;
+      const p = Math.min(100, Math.round(el*4.8));
+      bl.textContent = 'processing  |  ' + el.toFixed(1) + 's';
+      bfill.style.width = p + '%';
+      bpct.textContent = p + '%';
+    }, 100);
+
+    cnt.querySelectorAll('span').forEach((sp, i) => setTimeout(() => sp.style.opacity='1', i*20));
+
+    const poll = setInterval(() => {
       if (window.mandalaMachine) {
-        clearInterval(pollTimer);
+        clearInterval(poll); clearInterval(_pi);
         overlay.style.opacity = '0';
         setTimeout(() => overlay.remove(), FADE_TIME);
       }
-    }
+    }, 300);
+  };
 
-    setTimeout(() => {
-      pollTimer = setInterval(tryFade, POLL_MS);
-    }, allShownAt);
-  })();
+  // 起動時に自動実行
+  window.playBootSequence(true);
   </script>
 
   <!-- ===== STARTUP FLASH ===== -->
@@ -5707,6 +6053,12 @@
       presetDropdown?.classList.toggle('open');
     });
     document.addEventListener('click', () => presetDropdown?.classList.remove('open'));
+
+    document.getElementById('bootOverlayBtn')?.addEventListener('click', e => {
+      e.stopPropagation();
+      presetDropdown?.classList.remove('open');
+      window.playBootSequence(false);
+    });
 
     document.querySelectorAll('.vj-preset-item').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -9616,6 +9968,313 @@ struct VOut { @builtin(position) pos: vec4<f32>, @location(0) lp: vec2<f32>, @lo
         '| SPS', FORM_N, 'particles (float + formation)');
       return true;
     }
+  })();
+  </script>
+
+  <!-- ===== FROST OVERLAY（独立トグル） ===== -->
+  <script>
+  (function() {
+    'use strict';
+    const FADE = 500;
+    const ID   = '__frost_overlay__';
+
+    function _getRect() {
+      const cw = document.getElementById('canvasWrapper');
+      return cw ? cw.getBoundingClientRect() : {top:0,left:0,width:innerWidth,height:innerHeight};
+    }
+
+    function _open() {
+      if (document.getElementById(ID)) return;
+      const ov = document.createElement('div');
+      ov.id = ID;
+      ov.style.cssText = 'position:fixed;pointer-events:none;z-index:8999;overflow:hidden;' +
+        'background:rgba(255,255,255,0.06);' +
+        'backdrop-filter:blur(22px) saturate(160%);-webkit-backdrop-filter:blur(22px) saturate(160%);' +
+        'border:1px solid rgba(255,255,255,0.10);box-sizing:border-box;' +
+        'transition:opacity ' + FADE + 'ms ease;opacity:0;';
+
+      function _setPos() {
+        const r = _getRect();
+        ov.style.top    = Math.round(r.top)    + 'px';
+        ov.style.left   = Math.round(r.left)   + 'px';
+        ov.style.width  = Math.round(r.width)  + 'px';
+        ov.style.height = Math.round(r.height) + 'px';
+      }
+      _setPos();
+      document.body.appendChild(ov);
+      requestAnimationFrame(() => ov.style.opacity = '1');
+
+      // 浮遊パーティクル
+      const fc = document.createElement('canvas');
+      fc.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;opacity:0.25;';
+      ov.appendChild(fc);
+      const fctx = fc.getContext('2d');
+      const pts = Array.from({length:28}, () => ({
+        x:Math.random(), y:Math.random(),
+        vx:(Math.random()-0.5)*0.00015, vy:(Math.random()-0.5)*0.00015,
+        r:Math.random()*1.8+0.4
+      }));
+      let _raf;
+      function _draw() {
+        fc.width  = ov.offsetWidth  || 800;
+        fc.height = ov.offsetHeight || 600;
+        fctx.clearRect(0,0,fc.width,fc.height);
+        fctx.fillStyle = 'rgba(255,255,255,0.75)';
+        pts.forEach(p => {
+          p.x = (p.x + p.vx + 1) % 1;
+          p.y = (p.y + p.vy + 1) % 1;
+          fctx.beginPath();
+          fctx.arc(p.x*fc.width, p.y*fc.height, p.r, 0, Math.PI*2);
+          fctx.fill();
+        });
+        _raf = requestAnimationFrame(_draw);
+      }
+      _draw();
+
+      // リサイズ追従
+      const ro = new ResizeObserver(_setPos);
+      const cw = document.getElementById('canvasWrapper');
+      if (cw) ro.observe(cw);
+      window.addEventListener('resize', _setPos);
+
+      ov._cleanup = function() {
+        cancelAnimationFrame(_raf);
+        ro.disconnect();
+        window.removeEventListener('resize', _setPos);
+      };
+    }
+
+    function _close() {
+      const ov = document.getElementById(ID);
+      if (!ov) return;
+      ov._cleanup && ov._cleanup();
+      ov.style.opacity = '0';
+      setTimeout(() => ov.remove(), FADE);
+    }
+
+    function _toggle() {
+      if (document.getElementById(ID)) {
+        _close();
+        document.getElementById('frostOverlayBtn')?.classList.remove('active');
+      } else {
+        _open();
+        document.getElementById('frostOverlayBtn')?.classList.add('active');
+      }
+    }
+
+    // ボタンバインド（DOM ready 後）
+    function _bind() {
+      const btn = document.getElementById('frostOverlayBtn');
+      if (btn) { btn.addEventListener('click', e => { e.stopPropagation(); _toggle(); }); return; }
+      requestAnimationFrame(_bind);
+    }
+    _bind();
+
+    window._frostOverlay = { open:_open, close:_close, toggle:_toggle };
+  })();
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════
+       BIG TEXT OVERLAY  — ASCII アートDJ名表示
+       ═══════════════════════════════════════════════════════ -->
+  <script>
+  (function() {
+    'use strict';
+    const ID = '__big_text_overlay__';
+
+    // ── ASCII art フォントマップ (5行 × ~7列, pipe/dash/slash/underscore) ──
+    const FONT = {
+      'A': [' /\\  ', '/--\\ ',' |  |',' |  |','/_  _\\'],
+      'B': ['|--. ','|  | ','|--< ','|  | ','|--/ '],
+      'C': [' /--','/ __ ',' |   ',' \\__ ',' \\--/'],
+      'D': ['|\\ ','| \\ ','|  |','|  |','|__/'],
+      'E': ['|---','|_- ','|   ','|   ','|---'],
+      'F': ['|---','|_- ','|   ','|   ','|   '],
+      'G': [' /--',' /  ',' | -',' \\__|',' \\--/'],
+      'H': ['|  |','|  |','|--|','|  |','|  |'],
+      'I': ['|--','  | ','  | ','  | ','|--'],
+      'J': [' --|','   |','   |',' \\ |',' \\_/'],
+      'K': ['| /','|/ ','|< ','|\\ ','| \\'],
+      'L': ['|   ','|   ','|   ','|   ','|___'],
+      'M': ['|\\ /|','| V | ','|   |','|   |','|   |'],
+      'N': ['|\\ |','| \\|','|  |','|  |','|  |'],
+      'O': [' __ ',' /  \\ ','|    |',' \\  / ',' \\__/ '],
+      'P': ['|--. ','|  | ','|--/ ','|    ','|    '],
+      'Q': [' __ ',' /  \\ ','|    |',' \\ _/ ',' \\__X'],
+      'R': ['|--. ','|  | ','|--< ','|  \\ ','|   \\'],
+      'S': [' /--','/ __ ','\\__  ',' __ |','\\__/ '],
+      'T': ['|---|','  |  ','  |  ','  |  ','  |  '],
+      'U': ['|   |','|   |','|   |','\\   /','\\___/'],
+      'V': ['|   |','|   |',' \\ / ','  V  ','  V  '],
+      'W': ['|   |','|   |','| | |','|/ \\|','|   |'],
+      'X': ['\\   /','\\  / ',' \\/ ',' /\\ ','/ \\ '],
+      'Y': ['|   |',' \\ / ','  |  ','  |  ','  |  '],
+      'Z': ['|---|','   / ','  /  ',' /   ','|---|'],
+      '0': [' __ ','/ \\|','|  |','|\\ /','\\__/'],
+      '1': [' /| ',' || ',' || ',' || ','_||_'],
+      '2': [' __ ','   |','  /  ',' /  ','|___'],
+      '3': [' __ ','   |',' _/ ','   \\','\\__/'],
+      '4': ['|  |','|  |','|__|','   |','   |'],
+      '5': ['|---','|__ ','   |','   |','|__/'],
+      '6': [' /  ',' /  ','|-- ','|  |','\\__/'],
+      '7': ['|---','   /','  / ','  | ','  | '],
+      '8': [' __ ','(  )','<   >','(  )','\\__/'],
+      '9': [' __ ','(  )','\\__|','   |',' \\__'],
+      ' ': ['     ','     ','     ','     ','     '],
+      '.': ['  ',' ','  ','  ',' . '],
+      '!': [' | ',' | ',' | ','   ',' * '],
+      '-': ['   ','---','   ','   ','   '],
+      '_': ['   ','   ','   ','   ','___'],
+    };
+
+    // テキストをASCIIアート化（5行の配列を返す）
+    function toAsciiArt(text) {
+      const chars = text.toUpperCase().split('').map(c => FONT[c] || FONT[' ']);
+      const rows = ['','','','',''];
+      chars.forEach(g => {
+        for (let r = 0; r < 5; r++) {
+          rows[r] += (g[r] || '     ') + ' ';
+        }
+      });
+      return rows;
+    }
+
+    function _open() {
+      if (document.getElementById(ID)) return;
+
+      const wrapper = document.getElementById('canvasWrapper');
+      if (!wrapper) return;
+
+      const el = document.createElement('div');
+      el.id = ID;
+      Object.assign(el.style, {
+        position:      'absolute',
+        top:           '0', left: '0',
+        width:         '100%', height: '100%',
+        display:       'flex',
+        flexDirection: 'column',
+        alignItems:    'center',
+        justifyContent:'center',
+        pointerEvents: 'none',
+        zIndex:        '9',
+        overflow:      'hidden',
+        fontFamily:    '"Courier New", Courier, monospace',
+        whiteSpace:    'pre',
+        userSelect:    'none',
+      });
+
+      // デコレーションライン
+      const deco = line => {
+        const d = document.createElement('div');
+        d.className = '_btDeco';
+        Object.assign(d.style, {
+          color:   'rgba(255,255,255,0.25)',
+          fontSize:'12px',
+          letterSpacing:'2px',
+          marginBottom:'4px',
+          lineHeight:'1.4',
+        });
+        d.textContent = line;
+        return d;
+      };
+
+      // ASCIIアートコンテナ
+      const artBox = document.createElement('div');
+      artBox.id = '_btArtBox';
+      Object.assign(artBox.style, {
+        display:        'flex',
+        flexDirection:  'column',
+        alignItems:     'flex-start',
+        padding:        '24px 32px',
+        background:     'rgba(0,0,0,0.0)',
+        borderRadius:   '4px',
+        transform:      'scale(1)',
+        transformOrigin:'center center',
+      });
+
+      // 5行のASCIIアート行
+      const artLines = [];
+      for (let r = 0; r < 5; r++) {
+        const span = document.createElement('div');
+        span.className = '_btLine';
+        Object.assign(span.style, {
+          color:         'rgba(255,255,255,0.92)',
+          fontSize:      '14px',
+          lineHeight:    '1.5',
+          letterSpacing: '0px',
+          textShadow:    '0 0 12px rgba(255,255,255,0.5)',
+        });
+        artBox.appendChild(span);
+        artLines.push(span);
+      }
+
+      // 下デコライン
+      const decoBottom = deco('-- -- -- -- -- -- -- -- -- -- -- --');
+
+      el.appendChild(deco('-- -- -- -- -- -- -- -- -- -- -- --'));
+      el.appendChild(artBox);
+      el.appendChild(decoBottom);
+
+      wrapper.style.position = 'relative';
+      wrapper.appendChild(el);
+
+      // テキストをリアルタイム更新
+      function _update() {
+        const input = document.getElementById('canvasText');
+        const text  = (input?.value || 'DJ NAME').trim() || 'DJ NAME';
+        const rows  = toAsciiArt(text);
+
+        // フォントサイズをテキスト長に応じて自動スケール
+        const chars   = text.length;
+        const rawPx   = Math.max(7, Math.min(18, Math.floor(280 / Math.max(chars * 5, 1))));
+        artLines.forEach((line, r) => {
+          line.textContent = rows[r];
+          line.style.fontSize = rawPx + 'px';
+        });
+      }
+
+      _update();
+
+      // input イベントで更新
+      const inputEl = document.getElementById('canvasText');
+      if (inputEl) {
+        el._inputListener = () => _update();
+        inputEl.addEventListener('input', el._inputListener);
+      }
+
+      // ストアで保持
+      el._artLines  = artLines;
+      el._update    = _update;
+    }
+
+    function _close() {
+      const el = document.getElementById(ID);
+      if (!el) return;
+      const inputEl = document.getElementById('canvasText');
+      if (inputEl && el._inputListener) {
+        inputEl.removeEventListener('input', el._inputListener);
+      }
+      el.remove();
+    }
+
+    function _toggle() {
+      if (document.getElementById(ID)) {
+        _close();
+        document.getElementById('bigTextBtn')?.classList.remove('active');
+      } else {
+        _open();
+        document.getElementById('bigTextBtn')?.classList.add('active');
+      }
+    }
+
+    function _bind() {
+      const btn = document.getElementById('bigTextBtn');
+      if (btn) { btn.addEventListener('click', e => { e.stopPropagation(); _toggle(); }); return; }
+      requestAnimationFrame(_bind);
+    }
+    _bind();
+
+    window._bigTextOverlay = { open:_open, close:_close, toggle:_toggle };
   })();
   </script>
 
