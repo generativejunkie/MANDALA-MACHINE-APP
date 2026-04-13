@@ -144,6 +144,8 @@ function createWindow() {
 
           let _liqStream = null, _liqCapturedW = 0;
           let _threeStream = null, _threeCapturedW = 0;
+          let _neuroStream = null, _neuroCapturedW = 0;
+          let _codeStream  = null, _codeCapturedW  = 0;
           let _rafId = null, _started = false;
 
           // ポップアップ自身のcanvas/videoのみCSSで非表示
@@ -241,6 +243,57 @@ function createWindow() {
                     ctx.clearRect(0, 0, c.width, c.height);
                     ctx.drawImage(p5c, 0, 0, c.width, c.height);
                   }
+                }
+              } catch(e) {}
+
+              // ── NEURO LINK（captureStream → video）──
+              try {
+                const neuroC = opener.document.getElementById('neuroLinkCanvas');
+                if (neuroC && neuroC.style.display !== 'none' && neuroC.width > 0) {
+                  const r = tryCapture(neuroC, _neuroStream, _neuroCapturedW);
+                  _neuroStream = r.stream; _neuroCapturedW = r.w;
+                  if (_neuroStream) {
+                    const v = ensureVideo('__mm_neuro_v', _neuroStream, 'screen', 99992);
+                    if (v) v.style.display = '';
+                  }
+                } else {
+                  const v = document.getElementById('__mm_neuro_v');
+                  if (v) v.style.display = 'none';
+                }
+              } catch(e) {}
+
+              // ── CODE mode（captureStream → video, multiply blend）──
+              try {
+                const codeC = opener.document.getElementById('codeModeCanvas');
+                if (codeC && codeC.style.display !== 'none' && codeC.width > 0) {
+                  const r = tryCapture(codeC, _codeStream, _codeCapturedW);
+                  _codeStream = r.stream; _codeCapturedW = r.w;
+                  if (_codeStream) {
+                    const v = ensureVideo('__mm_code_v', _codeStream, 'multiply', 99993);
+                    if (v) v.style.display = '';
+                  }
+                } else {
+                  const v = document.getElementById('__mm_code_v');
+                  if (v) v.style.display = 'none';
+                }
+              } catch(e) {}
+
+              // ── BOOT OVERLAY（コードレイン + プログレスバー）──
+              try {
+                const bocC = opener.document.getElementById('bootVoutCanvas');
+                if (bocC && bocC.width > 0) {
+                  const c = ensureCanvas('__mm_boc_cv', 'normal', 99994);
+                  if (c) {
+                    const W = window.innerWidth, H = window.innerHeight;
+                    if (c.width !== W) { c.width = W; c.style.width = W + 'px'; }
+                    if (c.height !== H) { c.height = H; c.style.height = H + 'px'; }
+                    const cx = c.getContext('2d');
+                    cx.clearRect(0, 0, W, H);
+                    cx.drawImage(bocC, 0, 0, W, H);
+                  }
+                } else {
+                  const c = document.getElementById('__mm_boc_cv');
+                  if (c) { const cx = c.getContext('2d'); cx.clearRect(0, 0, c.width, c.height); }
                 }
               } catch(e) {}
 
