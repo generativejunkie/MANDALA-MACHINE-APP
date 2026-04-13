@@ -1102,26 +1102,29 @@
       box-shadow: 0 0 12px rgba(0, 255, 136, 0.6);
     }
 
-    /* REC ボタン: 録画中は赤く点滅 */
+    /* REC ボタン: 録画中はゆっくり点滅 */
     @keyframes recPulse {
 
       0%,
       100% {
-        box-shadow: 0 0 6px rgba(255, 50, 50, 0.8);
+        box-shadow: 0 0 4px rgba(255, 50, 50, 0.5);
         background: #ff3333;
+        opacity: 1;
       }
 
       50% {
-        box-shadow: 0 0 18px rgba(255, 50, 50, 1.0), 0 0 32px rgba(255, 0, 0, 0.4);
-        background: #ff6666;
+        box-shadow: 0 0 14px rgba(255, 50, 50, 0.9), 0 0 24px rgba(255, 0, 0, 0.3);
+        background: #ff5555;
+        opacity: 0.6;
       }
     }
 
-    #recBtn.rec-recording {
+    #recBtn.rec-recording,
+    #recordBtn.rec-recording {
       background: #ff3333 !important;
       border-color: #ff3333 !important;
       color: #fff !important;
-      animation: recPulse 1s ease-in-out infinite;
+      animation: recPulse 2s ease-in-out infinite;
     }
 
     #recBtn.rec-converting {
@@ -8621,6 +8624,7 @@ fn sfbm(pi:vec2f)->f32 {
       let recorder = null, chunks = [], rafId = null;
       let threeVid = null, liqVid = null;
       let _recCleanups = []; // クリーンアップ関数リスト
+      let _recPending = false; // 二重起動防止フラグ
 
       function cleanup() {
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
@@ -8659,17 +8663,15 @@ fn sfbm(pi:vec2f)->f32 {
       }
 
       async function startRecording() {
-        // desktopCapturer で画面全体（コントロールパネル含む）をキャプチャ
+        // desktopCapturer はメインプロセス経由で取得（Electron 17+対応）
         let screenStream = null;
         try {
-          const { desktopCapturer } = require('electron');
-          const sources = await desktopCapturer.getSources({
-            types: ['window', 'screen'],
-            thumbnailSize: { width: 1, height: 1 }
-          });
+          const { ipcRenderer } = require('electron');
+          const sources = await ipcRenderer.invoke('get-desktop-sources');
           const win = sources.find(s => /mandala|MANDALA/i.test(s.name))
             || sources.find(s => s.id.startsWith('screen:'))
             || sources[0];
+          console.log('[REC] source:', win?.name, win?.id);
           screenStream = await navigator.mediaDevices.getUserMedia({
             audio: false,
             video: {
@@ -8681,9 +8683,11 @@ fn sfbm(pi:vec2f)->f32 {
               }
             }
           });
+          console.log('[REC] screenStream OK');
         } catch (e) {
-          console.error('[REC] desktopCapturer失敗:', e);
+          console.error('[REC] screenStream失敗:', e);
           setRecState('idle');
+          _recPending = false;
           return;
         }
 
@@ -8746,6 +8750,18 @@ fn sfbm(pi:vec2f)->f32 {
           cleanup();
           const blob = new Blob(chunks, { type: mimeType || 'video/webm' });
           const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+          console.log('[REC] stop: chunks=' + chunks.length + ' size=' + blob.size);
+
+          function downloadBlob(b, filename) {
+            const url = URL.createObjectURL(b);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 10000);
+            console.log('[REC] download triggered:', filename);
+          }
 
           try {
             const fs = require('fs');
@@ -8753,14 +8769,16 @@ fn sfbm(pi:vec2f)->f32 {
             const path = require('path');
             const { spawn } = require('child_process');
             const ffmpegPath = require('ffmpeg-static');
+            console.log('[REC] ffmpeg path:', ffmpegPath);
 
             setRecState('converting');
 
             const tmpWebm = path.join(os.tmpdir(), `mandala-${ts}.webm`);
-            const tmpMp4 = path.join(os.tmpdir(), `mandala-${ts}.mp4`);
+            const tmpMp4  = path.join(os.tmpdir(), `mandala-${ts}.mp4`);
 
             const arrayBuffer = await blob.arrayBuffer();
             fs.writeFileSync(tmpWebm, Buffer.from(arrayBuffer));
+            console.log('[REC] webm written:', tmpWebm);
 
             await new Promise((resolve, reject) => {
               const proc = spawn(ffmpegPath, [
@@ -8770,23 +8788,23 @@ fn sfbm(pi:vec2f)->f32 {
                 '-movflags', '+faststart',
                 '-y', tmpMp4
               ]);
-              proc.on('close', code => code === 0 ? resolve() : reject(new Error('ffmpeg exit ' + code)));
+              let stderr = '';
+              proc.stderr?.on('data', d => { stderr += d.toString(); });
+              proc.on('close', code => {
+                console.log('[REC] ffmpeg exit:', code);
+                if (code === 0) resolve();
+                else reject(new Error('ffmpeg exit ' + code + '\n' + stderr.slice(-300)));
+              });
+              proc.on('error', e => reject(e));
             });
 
             const mp4Data = fs.readFileSync(tmpMp4);
-            const mp4Blob = new Blob([mp4Data], { type: 'video/mp4' });
-            const url = URL.createObjectURL(mp4Blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = `mandala-${ts}.mp4`; a.click();
-            setTimeout(() => URL.revokeObjectURL(url), 10000);
+            downloadBlob(new Blob([mp4Data], { type: 'video/mp4' }), `mandala-${ts}.mp4`);
             try { fs.unlinkSync(tmpWebm); fs.unlinkSync(tmpMp4); } catch (e) { }
 
           } catch (err) {
-            console.warn('[REC] mp4変換失敗、webmでフォールバック:', err);
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = `mandala-${ts}.webm`; a.click();
-            setTimeout(() => URL.revokeObjectURL(url), 10000);
+            console.warn('[REC] mp4変換失敗、webmでフォールバック:', err.message || err);
+            downloadBlob(blob, `mandala-${ts}.webm`);
           }
 
           setRecState('idle');
@@ -8796,11 +8814,14 @@ fn sfbm(pi:vec2f)->f32 {
         setRecState('recording');
       }
 
-      function toggleRec() {
+      async function toggleRec() {
+        if (_recPending) return; // 起動中は無視
         if (recorder && recorder.state === 'recording') {
           recorder.stop(); recorder = null;
         } else if (!recorder) {
-          startRecording();
+          _recPending = true;
+          await startRecording();
+          _recPending = false;
         }
       }
 
