@@ -653,6 +653,12 @@
     .transition-btn,
     .stroke-btn,
     .vj-pro-btn,
+    @keyframes btnPressFlash {
+      0%   { background: rgba(0,229,255,0.55) !important; box-shadow: 0 0 18px rgba(0,229,255,1), 0 0 40px rgba(0,229,255,0.6) !important; border-color: #00e5ff !important; color: #fff !important; }
+      60%  { background: rgba(0,229,255,0.20) !important; box-shadow: 0 0 10px rgba(0,229,255,0.5) !important; }
+      100% { background: rgba(255,255,255,0.02) !important; box-shadow: none !important; }
+    }
+
     .mode-tag-btn {
       background: rgba(255,255,255,0.02) !important;
       border-color: rgba(255,255,255,0.10) !important;
@@ -663,6 +669,29 @@
       box-shadow: none !important;
     }
 
+    /* デフォルト(非アクティブ)は完全にグロー・アニメ抑制 */
+    .mode-tag-btn:not(.active) {
+      background: rgba(255,255,255,0.02) !important;
+      border-color: rgba(255,255,255,0.10) !important;
+      color: rgba(255,255,255,0.25) !important;
+      box-shadow: none !important;
+      text-shadow: none !important;
+      animation: none !important;
+      outline: none !important;
+    }
+
+    .mode-tag-btn:active {
+      background: rgba(0,229,255,0.45) !important;
+      border-color: #00e5ff !important;
+      color: #fff !important;
+      box-shadow: 0 0 16px rgba(0,229,255,0.9), 0 0 36px rgba(0,229,255,0.5) !important;
+      transform: scale(0.96);
+    }
+
+    .mode-tag-btn.btn-flash {
+      animation: btnPressFlash 0.35s ease-out forwards !important;
+    }
+
     .transition-btn:hover,
     .stroke-btn:hover,
     .vj-pro-btn:hover,
@@ -671,6 +700,14 @@
       color: rgba(255,255,255,0.60) !important;
       border-color: rgba(255,255,255,0.22) !important;
       box-shadow: none !important;
+    }
+
+    .transition-btn:not(.active),
+    .stroke-btn:not(.active),
+    .vj-pro-btn:not(.active) {
+      box-shadow: none !important;
+      text-shadow: none !important;
+      animation: none !important;
     }
 
     .transition-btn.active,
@@ -757,6 +794,48 @@
     .text-input-section {
       border-top: 1px solid #222 !important;
       border-bottom: 1px solid #222 !important;
+    }
+
+    /* テキスト履歴 */
+    #textHistory {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 5px;
+    }
+    .text-hist-item {
+      background: rgba(0,229,255,0.07);
+      border: 1px solid rgba(0,229,255,0.25);
+      color: rgba(0,229,255,0.8);
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 3px;
+      cursor: pointer;
+      white-space: nowrap;
+      max-width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: background 0.15s;
+      font-family: 'Courier New', monospace;
+    }
+    .text-hist-item:hover {
+      background: rgba(0,229,255,0.25);
+      border-color: #00e5ff;
+      color: #fff;
+    }
+    .text-hist-clear {
+      background: rgba(255,50,50,0.07);
+      border: 1px solid rgba(255,50,50,0.25);
+      color: rgba(255,100,100,0.7);
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .text-hist-clear:hover {
+      background: rgba(255,50,50,0.25);
+      color: #fff;
     }
 
     /* 左パネルのsectionヘッダーを右パネルのmenu-sectionスタイルに合わせる */
@@ -1732,6 +1811,7 @@
           <input type="text" id="canvasText" placeholder="Enter DJ Name..." maxlength="50"
             style="width: 100%; box-sizing: border-box;">
         </div>
+        <div id="textHistory"></div>
         <!-- ── MASTER FLASH ROW: ON / OFF / WHT / BLK ── -->
         <div class="dj-name-toggle-container">
           <button id="djNameOnBtn" class="mode-tag-btn">ON</button>
@@ -1749,6 +1829,8 @@
           <button class="mode-tag-btn" data-effect="hex">HEX</button>
           <button class="mode-tag-btn" data-effect="pixel">PIX</button>
           <button class="mode-tag-btn" data-effect="data">DAT</button>
+          <button class="mode-tag-btn" id="djMos2Btn" data-effect="pixel">MOS2</button>
+          <button class="mode-tag-btn" id="djMos3Btn" data-effect="pixel">MOS3</button>
         </div>
       </div>
 
@@ -5162,6 +5244,15 @@
           if (!_p5FillPatched) {
             _p5FillPatched = true;
             const _origFill = t.fill.bind(t);
+            const _origStroke = t.stroke.bind(t);
+            t.stroke = function () {
+              // カスタムカラー（BLK等）選択中は白縁を透明にして消す
+              const [cr, cg, cb] = window._djTextColor || [255, 255, 255];
+              if (cr !== 255 || cg !== 255 || cb !== 255) {
+                return _origStroke(cr, cg, cb, 0); // 同色・透明
+              }
+              return _origStroke.apply(this, arguments);
+            };
             t.fill = function () {
               const args = arguments;
               const [cr, cg, cb] = window._djTextColor || [255, 255, 255];
@@ -5296,6 +5387,339 @@
     })();
   </script>
 
+  <!-- ===== テキスト入力履歴 ===== -->
+  <script>
+    (function () {
+      const STORAGE_KEY = 'mandala_text_history';
+      const MAX = 12;
+
+      function loadHistory() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+        catch (e) { return []; }
+      }
+      function saveHistory(list) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      }
+      function addHistory(text) {
+        if (!text.trim()) return;
+        let list = loadHistory();
+        list = list.filter(v => v !== text); // 重複排除
+        list.unshift(text);
+        if (list.length > MAX) list = list.slice(0, MAX);
+        saveHistory(list);
+        renderHistory();
+      }
+      function renderHistory() {
+        const container = document.getElementById('textHistory');
+        if (!container) return;
+        const list = loadHistory();
+        container.innerHTML = '';
+        if (list.length === 0) return;
+        list.forEach(text => {
+          const btn = document.createElement('button');
+          btn.className = 'text-hist-item';
+          btn.textContent = text;
+          btn.title = text;
+          btn.addEventListener('click', () => {
+            const input = document.getElementById('canvasText');
+            if (input) {
+              input.value = text;
+              input.dispatchEvent(new Event('input', { bubbles: true }));
+              input.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          });
+          container.appendChild(btn);
+        });
+        // クリアボタン
+        const clr = document.createElement('button');
+        clr.className = 'text-hist-clear';
+        clr.textContent = '✕';
+        clr.title = '履歴をクリア';
+        clr.addEventListener('click', () => {
+          saveHistory([]);
+          renderHistory();
+        });
+        container.appendChild(clr);
+      }
+
+      // Enter キーで履歴保存
+      document.addEventListener('DOMContentLoaded', () => {
+        const input = document.getElementById('canvasText');
+        if (input) {
+          input.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && input.value.trim()) {
+              addHistory(input.value.trim());
+            }
+          });
+        }
+        renderHistory();
+      });
+      // 遅延初期化（DOMContentLoaded 後でも対応）
+      if (document.readyState !== 'loading') {
+        const input = document.getElementById('canvasText');
+        if (input) {
+          input.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && input.value.trim()) {
+              addHistory(input.value.trim());
+            }
+          });
+        }
+        renderHistory();
+      }
+    })();
+  </script>
+
+  <!-- ===== MOS2 / MOS3 モザイクテキストエフェクト ===== -->
+  <!-- drawPixelText パッチ方式。ホットパスにDOM参照ゼロ、変数キャッシュのみ使用 -->
+  <script>
+    (function () {
+      // ── アクティブ状態を変数でキャッシュ（毎フレームDOM参照しない） ──
+      let _mosMode = 0; // 0=OFF 2=MOS2 3=MOS3
+
+      // ── テキストビットマップ → ブロックグリッド変換（起動時1度だけ） ──
+      // 再利用可能な1枚のオフスクリーンキャンバスを使い回す
+      const _bmpCv = document.createElement('canvas');
+      _bmpCv.width = 1000; _bmpCv.height = 200;
+      const _bmpCtx = _bmpCv.getContext('2d', { willReadFrequently: true });
+
+      function _buildCache(text, mode) {
+        const BW = 1000, BH = 200, COLS = 28, ROWS = 7;
+        _bmpCtx.clearRect(0, 0, BW, BH);
+        let fs = 160;
+        _bmpCtx.font = `bold ${fs}px monospace, sans-serif`;
+        const mw = _bmpCtx.measureText(text).width;
+        if (mw > BW * 0.92) fs = Math.floor(fs * BW * 0.92 / mw);
+        fs = Math.min(fs, Math.floor(BH * 0.82));
+        _bmpCtx.font = `bold ${fs}px monospace, sans-serif`;
+        _bmpCtx.textAlign = 'center'; _bmpCtx.textBaseline = 'middle';
+        _bmpCtx.fillStyle = '#fff';
+        _bmpCtx.fillText(text, BW / 2, BH / 2);
+        const px = _bmpCtx.getImageData(0, 0, BW, BH).data;
+
+        // グリッド化
+        const grid = new Uint8Array(COLS * ROWS);
+        for (let gy = 0; gy < ROWS; gy++) {
+          for (let gx = 0; gx < COLS; gx++) {
+            const x0 = Math.floor(gx * BW / COLS), x1 = Math.floor((gx + 1) * BW / COLS);
+            const y0 = Math.floor(gy * BH / ROWS), y1 = Math.floor((gy + 1) * BH / ROWS);
+            let sum = 0;
+            for (let py = y0; py < y1; py++)
+              for (let bx = x0; bx < x1; bx++)
+                sum += px[(py * BW + bx) * 4 + 3];
+            grid[gy * COLS + gx] = sum / ((x1 - x0) * (y1 - y0)) > 35 ? 1 : 0;
+          }
+        }
+
+        // MOS3: 矩形ブロックリストを事前計算（確定的アルゴリズム）
+        let rects = null;
+        if (mode === 3) {
+          rects = [];
+          const used = new Uint8Array(COLS * ROWS);
+          for (let gy = 0; gy < ROWS; gy++) {
+            let gx = 0;
+            while (gx < COLS) {
+              if (!grid[gy * COLS + gx] || used[gy * COLS + gx]) { gx++; continue; }
+              let ex = gx;
+              while (ex + 1 < COLS && grid[gy * COLS + (ex + 1)] && !used[gy * COLS + (ex + 1)]) ex++;
+              let ey = gy;
+              if (gy + 1 < ROWS && ((gx * 7 + gy * 13) % 10) < 4) {
+                let ok = true;
+                for (let cx = gx; cx <= ex; cx++)
+                  if (!grid[(gy + 1) * COLS + cx] || used[(gy + 1) * COLS + cx]) { ok = false; break; }
+                if (ok) ey = gy + 1;
+              }
+              for (let cy = gy; cy <= ey; cy++)
+                for (let cx = gx; cx <= ex; cx++)
+                  used[cy * COLS + cx] = 1;
+              rects.push([gx, gy, ex - gx + 1, ey - gy + 1]);
+              gx = ex + 1;
+            }
+          }
+        }
+
+        return { text, mode, grid, rects, COLS, ROWS };
+      }
+
+      // ── drawPixelText パッチ ──
+      function _applyPatch() {
+        const mm = window.mandalaMachine;
+        if (!mm?.processingLayer) return setTimeout(_applyPatch, 200);
+
+        const _orig = mm.processingLayer.drawPixelText;
+        let _cache = null;
+        const GAP = 1.5;
+
+        mm.processingLayer.drawPixelText = function (t, n, r) {
+          if (_mosMode === 0) return _orig?.call(this, t, n, r);
+
+          const s = (this.canvasText || '').toUpperCase();
+          if (!s) return _orig?.call(this, t, n, r);
+
+          if (!_cache || _cache.text !== s || _cache.mode !== _mosMode)
+            _cache = _buildCache(s, _mosMode);
+
+          const { grid, rects, COLS, ROWS } = _cache;
+          const W = t.width, H = t.height;
+          const scaleX = W * 0.90;
+          const scaleY = Math.min(scaleX * 0.20, H * 0.42);
+          const bw = scaleX / COLS, bh = scaleY / ROWS;
+          const ox = -scaleX / 2, oy = -scaleY / 2;
+          const now = performance.now() / 1000;
+
+          t.noStroke();
+
+          if (_mosMode === 2) {
+            // ── MOS2: CHAOS SQUARE MOSAIC (高速・軽量版) ──
+            // グリッド幅に合わせてフォントサイズをフィット（MOSと同等のサイズ感）
+            const [cr, cg, cb] = window._djTextColor || [255, 255, 255];
+            const ctx = t.drawingContext;
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            // まず scaleY 基準でフォントサイズを設定
+            let fs = scaleY * 0.85;
+            ctx.font = `bold ${fs}px sans-serif`;
+            // テキスト幅がグリッド幅を超えるなら縮小
+            const mw = ctx.measureText(s).width;
+            if (mw > scaleX * 0.95) fs *= (scaleX * 0.95) / mw;
+            ctx.font = `bold ${fs}px sans-serif`;
+            ctx.fillStyle = `rgb(${cr},${cg},${cb})`;
+            ctx.fillText(s, 0, 0);
+            ctx.restore();
+
+            const whites = []; // [x, y, size]
+            const blacks = [];
+
+            for (let gy = 0; gy < ROWS; gy++) {
+              for (let gx = 0; gx < COLS; gx++) {
+                if (!grid[gy * COLS + gx]) continue;
+
+                const ph = (gx * 2.718 + gy * 3.141) % (Math.PI * 2);
+
+                // 2周波合成（sin計算を4→2に削減）
+                const f1 = Math.sin(now * 16 + ph);
+                const f2 = Math.sin(now * 23 - ph * 1.4);
+                const f3 = Math.sin(now * 11 + ph * 0.8);
+
+                const edgeX = Math.abs(gx - COLS * 0.5) / (COLS * 0.5);
+                const edgeY = Math.abs(gy - ROWS * 0.5) / (ROWS * 0.5);
+                const edge  = 0.5 + Math.max(edgeX, edgeY) * 0.7;
+
+                const dx = f1 * bw * 3.5 * edge;
+                const dy = f2 * bh * 4.0 * edge;
+
+                // サイズ変動（1.0x 〜 3.5x）
+                const scale = 1.0 + ((f3 + 1) * 0.5) * 2.5;
+                const sq    = Math.max(3, Math.min(bw, bh) * scale);
+
+                // 高速フリッカー：sin > 0 なら白、< 0 なら黒
+                if (Math.sin(now * 28 + ph * 3) > 0) {
+                  whites.push(ox + gx * bw + dx, oy + gy * bh + dy, sq);
+                } else {
+                  blacks.push(ox + gx * bw + dx, oy + gy * bh + dy, sq);
+                }
+              }
+            }
+
+            // 白ブロック一括描画
+            t.fill(255, 255, 255, 230);
+            for (let i = 0; i < whites.length; i += 3)
+              t.rect(whites[i], whites[i+1], whites[i+2], whites[i+2]);
+
+            // 黒ブロック一括描画
+            t.fill(0, 0, 0, 210);
+            for (let i = 0; i < blacks.length; i += 3)
+              t.rect(blacks[i], blacks[i+1], blacks[i+2], blacks[i+2]);
+
+          } else {
+            // ── MOS3: RANDOM CHAOS MOSAIC (MOS2ベース・高速ランダム版) ──
+            // 毎フレームランダムシードで動作し予測不能なパターンを生成
+
+            // グリッド幅に合わせてフォントサイズをフィット（MOS2と同じ）
+            const [cr3, cg3, cb3] = window._djTextColor || [255, 255, 255];
+            const ctx3 = t.drawingContext;
+            ctx3.save();
+            ctx3.textAlign = 'center';
+            ctx3.textBaseline = 'middle';
+            let fs3 = scaleY * 0.85;
+            ctx3.font = `bold ${fs3}px sans-serif`;
+            const mw3 = ctx3.measureText(s).width;
+            if (mw3 > scaleX * 0.95) fs3 *= (scaleX * 0.95) / mw3;
+            ctx3.font = `bold ${fs3}px sans-serif`;
+            ctx3.fillStyle = `rgb(${cr3},${cg3},${cb3})`;
+            ctx3.fillText(s, 0, 0);
+            ctx3.restore();
+
+            // 高速ランダムモザイク（Math.random()で毎フレーム完全ランダム）
+            const whites3 = [];
+            const blacks3 = [];
+
+            for (let gy = 0; gy < ROWS; gy++) {
+              for (let gx = 0; gx < COLS; gx++) {
+                if (!grid[gy * COLS + gx]) continue;
+
+                // 毎フレーム完全ランダムな変位
+                const dx = (Math.random() * 2 - 1) * bw * 5.5;
+                const dy = (Math.random() * 2 - 1) * bh * 6.0;
+
+                let rw, rh;
+                // 50%は横長長方形、50%は正方形
+                if (Math.random() > 0.5) {
+                  rw = Math.max(4, bw * (2.5 + Math.random() * 4.0));
+                  rh = Math.max(3, bh * (0.3 + Math.random() * 0.7));
+                } else {
+                  const sq = Math.max(3, Math.min(bw, bh) * (1.0 + Math.random() * 3.5));
+                  rw = sq; rh = sq;
+                }
+
+                const x = ox + gx * bw + dx;
+                const y = oy + gy * bh + dy;
+
+                if (Math.random() > 0.38) {
+                  whites3.push(x, y, rw, rh);
+                } else {
+                  blacks3.push(x, y, rw, rh);
+                }
+              }
+            }
+
+            t.fill(255, 255, 255, 225);
+            for (let i = 0; i < whites3.length; i += 4)
+              t.rect(whites3[i], whites3[i+1], whites3[i+2], whites3[i+3]);
+
+            t.fill(0, 0, 0, 215);
+            for (let i = 0; i < blacks3.length; i += 4)
+              t.rect(blacks3[i], blacks3[i+1], blacks3[i+2], blacks3[i+3]);
+          }
+        };
+
+        // ── クリックイベントで _mosMode を確実に管理 ──
+        // (data-effect="pixel"を共有するため、activeクラスでは区別不可)
+        const btn2 = document.getElementById('djMos2Btn');
+        const btn3 = document.getElementById('djMos3Btn');
+        // PIXボタン（MOS2/3以外の最初のdata-effect="pixel"ボタン）
+        const btnPix = document.querySelector('.mode-tag-btn[data-effect="pixel"]:not(#djMos2Btn):not(#djMos3Btn)');
+
+        btn2?.addEventListener('click', () => { _mosMode = 2; _cache = null; });
+        btn3?.addEventListener('click', () => { _mosMode = 3; _cache = null; });
+        btnPix?.addEventListener('click', () => { _mosMode = 0; _cache = null; });
+
+        // RESET でも OFF に戻す
+        document.getElementById('topResetBtn')
+          ?.addEventListener('click', () => { _mosMode = 0; _cache = null; });
+
+        // RESET でキャッシュクリア（_mosMode は engine が active 解除するので自動）
+        document.getElementById('topResetBtn')
+          ?.addEventListener('click', () => { _cache = null; });
+      }
+
+      (function _waitMm() {
+        if (window.mandalaMachine?.processingLayer) _applyPatch();
+        else setTimeout(_waitMm, 200);
+      })();
+    })();
+  </script>
+
   <!-- ===== STARTUP TITLE ===== -->
   <script>
     window._bootDesign = -1;
@@ -5317,7 +5741,8 @@
         shadow: '0 0 6px rgba(0,255,200,0.7), 0 0 2px rgba(0,255,200,1)',
         rainHi: 'rgba(0,255,200,0.96)', rainDim: 'rgba(0,255,200,0.28)',
         bc: { label: 'rgba(0,255,200,0.7)', track: 'rgba(0,255,200,0.15)', fill: 'rgba(0,255,200,0.95)', pct: 'rgba(0,255,200,0.5)' },
-        blockBar: true, scan: false, glitch: false, mosaic: false,
+        blockBar: true, scan: false, glitch: false, mosaic: true,
+        mosaicColor: [0,255,200], gridColor: 'rgba(0,255,200,0.06)',
       },
       { // 2: SCAN — 透明背景・グリーン + CRT + 複数スキャン
         name: 'SCAN', bg: 'transparent', bd: 'none',
@@ -5371,6 +5796,12 @@
         const b = document.getElementById(id);
         if (!b) return;
         b.addEventListener('click', () => {
+          // 押下フラッシュ
+          b.classList.remove('btn-flash');
+          void b.offsetWidth; // reflow
+          b.classList.add('btn-flash');
+          setTimeout(() => b.classList.remove('btn-flash'), 360);
+
           const ex = document.getElementById('__boot_overlay__');
           if (ex && window._bootDesign === idx) {
             // 同じデザインをクリック → OFF
@@ -5386,6 +5817,16 @@
         });
       });
     }
+
+    // 全ての mode-tag-btn に押下フラッシュを付与
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('.mode-tag-btn');
+      if (!btn) return;
+      btn.classList.remove('btn-flash');
+      void btn.offsetWidth;
+      btn.classList.add('btn-flash');
+      setTimeout(() => btn.classList.remove('btn-flash'), 360);
+    }, true);
 
     // DOM ready 後にバインド
     (function _waitBind() {
@@ -5469,7 +5910,7 @@
       const snips = cfg.hex ? _hex : _std;
       const LINE_COUNT = 14;
       const COL_MAX = 66;   // 折り返し文字数
-      const CHAR_MS = 18;   // 1文字あたりのms（高速だが負荷軽減）
+      const CHAR_MS = 30;   // 1文字あたりのms（約33fps、負荷軽減）
       const RAIN_HI = cfg.rainHi || 'rgba(255,255,255,0.92)';
       const RAIN_DIM = cfg.rainDim || 'rgba(255,255,255,0.35)';
 
@@ -5531,14 +5972,16 @@
         overlay.appendChild(pixC);
 
         // 背景グリッド線
+        const _gc = cfg.gridColor || 'rgba(0,255,200,0.06)';
         const gridDiv = document.createElement('div');
         gridDiv.style.cssText = 'position:absolute;top:84px;left:0;width:55%;' +
           'height:calc(100% - 140px);pointer-events:none;z-index:0;' +
-          'background-image:linear-gradient(rgba(0,255,200,0.06) 1px,transparent 1px),' +
-          'linear-gradient(90deg,rgba(0,255,200,0.06) 1px,transparent 1px);' +
+          `background-image:linear-gradient(${_gc} 1px,transparent 1px),` +
+          `linear-gradient(90deg,${_gc} 1px,transparent 1px);` +
           'background-size:7px 22px;';
         overlay.appendChild(gridDiv);
 
+        const _mc = cfg.mosaicColor || [0,255,200];
         function _drawMosaic() {
           const w = pixC.width, h = pixC.height;
           pixX.clearRect(0, 0, w, h);
@@ -5547,12 +5990,20 @@
             const isHi = li === _activeLine;
             const dist = Math.max(0, _activeLine - li);
             const baseA = isHi ? 0.97 : Math.max(0.08, 0.55 - dist * 0.05);
+            // HEATバリアント: 距離に応じて色を赤→オレンジ→黄にシフト
+            let r = _mc[0], g = _mc[1], b = _mc[2];
+            if (cfg.mosaicVar === 'heat') {
+              const t = Math.min(1, dist / LINE_COUNT);
+              r = Math.round(255);
+              g = Math.round(_mc[1] * (1 - t * 0.7));
+              b = Math.round(_mc[2] * (1 - t));
+            }
             for (let ci = 0; ci < text.length && ci < COL_MAX; ci++) {
               if (text[ci] === ' ') continue;
               const x = PAD + ci * STEP;
               const y = li * LINE_H + (LINE_H - PX) * 0.5;
               if (x + PX > w || y < 0 || y + PX > h) continue;
-              pixX.fillStyle = `rgba(0,255,200,${baseA})`;
+              pixX.fillStyle = `rgba(${r},${g},${b},${baseA})`;
               pixX.fillRect(x, y, PX, PX);
             }
           });
@@ -5634,9 +6085,10 @@
         overlay.appendChild(slTrail);
 
         let sy = 0;
+        let _scanH = cw ? (cw.getBoundingClientRect().height | 0) : innerHeight;
+        window.addEventListener('resize', () => { _scanH = cw ? (cw.getBoundingClientRect().height | 0) : innerHeight; }, { passive: true });
         function _animScan() {
-          const h = cw ? (cw.getBoundingClientRect().height | 0) : innerHeight;
-          sy = (sy + 2.2) % h;
+          sy = (sy + 2.2) % _scanH;
           slMain.style.top = sy + 'px';
           slTrail.style.top = sy + 'px';
           _bocScanY = sy;
@@ -5772,7 +6224,7 @@
             _bocGlitchBands = [];
           }, dur);
 
-          _glitchTO = setTimeout(_doGlitch, isMega ? 700 + Math.random() * 1200 : 40 + Math.random() * 280);
+          _glitchTO = setTimeout(_doGlitch, isMega ? 900 + Math.random() * 1400 : 80 + Math.random() * 350);
         }
         _glitchTO = setTimeout(_doGlitch, 80);
 
@@ -5803,7 +6255,7 @@
               }
             }
           }
-          _corruptTO = setTimeout(_doCorrupt, 50 + Math.random() * 200);
+          _corruptTO = setTimeout(_doCorrupt, 90 + Math.random() * 280);
         }
         _doCorrupt();
       }

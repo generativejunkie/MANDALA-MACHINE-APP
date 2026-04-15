@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, desktopCapturer } = require('electron');
 const path = require('path');
 
 // GPU パフォーマンス最適化（高解像度 V-OUT 用）
@@ -38,7 +38,7 @@ function createWindow() {
 
   mainWindow.loadFile('mandaramachine.html');
   mainWindow.webContents.on('console-message', (e, level, msg) => {
-    if (msg.includes('[STAR]')) console.log('[R]', msg);
+    if (msg.includes('[STAR]') || msg.includes('[REC]')) console.log('[R]', msg);
   });
 
   // window.open() で開く "Mandara Output" ポップアップを捕捉
@@ -322,124 +322,6 @@ function createWindow() {
             if (!_started && document.body) startCopyLoop();
           }, 500);
 
-          // ── V-OUT REC ボタン注入 ──────────────────────────────
-          (function injectRecButton() {
-            const btn = document.createElement('button');
-            btn.id = '__mm_rec_btn';
-            btn.textContent = 'REC';
-            btn.style.cssText =
-              'position:fixed;top:12px;right:12px;z-index:99999;' +
-              'padding:4px 14px;font-size:11px;font-weight:700;letter-spacing:2px;' +
-              'background:transparent;border:1px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.5);' +
-              'cursor:pointer;border-radius:2px;font-family:monospace;transition:all 0.2s;';
-
-            let recorder = null, chunks = [], rafId2 = null, audioStream = null;
-            let threeVid2 = null, liqVid2 = null;
-
-            function cleanup() {
-              if (rafId2) { cancelAnimationFrame(rafId2); rafId2 = null; }
-              [threeVid2, liqVid2].forEach(v => {
-                if (v) try { v.srcObject?.getTracks().forEach(t => t.stop()); } catch(e) {}
-              });
-              threeVid2 = null; liqVid2 = null;
-              if (audioStream) { audioStream.getTracks().forEach(t => t.stop()); audioStream = null; }
-            }
-
-            async function startRec() {
-              const W = window.innerWidth, H = window.innerHeight;
-              const off = document.createElement('canvas');
-              off.width = W; off.height = H;
-              const ctx = off.getContext('2d');
-
-              // V-OUT内の video/__mm_three_v と __mm_liq_v から再キャプチャ
-              function makeVid(src) {
-                if (!src) return null;
-                const v = document.createElement('video');
-                v.srcObject = src; v.muted = true; v.autoplay = true; v.playsInline = true;
-                v.play().catch(() => {});
-                return v;
-              }
-
-              const tv = document.getElementById('__mm_three_v');
-              const lv = document.getElementById('__mm_liq_v');
-              threeVid2 = tv && tv.srcObject ? makeVid(tv.srcObject) : null;
-              liqVid2   = lv && lv.srcObject ? makeVid(lv.srcObject) : null;
-
-              try {
-                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-              } catch(e) { console.warn('[REC] audio unavailable', e); }
-
-              function compose() {
-                ctx.fillStyle = '#000';
-                ctx.fillRect(0, 0, W, H);
-                ctx.globalCompositeOperation = 'source-over';
-
-                const liqShowing = lv && lv.style.display !== 'none';
-                if (!liqShowing && threeVid2 && threeVid2.readyState >= 2) {
-                  ctx.drawImage(threeVid2, 0, 0, W, H);
-                }
-                if (liqShowing && liqVid2 && liqVid2.readyState >= 2) {
-                  ctx.drawImage(liqVid2, 0, 0, W, H);
-                }
-
-                // p5 オーバーレイ
-                const p5cv = document.getElementById('__mm_p5_cv');
-                if (p5cv && p5cv.width > 0) {
-                  ctx.globalCompositeOperation = 'screen';
-                  ctx.drawImage(p5cv, 0, 0, W, H);
-                  ctx.globalCompositeOperation = 'source-over';
-                }
-
-                rafId2 = requestAnimationFrame(compose);
-              }
-              compose();
-
-              const videoStream = off.captureStream(30);
-              const tracks = [...videoStream.getTracks()];
-              if (audioStream) tracks.push(...audioStream.getTracks());
-              const combined = new MediaStream(tracks);
-
-              const mimeType = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm']
-                .find(m => MediaRecorder.isTypeSupported(m)) || '';
-
-              recorder = new MediaRecorder(combined, mimeType ? { mimeType, videoBitsPerSecond: 8_000_000 } : {});
-              chunks = [];
-              recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-              recorder.onstop = () => {
-                cleanup();
-                const blob = new Blob(chunks, { type: mimeType || 'video/webm' });
-                const url  = URL.createObjectURL(blob);
-                const a    = document.createElement('a');
-                const ts   = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-                a.href = url; a.download = 'vout-' + ts + '.webm'; a.click();
-                setTimeout(() => URL.revokeObjectURL(url), 10000);
-                btn.textContent = 'REC';
-                btn.style.background = 'transparent';
-                btn.style.borderColor = 'rgba(255,255,255,0.3)';
-                btn.style.color = 'rgba(255,255,255,0.5)';
-              };
-              recorder.start(1000);
-              btn.textContent = 'STOP';
-              btn.style.background = '#ff4444';
-              btn.style.borderColor = '#ff4444';
-              btn.style.color = '#fff';
-            }
-
-            btn.addEventListener('click', () => {
-              if (recorder && recorder.state === 'recording') {
-                recorder.stop(); recorder = null;
-              } else {
-                startRec();
-              }
-            });
-
-            // ボタンをbodyに追加（body確定後）
-            function appendBtn() {
-              if (document.body) { document.body.appendChild(btn); }
-              else setTimeout(appendBtn, 200);
-            }
-            appendBtn();
-          })();
         })();
       `).catch(e => console.log('[V-OUT] executeJS error:', e));
     });
@@ -490,6 +372,15 @@ function openProjectorWindow() {
     }
   });
 }
+
+// desktopCapturer はメインプロセスのみで使用可（Electron 17+）
+ipcMain.handle('get-desktop-sources', async () => {
+  const sources = await desktopCapturer.getSources({
+    types: ['window', 'screen'],
+    thumbnailSize: { width: 1, height: 1 }
+  });
+  return sources.map(s => ({ id: s.id, name: s.name }));
+});
 
 ipcMain.on('open-projector', () => openProjectorWindow());
 
