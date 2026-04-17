@@ -5,10 +5,10 @@ const path = require('path');
 app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('enable-zero-copy');
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
-app.commandLine.appendSwitch('enable-hardware-overlays', 'single-fullscreen,single-on-top,underlay');
 app.commandLine.appendSwitch('enable-accelerated-video-decode');
 app.commandLine.appendSwitch('disable-frame-rate-limit');
-app.commandLine.appendSwitch('enable-features', 'WebGPU,WebGPUDeveloperFeatures');
+// WebGPU はGPUプロセスクラッシュの原因になるため無効化
+// app.commandLine.appendSwitch('enable-features', 'WebGPU,WebGPUDeveloperFeatures');
 
 let mainWindow;
 let projectorWindow;
@@ -37,6 +37,7 @@ function createWindow() {
   });
 
   mainWindow.loadFile('mandaramachine.html');
+  mainWindow.webContents.openDevTools({ mode: 'detach' });
   mainWindow.webContents.on('console-message', (e, level, msg) => {
     if (msg.includes('[STAR]') || msg.includes('[REC]')) console.log('[R]', msg);
   });

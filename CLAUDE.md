@@ -106,7 +106,7 @@ new MutationObserver(() => { /* active クラスの変化を処理 */ })
 ### トップバー（左→右）
 `RESET` / `AUDIO` / `RAVEN` / `AUTO` / `BPM` / 各種スライダー
 
-### RA-CHANGパネル（テキストエフェクト）
+### TEXT FXパネル（テキストエフェクト）
 - Row1: `ON` `OFF` `WHT` `BLK`
 - エフェクト: `WRP` `MIN` `FLT` `LIQ` `SCN` `HEX` `PIX` `[NEG]` `DAT` `[STR]`
 

@@ -85,9 +85,9 @@
 
       let _pauseUntil = 0;
 
-      // fps: 呼び出し上限fps (デフォルト30)
+      // fps: 呼び出し上限fps (デフォルト20 — エンジン60fpsとの競合を避ける)
       window.__vjSched = {
-        add(name, cb, fps = 30) {
+        add(name, cb, fps = 20) {
           _subs.set(name, { cb, interval: 1000 / fps, lastT: 0 });
           if (!_rafId) _rafId = requestAnimationFrame(_tick);
         },
@@ -112,33 +112,81 @@
         if (!btn) return;
         const id = btn.id || '';
         if (/topOrbitBtn|topSpinBtn|topQuantumBtn|topGravityBtn|topBaryonBtn|vcOrbitBtn|vcSpinBtn|vcQuantumBtn|vcGravityBtn|vcBaryonBtn/.test(id)) {
-          window.__vjSched.pause(400);
+          // ORBIT/SPINは3D回転初期化が重いため長めに停止
+          const pauseMs = /topOrbitBtn|topSpinBtn|vcOrbitBtn|vcSpinBtn/.test(id) ? 700 : 400;
+          window.__vjSched.pause(pauseMs);
         }
       }, true);
+
+      // ── ORBIT/SPIN アクティブ中はオーバーレイFPSを下げてカクカクを抑制 ──
+      // ORBIT: エンジンが3D回転計算を毎フレーム実行するためGPU帯域を多く使う
+      // active中: liquid/neuro を20fps → エンジンに60fpsぶんの予算を渡す
+      // inactive後: 30fpsに戻す
+      const HEAVY_FPS = 15;  // ORBIT/SPIN中
+      const NORMAL_FPS = 20; // 通常時
+
+      function updateOverlayFps() {
+        const orbitActive  = document.getElementById('topOrbitBtn')?.classList.contains('active');
+        const spinActive   = document.getElementById('topSpinBtn')?.classList.contains('active');
+        const targetFps = (orbitActive || spinActive) ? HEAVY_FPS : NORMAL_FPS;
+        // 主要オーバーレイ全てに適用
+        ['liquid','neuro','sng','bh','coderain','star','bootScan','bootMosaic','bootGhost','bootVout'].forEach(function(n) {
+          window.__vjSched.setFps(n, targetFps);
+        });
+      }
+
+      // DOMContentLoaded 後に監視を開始（ボタンが存在するまで待つ）
+      function setupOrbitObserver() {
+        const targets = ['topOrbitBtn', 'topSpinBtn', 'vcOrbitBtn', 'vcSpinBtn'];
+        targets.forEach(function (id) {
+          const el = document.getElementById(id);
+          if (!el) return;
+          new MutationObserver(updateOverlayFps)
+            .observe(el, { attributes: true, attributeFilter: ['class'] });
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupOrbitObserver);
+      } else {
+        setupOrbitObserver();
+      }
     })();
   </script>
 
-  <!-- FPS ゼロ埋め5桁表示: 250ms間隔でスロットル（エンジンが毎フレーム書き換えるためMO過負荷を防止） -->
+  <!-- FPS ゼロ埋め5桁表示: textContent setter をインターセプト -->
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const el = document.getElementById('fpsValue');
-      if (!el) return;
+    (function () {
       const pad = v => String(Math.min(99999, Math.max(0, parseInt(v) || 0))).padStart(5, '0');
-      el.textContent = pad(el.textContent);
-      let _pending = null;
-      let _lastRaw = '';
-      new MutationObserver(() => {
-        const raw = el.textContent.replace(/\D/g, '');
-        if (raw === _lastRaw) return;       // 同じ値なら無視
-        _lastRaw = raw;
-        if (_pending) return;               // 既にタイマー待機中なら無視
-        _pending = setTimeout(() => {
-          _pending = null;
-          const padded = pad(_lastRaw);
-          if (el.textContent !== padded) el.textContent = padded;
-        }, 250);                            // 250ms = 最大4fps更新
-      }).observe(el, { childList: true, characterData: true, subtree: true });
-    });
+
+      function patchFpsEl(el) {
+        // textContent の descriptor を取得してオーバーライド
+        const proto = Object.getPrototypeOf(el); // HTMLElement
+        const desc  = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent');
+        let _writing = false;
+        Object.defineProperty(el, 'textContent', {
+          get() { return desc.get.call(this); },
+          set(v) {
+            if (_writing) return;
+            const num = String(v).replace(/\D/g, '');
+            const padded = pad(num);
+            _writing = true;
+            desc.set.call(this, padded);
+            _writing = false;
+          },
+          configurable: true,
+        });
+        // 初期値も変換
+        el.textContent = el.textContent;
+      }
+
+      function tryPatch() {
+        const el = document.getElementById('fpsValue');
+        if (el) { patchFpsEl(el); return; }
+        requestAnimationFrame(tryPatch);
+      }
+      document.addEventListener('DOMContentLoaded', tryPatch);
+    })();
   </script>
 
   <!-- MIC STREAM SHARING: getUserMedia interceptor (must be before compiled JS) -->
@@ -220,7 +268,7 @@
 
     #topBar {
       background: rgba(10, 10, 10, 0.95) !important;
-      border-bottom: 1px solid #222 !important
+      border-bottom: 1px solid #222 !important;
     }
 
     /* ╔══════════════════════════════════════════════════════╗
@@ -1181,35 +1229,43 @@
       box-shadow: 0 0 12px rgba(0, 255, 136, 0.6);
     }
 
-    /* REC ボタン: 録画中はゆっくり点滅 */
-    @keyframes recPulse {
-
-      0%,
-      100% {
-        box-shadow: 0 0 4px rgba(255, 50, 50, 0.5);
-        background: #ff3333;
-        opacity: 1;
-      }
-
-      50% {
-        box-shadow: 0 0 14px rgba(255, 50, 50, 0.9), 0 0 24px rgba(255, 0, 0, 0.3);
-        background: #ff5555;
-        opacity: 0.6;
-      }
+    /* REC ボタン */
+    @keyframes recDotPulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.2; }
+    }
+    @keyframes recBtnGlow {
+      0%, 100% { box-shadow: 0 0 6px rgba(255,40,40,0.6), inset 0 0 4px rgba(255,0,0,0.2); }
+      50%       { box-shadow: 0 0 18px rgba(255,40,40,1),  inset 0 0 8px rgba(255,0,0,0.4); }
     }
 
+    #recBtn, #recordBtn {
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+    }
     #recBtn.rec-recording,
     #recordBtn.rec-recording {
-      background: #ff3333 !important;
+      background: #1a0000 !important;
       border-color: #ff3333 !important;
-      color: #fff !important;
-      animation: recPulse 2s ease-in-out infinite;
+      color: #ff4444 !important;
+      animation: recBtnGlow 1.4s ease-in-out infinite;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 1px;
     }
-
-    #recBtn.rec-converting {
-      background: #ff8800 !important;
+    /* 録画中の●ドット */
+    .rec-dot {
+      display: inline-block;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #ff3333;
+      margin-right: 4px;
+      vertical-align: middle;
+      animation: recDotPulse 1s step-end infinite;
+    }
+    #recBtn.rec-converting,
+    #recordBtn.rec-converting {
+      background: #1a0a00 !important;
       border-color: #ff8800 !important;
-      color: #fff !important;
+      color: #ffaa44 !important;
     }
 
     /* Center Visibility Glow */
@@ -1389,8 +1445,20 @@
       background: #000000 !important;
     }
 
+    /* エンジンcanvasの黒背景（初期化時の白いアーティファクトを防止） */
     #canvasWrapper canvas {
       background: #000000 !important;
+    }
+    /* neuroLinkCanvas は canvasWrapper 外に移動済み（position:fixed）*/
+    /* エンジンCSSの #canvasWrapper canvas セレクタを回避するため */
+    #neuroLinkCanvas {
+      background: transparent !important;
+    }
+
+    /* BG白モード: 白背景 */
+    #canvasWrapper.bg-white-mode,
+    #canvasWrapper.bg-white-mode .canvas-container {
+      background: #ffffff !important;
     }
 
     /* RAVEN: キャンバスをスケールアップしてキャンバス全体を埋める */
@@ -1715,7 +1783,8 @@
           const hasLiq   = liq   && liq.style.display   !== 'none' && liq.width   > 0;
           const hasP5    = p5c   && p5c.width   > 0;
           const hasBoc   = boc   && boc.width   > 0;
-          const hasNeuro = neuro && neuro.style.display !== 'none' && neuro.width  > 0;
+          const neuroWrap = document.getElementById('neuroLinkWrapper');
+          const hasNeuro = neuro && neuroWrap && neuroWrap.style.display !== 'none' && neuro.width  > 0;
           const hasCode  = code  && code.style.display  !== 'none' && code.width   > 0;
           // オーバーレイなし → そのまま送信
           if (!hasLiq && !hasP5 && !hasBoc && !hasNeuro && !hasCode) return _orig(channel, args[0]);
@@ -1738,15 +1807,20 @@
             if (comp.width !== img.width) comp.width = img.width;
             if (comp.height !== img.height) comp.height = img.height;
             bitmapPromise.then(bmp => {
-              // 1. エンジン（マンダラWebGL）
+              // 0. NEURO LINK（背景レイヤー: エンジン出力の下に描画）
               ctx.globalCompositeOperation = 'source-over';
+              if (hasNeuro) {
+                // canvasWrapper の viewport 位置にオフセットして描画
+                var _nTop  = window._neuroTopH  || 0;
+                var _nLeft = window._neuroLeftH || 0;
+                ctx.drawImage(neuro, _nLeft, _nTop);
+              }
+              // 1. エンジン（マンダラWebGL）
               ctx.drawImage(img, 0, 0);
               // 2. LIQUID シェーダー
               if (bmp) { ctx.drawImage(bmp, 0, 0, comp.width, comp.height); bmp.close(); }
               // 3. p5.js
               if (hasP5)    ctx.drawImage(p5c,   0, 0, comp.width, comp.height);
-              // 4. NEURO LINK（canvasWrapperと同幅なのでそのまま重ねる）
-              if (hasNeuro) ctx.drawImage(neuro, 0, 0, comp.width, comp.height);
               // 5. CODE mode（multiply blend + 左パネル分をクリップ）
               if (hasCode) {
                 ctx.globalCompositeOperation = 'multiply';
@@ -1806,31 +1880,35 @@
         </div>
         <input type="file" id="mediaUpload" accept="image/*,video/*" style="display: none;">
       </div>
+      <!-- ── TEXT FX ──────────────────────────────────────── -->
+      <div class="panel-header" style="margin-top: 20px;">
+        <h3>TEXT FX</h3>
+      </div>
       <div class="text-input-section">
         <div style="margin-bottom: 5px;">
-          <input type="text" id="canvasText" placeholder="Enter DJ Name..." maxlength="50"
+          <input type="text" id="canvasText" placeholder="Enter Name..." maxlength="50"
             style="width: 100%; box-sizing: border-box;">
         </div>
         <div id="textHistory"></div>
         <!-- ── MASTER FLASH ROW: ON / OFF / WHT / BLK ── -->
         <div class="dj-name-toggle-container">
-          <button id="djNameOnBtn" class="mode-tag-btn">ON</button>
-          <button id="djNameOffBtn" class="mode-tag-btn active">OFF</button>
-          <button id="djTextWhiteBtn" class="mode-tag-btn dj-wht-btn active" title="White Text">WHT</button>
-          <button id="djTextBlackBtn" class="mode-tag-btn dj-blk-btn" title="Black Text">BLK</button>
+          <button id="djNameOnBtn" class="mode-tag-btn" data-mode="-1">ON</button>
+          <button id="djNameOffBtn" class="mode-tag-btn" data-mode="-1">OFF</button>
+          <button id="djTextWhiteBtn" class="mode-tag-btn dj-wht-btn" data-mode="-1" title="White Text">WHT</button>
+          <button id="djTextBlackBtn" class="mode-tag-btn dj-blk-btn" data-mode="-1" title="Black Text">BLK</button>
         </div>
         <!-- ── EFFECTS ROW ── -->
         <div class="dj-name-effects">
-          <button class="mode-tag-btn" data-effect="mosaic">MOS</button>
-          <button class="mode-tag-btn" data-effect="warp">WRP</button>
-          <button class="mode-tag-btn" data-effect="none">MIN</button>
-          <button class="mode-tag-btn" data-effect="neon">FLT</button>
-          <button class="mode-tag-btn" data-effect="plasma">LIQ</button>
-          <button class="mode-tag-btn" data-effect="hex">HEX</button>
-          <button class="mode-tag-btn" data-effect="pixel">PIX</button>
-          <button class="mode-tag-btn" data-effect="data">DAT</button>
-          <button class="mode-tag-btn" id="djMos2Btn" data-effect="pixel">MOS2</button>
-          <button class="mode-tag-btn" id="djMos3Btn" data-effect="pixel">MOS3</button>
+          <button class="mode-tag-btn" data-effect="mosaic" data-mode="-1">MOS</button>
+          <button class="mode-tag-btn" data-effect="warp" data-mode="-1">WRP</button>
+          <button class="mode-tag-btn" data-effect="none" data-mode="-1">MIN</button>
+          <button class="mode-tag-btn" data-effect="neon" data-mode="-1">FLT</button>
+          <button class="mode-tag-btn" data-effect="plasma" data-mode="-1">LIQ</button>
+          <button class="mode-tag-btn" data-effect="hex" data-mode="-1">HEX</button>
+          <button class="mode-tag-btn" data-effect="pixel" data-mode="-1">PIX</button>
+          <button class="mode-tag-btn" data-effect="data" data-mode="-1">DAT</button>
+          <button class="mode-tag-btn" id="djMos2Btn" data-effect="pixel" data-mode="-1">MOS2</button>
+          <button class="mode-tag-btn" id="djMos3Btn" data-effect="pixel" data-mode="-1">MOS3</button>
         </div>
       </div>
 
@@ -1840,11 +1918,11 @@
       </div>
       <div style="padding: 0 10px 16px;">
         <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;">
-          <button id="leftBootClassicBtn" class="mode-tag-btn active"
+          <button id="leftBootClassicBtn" class="lp-btn"
             style="font-size:9px;letter-spacing:1px;">CLASSIC</button>
-          <button id="leftBootMosaicBtn" class="mode-tag-btn" style="font-size:9px;letter-spacing:1px;">MOSAIC</button>
-          <button id="leftBootScanBtn" class="mode-tag-btn" style="font-size:9px;letter-spacing:1px;">SCAN</button>
-          <button id="leftBootGlitchBtn" class="mode-tag-btn" style="font-size:9px;letter-spacing:1px;">GLITCH</button>
+          <button id="leftBootMosaicBtn" class="lp-btn" style="font-size:9px;letter-spacing:1px;">MOSAIC</button>
+          <button id="leftBootScanBtn" class="lp-btn" style="font-size:9px;letter-spacing:1px;">SCAN</button>
+          <button id="leftBootGlitchBtn" class="lp-btn" style="font-size:9px;letter-spacing:1px;">GLITCH</button>
         </div>
       </div>
 
@@ -1856,59 +1934,29 @@
         <div id="ttPanelBody" style="font-size: 11px;"></div>
         <!-- ボタン行 -->
         <div style="display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap;">
-          <button id="ttOverlayToggleBtn" class="mode-tag-btn active"
+          <button id="ttOverlayToggleBtn" class="lp-btn"
             style="font-size: 9px; letter-spacing: 1px;">OVERLAY ON</button>
-          <button id="ttCsvExportBtn" class="mode-tag-btn" style="font-size: 9px; letter-spacing: 1px;">CSV OUT</button>
-          <button id="ttCsvImportBtn" class="mode-tag-btn" style="font-size: 9px; letter-spacing: 1px;">CSV IN</button>
-          <button id="ttClearBtn" class="mode-tag-btn"
+          <button id="ttCsvExportBtn" class="lp-btn" style="font-size: 9px; letter-spacing: 1px;">CSV OUT</button>
+          <button id="ttCsvImportBtn" class="lp-btn" style="font-size: 9px; letter-spacing: 1px;">CSV IN</button>
+          <button id="ttClearBtn" class="lp-btn"
             style="font-size: 9px; letter-spacing: 1px; color:#f66;">CLEAR</button>
         </div>
         <input type="file" id="ttCsvFile" accept=".csv,text/csv" style="display:none;">
       </div>
 
-      <div class="panel-header" style="margin-top: 0px;">
-        <h3 data-i18n="autoBg">AUTO BG</h3>
-      </div>
-      <div class="auto-bg-controls"
-        style="display: flex; flex-direction: column; gap: 8px; padding: 0 10px; margin-bottom: 20px;">
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <label style="font-size: 10px; opacity: 0.8; letter-spacing: 1px;">STROBE</label>
-          <input type="checkbox" id="autoStrobeCheckbox" class="strobe-checkbox">
-        </div>
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <label style="font-size: 10px; opacity: 0.8; letter-spacing: 1px;">COLORS</label>
-          <div style="display: flex; gap: 5px;">
-            <input type="color" id="autoColorAPicker" value="#ffffff" class="color-picker-mini">
-            <input type="color" id="autoColorBPicker" value="#ff0000" class="color-picker-mini">
-            <input type="color" id="autoColorCPicker" value="#0000ff" class="color-picker-mini">
-          </div>
-        </div>
-        <div style="display: flex; gap: 4px; justify-content: flex-end; margin-top: 4px;">
-          <button class="color-preset-btn" data-colors="#ffffff,#ff0000,#0000ff" title="W/R/B"
-            style="background: linear-gradient(to right, #fff 33%, #f00 33%, #f00 66%, #00f 66%); width: 24px; height: 14px; border: 1px solid #444; cursor: pointer;"></button>
-          <button class="color-preset-btn" data-colors="#ff0000,#000000,#0000ff" title="R/K/B"
-            style="background: linear-gradient(to right, #f00 33%, #000 33%, #000 66%, #00f 66%); width: 24px; height: 14px; border: 1px solid #444; cursor: pointer;"></button>
-          <button class="color-preset-btn" data-colors="#000000,#ff0000,#000000" title="K/R/K"
-            style="background: linear-gradient(to right, #000 33%, #f00 33%, #f00 66%, #000 66%); width: 24px; height: 14px; border: 1px solid #444; cursor: pointer;"></button>
-        </div>
+      <!-- AUTO BG 削除済み（エンジン参照用IDは非表示で保持） -->
+      <div style="display:none;">
+        <input type="color" id="autoColorAPicker" value="#ffffff">
+        <input type="color" id="autoColorBPicker" value="#ff0000">
+        <input type="color" id="autoColorCPicker" value="#0000ff">
       </div>
 
-      <div class="panel-header" style="margin-top: 10px;">
-        <h3 data-i18n="blinkingMode">BLINKING</h3>
-      </div>
-      <div class="auto-bg-controls"
-        style="display: flex; flex-direction: column; gap: 8px; padding: 0 10px; margin-bottom: 20px;">
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <label style="font-size: 10px; opacity: 0.8; letter-spacing: 1px;" data-i18n="active">ACTIVE</label>
-          <input type="checkbox" id="blinkingModeCheckbox" class="strobe-checkbox">
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <div style="display: flex; align-items: center; justify-content: space-between;">
-            <label style="font-size: 10px; opacity: 0.8; letter-spacing: 1px;" data-i18n="blinkingSpeed">SPEED</label>
-            <span id="blinkingSpeedValue" style="font-size: 10px;">5</span>
-          </div>
-          <input type="range" id="blinkingSpeedSlider" min="1" max="10" step="1" value="5" style="width: 100%;">
-        </div>
+      <!-- BLINKING セクション削除済み（右パネルSTROBEに統合） -->
+      <!-- 非表示DOMはエンジン参照用に残す -->
+      <div style="display:none;">
+        <input type="checkbox" id="blinkingModeCheckbox">
+        <input type="range" id="blinkingSpeedSlider" min="1" max="10" step="1" value="5">
+        <span id="blinkingSpeedValue">5</span>
       </div>
 
 
@@ -1986,12 +2034,40 @@
             <button id="topBgToggleBtn" class="mode-btn" title="Background: Black / White" style="min-width:48px;">
               <span id="topBgToggleLabel">BG●</span>
             </button>
-            <label id="objColorLabel" class="mode-btn" title="Object Color"
-              style="position:relative; cursor:pointer; padding: 0 8px;">
-              <span>OBJ</span>
-              <input type="color" id="objColorPicker" value="#ffffff"
-                style="position:absolute;opacity:0;width:100%;height:100%;top:0;left:0;cursor:pointer;">
-            </label>
+            <!-- OBJ カスタムカラーピッカー -->
+            <div class="dropdown-container" id="objColorDropdown" style="position:relative;">
+              <button id="objColorBtn" class="mode-btn" title="Object Color">OBJ</button>
+              <!-- 既存コードとの互換性のため非表示ネイティブinputを維持 -->
+              <input type="color" id="objColorPicker" value="#ffffff" style="display:none;">
+              <!-- カスタム円形カラーパネル -->
+              <div id="objColorPanel"
+                style="display:none;position:fixed;top:auto;left:auto;transform:none;
+                       background:#111;border:1px solid #2a2a2a;border-radius:10px;padding:12px;
+                       z-index:2147483647;box-shadow:0 4px 24px rgba(0,0,0,0.9);width:216px;">
+                <!-- カラーホイール (Hue=角度, Saturation=半径) -->
+                <div style="display:flex;justify-content:center;margin-bottom:10px;">
+                  <canvas id="objWheelCanvas" width="192" height="192"
+                    style="border-radius:50%;cursor:crosshair;display:block;"></canvas>
+                </div>
+                <!-- Value (明度) スライダー -->
+                <div style="margin-bottom:10px;">
+                  <canvas id="objValueCanvas" width="192" height="14"
+                    style="display:block;border-radius:3px;cursor:pointer;width:192px;height:14px;"></canvas>
+                </div>
+                <!-- Hex入力 + プレビュー -->
+                <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;">
+                  <span style="font-size:9px;color:#555;letter-spacing:1px;flex-shrink:0;">#</span>
+                  <input type="text" id="objHexInput" value="FFFFFF" maxlength="6"
+                    style="flex:1;background:#0a0a0a;border:1px solid #2a2a2a;color:#ccc;
+                           font-family:'Courier New',monospace;font-size:11px;padding:4px 6px;
+                           border-radius:3px;letter-spacing:2px;outline:none;text-transform:uppercase;">
+                  <div id="objColorPreviewBox"
+                    style="width:36px;height:26px;border-radius:4px;background:#ffffff;border:1px solid #333;flex-shrink:0;"></div>
+                </div>
+                <!-- クイックスウォッチ -->
+                <div id="objSwatches" style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center;"></div>
+              </div>
+            </div>
 
           </div>
 
@@ -2231,6 +2307,13 @@
 
       </div>
 
+      <!-- NEURO LINK: overflow:hiddenラッパーで完全クリップ保証 -->
+      <div id="neuroLinkWrapper"
+        style="position:fixed;overflow:hidden;pointer-events:none;z-index:3;display:none;">
+        <canvas id="neuroLinkCanvas"
+          style="position:absolute;top:0;left:0;background:transparent!important;"></canvas>
+      </div>
+
       <!-- Music Panel — 3グループ水平センター配置 -->
       <div id="musicPanel">
 
@@ -2290,7 +2373,7 @@
           <div class="mp-sep"></div>
           <button id="vOutBtn" class="v-out-btn" title="Projector Output">V-OUT</button>
           <div class="mp-sep"></div>
-          <button id="recBtn" class="v-out-btn" title="Record Audio + Video">REC</button>
+          <button id="recBtn" class="v-out-btn" title="クリックで録画開始 / もう一度で停止">⏺ REC</button>
           <input type="file" id="trackFileInput"
             accept=".mp3,.wav,.ogg,.m4a,.aac,.flac,.aiff,.aif,.wma,.opus,.mp4,.webm" style="display:none;">
           <button id="trackSelectBtn" style="display:none;"></button>
@@ -2456,6 +2539,10 @@
           <label style="font-size:9px;color:#555;width:64px;">RATE</label>
           <input type="range" id="strobeRateSlider" min="1" max="60" step="1" value="12" style="flex:1;">
           <span style="width:28px;text-align:right;font-size:10px;">12</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+          <label style="font-size:9px;color:#555;letter-spacing:1px;">AUTO STROBE</label>
+          <input type="checkbox" id="autoStrobeCheckbox" class="strobe-checkbox">
         </div>
       </div>
 
@@ -2686,11 +2773,11 @@
       <label class="sub-label" data-i18n="colors">Object Color</label>
       <div class="color-sliders-compact">
         <div class="slider-wrapper"><span class="label-mini">R</span><input type="range" id="colorR" min="0" max="255"
-            value="0"></div>
+            value="255"></div>
         <div class="slider-wrapper"><span class="label-mini">G</span><input type="range" id="colorG" min="0" max="255"
-            value="0"></div>
+            value="255"></div>
         <div class="slider-wrapper"><span class="label-mini">B</span><input type="range" id="colorB" min="0" max="255"
-            value="0"></div>
+            value="255"></div>
       </div>
       <div class="color-preview-box" id="objectColorPreview"></div>
 
@@ -2710,7 +2797,7 @@
       <h3 data-i18n="vjPro">VJ PRO</h3>
       <div class="vj-controls">
         <button class="vj-pro-btn" id="fullscreenBtn" data-i18n="fullscreen">FULLSCREEN</button>
-        <button class="vj-pro-btn" id="recordBtn">REC</button>
+        <button class="vj-pro-btn" id="recordBtn" title="クリックで録画開始 / もう一度で停止">⏺ REC</button>
       </div>
 
       <label class="sub-label" data-i18n="visualControl">Master Intensity</label>
@@ -2840,12 +2927,16 @@
         // 4. オブジェクト上限を50に設定
         if (typeof mm.setMaxObjects === 'function') mm.setMaxObjects(50);
 
-        // 5. setCanvasText をデバウンス（毎キーストロークのp5.js再描画を防止）
+        // 5. setCanvasText をデバウンス + ON状態ガード
+        // ONを押すまでキャンバスにテキストを出力しない
         if (typeof mm.setCanvasText === 'function') {
           const _origSCT = mm.setCanvasText.bind(mm);
           let _sctTimer = null;
           mm.setCanvasText = function (val) {
             clearTimeout(_sctTimer);
+            // djNameOnBtn が active でなければキャンバスへの送信をブロック
+            const onBtn = document.getElementById('djNameOnBtn');
+            if (onBtn && !onBtn.classList.contains('active')) return;
             _sctTimer = setTimeout(() => _origSCT(val), 120);
           };
         }
@@ -3406,11 +3497,17 @@
       document.getElementById('objColorPickerSync')?.addEventListener('input', function () {
         if (_objAuto) return;
         const hex = this.value;
-        window.mandalaMachine?.setDefaultObjectColor({
-          r: parseInt(hex.slice(1, 3), 16),
-          g: parseInt(hex.slice(3, 5), 16),
-          b: parseInt(hex.slice(5, 7), 16)
-        });
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        window.mandalaMachine?.setDefaultObjectColor({ r, g, b });
+        // RGB スライダーと同期（イベント発火なし）
+        const slR = document.getElementById('colorR');
+        const slG = document.getElementById('colorG');
+        const slB = document.getElementById('colorB');
+        if (slR) slR.value = r;
+        if (slG) slG.value = g;
+        if (slB) slB.value = b;
       });
 
       // OBJ AUTO toggle
@@ -3640,7 +3737,7 @@
             // ─── STEP 8: UI sliders sync to Mercury defaults ──────────────
             ['colorR', 'colorG', 'colorB'].forEach(id => {
               const el = document.getElementById(id);
-              if (el) { el.value = 0; el.dispatchEvent(new Event('input', { bubbles: true })); }
+              if (el) { el.value = 255; el.dispatchEvent(new Event('input', { bubbles: true })); }
             });
             [
               ['warpIntensitySlider', 'warpIntensityValue', 3],
@@ -3749,7 +3846,7 @@
         let _starScene = null;
         let _starBeatPhase = 0;      // 0-1 ビートパルス
         let _starBaseScale = 0.3;    // createStarField で更新
-        let _starWireMode = 'solid'; // solid / wire / mix
+        let _starWireMode = 'mix'; // solid / wire / mix
         let _starDriftAmp = 0;      // 個別ドリフト強度 0=off
         let _starBasePos = null;   // Float32Array [x,y,z × count]
         let _starBaseRot = null;   // Float32Array [rx,ry,rz × count]
@@ -3999,7 +4096,7 @@
               _starIMesh.instanceMatrix.needsUpdate = true;
             }
           }
-          window.__vjSched.add('star', tick, 30);
+          window.__vjSched.add('star', tick, 20);
         }
         function stopStarAnimation() {
           window.__vjSched.remove('star');
@@ -4178,6 +4275,10 @@
             if (sbContainer) sbContainer.style.display = '';
             ['spaceCountSeekbar', 'spaceSizeSeekbar', 'spaceDistSeekbar', 'spaceAutoShapeSeekbar', 'spaceDriftSeekbar', 'spaceShapeSeekbar']
               .forEach(id => { document.getElementById(id).style.display = ''; });
+            // SOLID/WIRE/MIX ボタン: デフォルトで MIX をアクティブに
+            ['topSolidBtn', 'topWireBtn', 'topMixBtn'].forEach(id => {
+              document.getElementById(id)?.classList.toggle('active', id === 'topMixBtn');
+            });
             // 星空生成
             createStarField();
           }, 150);
@@ -4292,29 +4393,30 @@
           // 背景色
           mm.setBackgroundColor?.(bgCol);
           if (mm.sceneManager?.setBackgroundColor) mm.sceneManager.setBackgroundColor(bgCol);
-          // オブジェクト色（新規オブジェクト用）
-          mm.setDefaultObjectColor?.(objCol);
-          // 既存オブジェクトにも即時適用: scene.traverse でマテリアル色を更新
-          const scene = mm.sceneManager?.scene;
-          if (scene) {
-            const r = objCol.r / 255, g = objCol.g / 255, b = objCol.b / 255;
-            scene.traverse(obj => {
-              if (!obj.isMesh) return;
-              const mat = obj.material;
-              if (!mat) return;
-              const mats = Array.isArray(mat) ? mat : [mat];
-              mats.forEach(m => {
-                if (m.color) m.color.setRGB(r, g, b);
-              });
-            });
+          // 白背景モード: wrapper に bg-white-mode クラスを付与
+          const wrapper = document.getElementById('canvasWrapper');
+          if (wrapper) wrapper.classList.toggle('bg-white-mode', !isBlack);
+          // objColorPickerSync 経由でエンジンに色変更を通知（input イベント発火）
+          const hexColor = isBlack ? '#ffffff' : '#000000';
+          const syncPicker = document.getElementById('objColorPickerSync');
+          if (syncPicker) {
+            syncPicker.value = hexColor;
+            syncPicker.dispatchEvent(new Event('input', { bubbles: true }));
           }
+          const picker = document.getElementById('objColorPicker');
+          if (picker) picker.value = hexColor;
+          // RGB スライダーも同期（イベント発火なし）
+          const rgbVal = isBlack ? 255 : 0;
+          const slR = document.getElementById('colorR');
+          const slG = document.getElementById('colorG');
+          const slB = document.getElementById('colorB');
+          if (slR) slR.value = rgbVal;
+          if (slG) slG.value = rgbVal;
+          if (slB) slB.value = rgbVal;
           const lbl = document.getElementById('topBgToggleLabel');
           if (lbl) lbl.textContent = isBlack ? 'BG●' : 'BG○';
           const btn = document.getElementById('topBgToggleBtn');
           if (btn) btn.classList.toggle('active', !isBlack);
-          // objColorPickerの値も同期（白背景→黒, 黒背景→白）
-          const picker = document.getElementById('objColorPicker');
-          if (picker) picker.value = isBlack ? '#ffffff' : '#000000';
         }
 
         // resetBackgroundIfManual を上書きして黒をデフォルトに
@@ -5181,6 +5283,12 @@
 
         // ---- キーボードショートカット ----
         document.addEventListener('keydown', function (e) {
+          // Cmd+R (Mac) または Ctrl+R (Win) → REC
+          if ((e.metaKey || e.ctrlKey) && (e.key === 'r' || e.key === 'R')) {
+            e.preventDefault();
+            document.getElementById('recBtn')?.click();
+            return;
+          }
           // テキスト入力中は無視
           if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
           if (e.key === 'b' || e.key === 'B') toggleBlackout();
@@ -5204,13 +5312,11 @@
       // テキストカラー: WHITE / BLACK ボタン
       document.getElementById('djTextWhiteBtn')?.addEventListener('click', function () {
         window._djTextColor = [255, 255, 255];
-        _p5FillPatched = false;
         this.classList.add('active');
         document.getElementById('djTextBlackBtn')?.classList.remove('active');
       });
       document.getElementById('djTextBlackBtn')?.addEventListener('click', function () {
         window._djTextColor = [0, 0, 0];
-        _p5FillPatched = false;
         this.classList.add('active');
         document.getElementById('djTextWhiteBtn')?.classList.remove('active');
       });
@@ -5225,7 +5331,308 @@
         const g = parseInt(hex.slice(3, 5), 16);
         const b = parseInt(hex.slice(5, 7), 16);
         window.mandalaMachine?.setDefaultObjectColor?.({ r, g, b });
+        // RGB スライダーと同期（イベント発火なし）
+        const slR = document.getElementById('colorR');
+        const slG = document.getElementById('colorG');
+        const slB = document.getElementById('colorB');
+        if (slR) slR.value = r;
+        if (slG) slG.value = g;
+        if (slB) slB.value = b;
+        // objColorPickerSync とも同期
+        const syncPicker = document.getElementById('objColorPickerSync');
+        if (syncPicker) syncPicker.value = hex;
       });
+
+      // ── カスタム OBJ カラーピッカー ──
+      (function initObjColorPicker() {
+        // ── HSV ↔ RGB / Hex 変換 ──
+        function hsvToRgb(h, s, v) {
+          h = h % 360; s /= 100; v /= 100;
+          const i = Math.floor(h / 60) % 6;
+          const f = h / 60 - Math.floor(h / 60);
+          const p = v*(1-s), q = v*(1-f*s), t = v*(1-(1-f)*s);
+          const c = [[v,t,p],[q,v,p],[p,v,t],[p,q,v],[t,p,v],[v,p,q]][i];
+          return { r: Math.round(c[0]*255), g: Math.round(c[1]*255), b: Math.round(c[2]*255) };
+        }
+        function hsvToHex(h, s, v) {
+          const {r,g,b} = hsvToRgb(h, s, v);
+          return '#' + [r,g,b].map(x => x.toString(16).padStart(2,'0')).join('');
+        }
+        function hexToHsv(hex) {
+          const r = parseInt(hex.slice(1,3),16)/255;
+          const g = parseInt(hex.slice(3,5),16)/255;
+          const b = parseInt(hex.slice(5,7),16)/255;
+          const max = Math.max(r,g,b), min = Math.min(r,g,b), d = max-min;
+          let h = 0, s = max ? d/max : 0, v = max;
+          if (d) {
+            if (max===r) h = ((g-b)/d+6)%6;
+            else if (max===g) h = (b-r)/d+2;
+            else h = (r-g)/d+4;
+            h *= 60;
+          }
+          return { h, s: s*100, v: v*100 };
+        }
+
+        // ── 状態 ──
+        let _h=0, _s=0, _v=100;  // 初期: 白
+        let _open = false;
+        let _wheelDrag = false, _valDrag = false;
+
+        const btn      = document.getElementById('objColorBtn');
+        const panel    = document.getElementById('objColorPanel');
+        const whlCvs   = document.getElementById('objWheelCanvas');
+        const valCvs   = document.getElementById('objValueCanvas');
+        const hexInp   = document.getElementById('objHexInput');
+        const prevBox  = document.getElementById('objColorPreviewBox');
+        const swatch   = document.getElementById('objColorSwatch');
+        const swatchEl = document.getElementById('objSwatches');
+        if (!btn || !panel || !whlCvs || !valCvs) return;
+
+        const W = whlCvs.width;         // 192
+        const CX = W/2, CY = W/2;
+        const R_OUTER = W/2 - 2;        // ホイール外径
+        const R_INNER = R_OUTER - 22;   // ホイール内径 (リング幅22px)
+
+        // ── クイックスウォッチ ──
+        ['#ffffff','#ff2020','#ff8800','#ffee00',
+         '#00ff44','#00eeff','#3366ff','#cc00ff',
+         '#ff0088','#ff99cc','#888888','#000000'
+        ].forEach(function(c) {
+          const el = document.createElement('div');
+          el.style.cssText = 'width:22px;height:22px;border-radius:50%;background:'+c+
+            ';cursor:pointer;border:2px solid #333;flex-shrink:0;transition:border-color 0.1s;';
+          el.addEventListener('mouseenter', function(){ this.style.borderColor='#fff'; });
+          el.addEventListener('mouseleave', function(){ this.style.borderColor='#333'; });
+          el.addEventListener('click', function(e){ e.stopPropagation(); applyHex(c); });
+          swatchEl.appendChild(el);
+        });
+
+        // ── カラーホイール描画 (Hue ring + SV inner circle) ──
+        function drawWheel() {
+          const ctx = whlCvs.getContext('2d');
+          ctx.clearRect(0, 0, W, W);
+
+          // 1. Hue リング (外側)
+          for (let angle=0; angle<360; angle++) {
+            const startA = (angle-0.5) * Math.PI/180;
+            const endA   = (angle+1.5) * Math.PI/180;
+            ctx.beginPath();
+            ctx.moveTo(CX, CY);
+            ctx.arc(CX, CY, R_OUTER, startA, endA);
+            ctx.closePath();
+            ctx.fillStyle = 'hsl('+angle+',100%,50%)';
+            ctx.fill();
+          }
+          // リング内側をくり抜く (donut)
+          ctx.globalCompositeOperation = 'destination-out';
+          ctx.beginPath();
+          ctx.arc(CX, CY, R_INNER, 0, Math.PI*2);
+          ctx.fill();
+          ctx.globalCompositeOperation = 'source-over';
+
+          // 2. 内側 SV 円: 現在の Hue で彩度・明度を表示
+          //    radial: 中心=白 → 端=hue色  (saturation)
+          //    overlay: 下半分を黒にして明度軸を表現
+          const innerR = R_INNER - 4;
+          // 放射状グラデ: 中心(白) → 外(現在のhue純色)
+          const gRad = ctx.createRadialGradient(CX,CY,0, CX,CY,innerR);
+          gRad.addColorStop(0, 'rgba(255,255,255,1)');
+          gRad.addColorStop(1, 'hsl('+_h+',100%,50%)');
+          ctx.save();
+          ctx.beginPath(); ctx.arc(CX,CY,innerR,0,Math.PI*2); ctx.clip();
+          ctx.fillStyle = gRad; ctx.fillRect(0,0,W,W);
+          // 縦グラデ: 上(透明) → 下(黒) で Valueを反映
+          const gVal = ctx.createLinearGradient(0,0,0,W);
+          gVal.addColorStop(0,'rgba(0,0,0,0)');
+          gVal.addColorStop(1,'rgba(0,0,0,1)');
+          ctx.fillStyle = gVal; ctx.fillRect(0,0,W,W);
+          // Value暗化: _vが低いほど全体を暗く
+          if (_v < 100) {
+            ctx.fillStyle = 'rgba(0,0,0,'+(1-_v/100)+')';
+            ctx.fillRect(0,0,W,W);
+          }
+          ctx.restore();
+
+          // 3. Hue リング上のカーソル
+          const hRad = _h * Math.PI/180;
+          const rMid = (R_OUTER + R_INNER) / 2;
+          const hx = CX + Math.cos(hRad)*rMid;
+          const hy = CY + Math.sin(hRad)*rMid;
+          ctx.beginPath(); ctx.arc(hx,hy,9,0,Math.PI*2);
+          ctx.strokeStyle='rgba(255,255,255,0.9)'; ctx.lineWidth=2.5; ctx.stroke();
+          ctx.beginPath(); ctx.arc(hx,hy,7,0,Math.PI*2);
+          ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.lineWidth=1.5; ctx.stroke();
+
+          // 4. 内側SV上のカーソル
+          // SV円内での位置: 角度=0° 方向に saturation 伸ばし、Y方向に value
+          // 簡易: SVを円に投影 (中心=白=s0v100, 外縁角度=hue色=s100v100)
+          // 今回は SV を (s,v) → 円内 Cartesian に変換
+          // saturation → 中心からの距離: s/100 * innerR
+          // value → Y オフセット: (1-v/100) * innerR (下が黒)
+          // ただし円に収める
+          const sx = CX + (_s/100) * innerR * Math.cos(hRad);
+          const sy = CY + (_s/100) * innerR * Math.sin(hRad);
+          // valueによるY補正（内円内でクリップ）
+          const vOffsetY = (1 - _v/100) * innerR;
+          const cx2 = sx;
+          const cy2 = Math.min(CY + innerR, Math.max(CY - innerR, sy + vOffsetY * 0.5));
+          ctx.beginPath(); ctx.arc(cx2,cy2,7,0,Math.PI*2);
+          ctx.strokeStyle='rgba(255,255,255,0.95)'; ctx.lineWidth=2; ctx.stroke();
+          ctx.beginPath(); ctx.arc(cx2,cy2,5,0,Math.PI*2);
+          ctx.strokeStyle='rgba(0,0,0,0.6)'; ctx.lineWidth=1.5; ctx.stroke();
+        }
+
+        // ── Value スライダー描画 ──
+        function drawValue() {
+          const ctx = valCvs.getContext('2d');
+          const VW = valCvs.width, VH = valCvs.height;
+          const g = ctx.createLinearGradient(0,0,VW,0);
+          g.addColorStop(0,'#000000');
+          g.addColorStop(1, hsvToHex(_h, _s, 100));
+          ctx.fillStyle = g; ctx.fillRect(0,0,VW,VH);
+          // カーソル
+          const cx = (_v/100)*VW;
+          ctx.beginPath(); ctx.arc(cx,VH/2,6,0,Math.PI*2);
+          ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
+          ctx.beginPath(); ctx.arc(cx,VH/2,4,0,Math.PI*2);
+          ctx.strokeStyle='#000'; ctx.lineWidth=1; ctx.stroke();
+        }
+
+        function redraw() { drawWheel(); drawValue(); }
+
+        // ── 色適用 & UI同期 ──
+        function applyHsv(h, s, v, skipDraw) {
+          _h = ((h%360)+360)%360;
+          _s = Math.max(0,Math.min(100,s));
+          _v = Math.max(0,Math.min(100,v));
+          const hex = hsvToHex(_h,_s,_v);
+          if (swatch)  swatch.style.background  = hex;
+          if (prevBox) prevBox.style.background  = hex;
+          if (hexInp && document.activeElement !== hexInp) hexInp.value = hex.slice(1).toUpperCase();
+          const picker = document.getElementById('objColorPicker');
+          if (picker && picker.value !== hex) {
+            picker.value = hex;
+            picker.dispatchEvent(new Event('input',{bubbles:true}));
+          }
+          if (!skipDraw) redraw();
+        }
+
+        function applyHex(hex) {
+          if (!/^#[0-9a-f]{6}$/i.test(hex)) return;
+          const hsv = hexToHsv(hex);
+          applyHsv(hsv.h, hsv.s, hsv.v);
+        }
+
+        // ── ホイールのマウス処理 ──
+        function wheelFromEvent(e) {
+          const rect = whlCvs.getBoundingClientRect();
+          const scaleX = W / rect.width, scaleY = W / rect.height;
+          const x = (e.clientX - rect.left)*scaleX - CX;
+          const y = (e.clientY - rect.top )*scaleY - CY;
+          const dist = Math.sqrt(x*x + y*y);
+
+          if (dist >= R_INNER && dist <= R_OUTER) {
+            // Hue リング操作
+            _wheelDrag = 'hue';
+            const angle = ((Math.atan2(y,x)*180/Math.PI)+360)%360;
+            applyHsv(angle, _s, _v);
+          } else if (dist < R_INNER-4) {
+            // SV 内円操作
+            _wheelDrag = 'sv';
+            const innerR = R_INNER - 4;
+            const s = Math.min(100, (dist/innerR)*100);
+            // Y方向: 中心からの縦距離で value を決める
+            const vRaw = 100 - Math.max(0, Math.min(100, ((y+innerR)/(innerR*2))*100));
+            applyHsv(_h, s, Math.max(0,Math.min(100,vRaw)));
+          }
+        }
+        function wheelMoveEvent(e) {
+          if (!_wheelDrag) return;
+          const rect = whlCvs.getBoundingClientRect();
+          const scaleX = W/rect.width, scaleY = W/rect.height;
+          const x = (e.clientX-rect.left)*scaleX-CX;
+          const y = (e.clientY-rect.top )*scaleY-CY;
+          const dist = Math.sqrt(x*x+y*y);
+          if (_wheelDrag==='hue') {
+            applyHsv(((Math.atan2(y,x)*180/Math.PI)+360)%360, _s, _v);
+          } else {
+            const innerR = R_INNER-4;
+            const s = Math.min(100,(dist/innerR)*100);
+            const vRaw = 100-Math.max(0,Math.min(100,((y+innerR)/(innerR*2))*100));
+            applyHsv(_h, s, Math.max(0,Math.min(100,vRaw)));
+          }
+        }
+        whlCvs.addEventListener('mousedown',  function(e){ e.preventDefault(); wheelFromEvent(e); });
+        whlCvs.addEventListener('touchstart', function(e){ e.preventDefault(); wheelFromEvent(e.touches[0]); },{passive:false});
+
+        // ── Value スライダーのマウス処理 ──
+        function valFromEvent(e) {
+          const rect = valCvs.getBoundingClientRect();
+          const x = Math.max(0,Math.min(valCvs.width,(e.clientX-rect.left)*(valCvs.width/rect.width)));
+          applyHsv(_h, _s, (x/valCvs.width)*100);
+        }
+        valCvs.addEventListener('mousedown',  function(e){ e.preventDefault(); _valDrag=true; valFromEvent(e); });
+        valCvs.addEventListener('touchstart', function(e){ e.preventDefault(); _valDrag=true; valFromEvent(e.touches[0]); },{passive:false});
+
+        document.addEventListener('mousemove', function(e){
+          if (_wheelDrag) wheelMoveEvent(e);
+          if (_valDrag)   valFromEvent(e);
+        });
+        document.addEventListener('touchmove', function(e){
+          if (_wheelDrag) wheelMoveEvent(e.touches[0]);
+          if (_valDrag)   valFromEvent(e.touches[0]);
+        },{passive:false});
+        document.addEventListener('mouseup',  function(){ _wheelDrag=false; _valDrag=false; });
+        document.addEventListener('touchend', function(){ _wheelDrag=false; _valDrag=false; });
+
+        // ── Hex 入力 ──
+        hexInp.addEventListener('input', function(){
+          const v = this.value.replace(/[^0-9a-f]/gi,'').slice(0,6);
+          this.value = v.toUpperCase();
+          if (v.length===6) applyHex('#'+v);
+        });
+        hexInp.addEventListener('keydown', function(e){ e.stopPropagation(); });
+
+        // パネルをbody直下に移動してstacking contextの影響を排除
+        document.body.appendChild(panel);
+
+        // ── パネル開閉（ホバーで表示） ──
+        var _closeTimer = null;
+        function openPanel() {
+          clearTimeout(_closeTimer);
+          if (!_open) {
+            // ボタン位置に合わせてfixed位置を設定
+            var br = btn.getBoundingClientRect();
+            var pw = 216;
+            var left = Math.min(Math.max(0, br.left + br.width/2 - pw/2), window.innerWidth - pw - 4);
+            panel.style.left = left + 'px';
+            panel.style.top  = (br.bottom + 6) + 'px';
+            panel.style.display='block'; _open=true; redraw();
+          }
+        }
+        function schedClose() {
+          _closeTimer = setTimeout(function(){ panel.style.display='none'; _open=false; }, 200);
+        }
+        btn.addEventListener('mouseenter', openPanel);
+        btn.addEventListener('mouseleave', schedClose);
+        panel.addEventListener('mouseenter', function(){ clearTimeout(_closeTimer); });
+        panel.addEventListener('mouseleave', schedClose);
+        panel.addEventListener('click', function(e){ e.stopPropagation(); });
+
+        // 外部からの色変更を同期
+        document.getElementById('objColorPickerSync')?.addEventListener('input', function(){
+          if (_open) return;
+          const hsv = hexToHsv(this.value);
+          _h=hsv.h; _s=hsv.s; _v=hsv.v;
+          if (swatch)  swatch.style.background  = this.value;
+          if (prevBox) prevBox.style.background  = this.value;
+          if (hexInp)  hexInp.value = this.value.slice(1).toUpperCase();
+        });
+
+        // 初期: 白
+        applyHsv(0, 0, 100, true);
+        setTimeout(redraw, 150);
+      })();
 
       // ── PIX コードレイン ──
       function applyPixFix() {
@@ -5237,29 +5644,42 @@
         document.querySelector('.mode-tag-btn[data-effect="pixel"]')
           ?.addEventListener('click', () => { _pixCache = null; });
 
+        // p5 fill/stroke を一度だけパッチ（真のオリジナルを保存してラップ）
+        if (!_p5FillPatched) {
+          _p5FillPatched = true;
+          const _origFill   = mm.processingLayer.__origFill   || null;
+          const _origStroke = mm.processingLayer.__origStroke || null;
+          // まだパッチされていない場合だけ保存
+          if (!mm.processingLayer.__origFill) {
+            // drawPixelText は t (p5 instance) を引数で受け取るので
+            // 最初の呼び出し時に t から取得する
+            mm.processingLayer.__needPatchT = true;
+          }
+        }
+
         mm.processingLayer.drawPixelText = function (t, n, r) {
           const s = this.canvasText.toUpperCase();
 
-          // p5 fill をパッチ（テキスト色変更のため）
-          if (!_p5FillPatched) {
-            _p5FillPatched = true;
-            const _origFill = t.fill.bind(t);
-            const _origStroke = t.stroke.bind(t);
+          // p5 fill/stroke パッチ（t が確定した最初の呼び出しで一度だけ）
+          if (this.__needPatchT) {
+            this.__needPatchT = false;
+            const _oFill   = t.fill.bind(t);
+            const _oStroke = t.stroke.bind(t);
             t.stroke = function () {
-              // カスタムカラー（BLK等）選択中は白縁を透明にして消す
               const [cr, cg, cb] = window._djTextColor || [255, 255, 255];
               if (cr !== 255 || cg !== 255 || cb !== 255) {
-                return _origStroke(cr, cg, cb, 0); // 同色・透明
+                return _oStroke(cr, cg, cb, 0);
               }
-              return _origStroke.apply(this, arguments);
+              return _oStroke.apply(this, arguments);
             };
             t.fill = function () {
               const args = arguments;
               const [cr, cg, cb] = window._djTextColor || [255, 255, 255];
-              if (args.length <= 2 && args[0] === 255 && (cr !== 255 || cg !== 255 || cb !== 255)) {
-                return args.length === 2 ? _origFill(cr, cg, cb, args[1]) : _origFill(cr, cg, cb);
+              // エンジンが fill(255, alpha) で白を指定してくる → 選択色に差し替え
+              if (args.length <= 2 && typeof args[0] === 'number' && args[0] >= 200) {
+                return args.length === 2 ? _oFill(cr, cg, cb, args[1]) : _oFill(cr, cg, cb);
               }
-              return _origFill.apply(this, args);
+              return _oFill.apply(this, args);
             };
           }
 
@@ -5486,11 +5906,11 @@
         const BW = 1000, BH = 200, COLS = 28, ROWS = 7;
         _bmpCtx.clearRect(0, 0, BW, BH);
         let fs = 160;
-        _bmpCtx.font = `bold ${fs}px monospace, sans-serif`;
+        _bmpCtx.font = `bold ${fs}px 'Courier New',monospace`;
         const mw = _bmpCtx.measureText(text).width;
         if (mw > BW * 0.92) fs = Math.floor(fs * BW * 0.92 / mw);
         fs = Math.min(fs, Math.floor(BH * 0.82));
-        _bmpCtx.font = `bold ${fs}px monospace, sans-serif`;
+        _bmpCtx.font = `bold ${fs}px 'Courier New',monospace`;
         _bmpCtx.textAlign = 'center'; _bmpCtx.textBaseline = 'middle';
         _bmpCtx.fillStyle = '#fff';
         _bmpCtx.fillText(text, BW / 2, BH / 2);
@@ -5540,6 +5960,27 @@
         return { text, mode, grid, rects, COLS, ROWS };
       }
 
+      // ── Pre-allocated reusable Float32Arrays（毎フレームGCゼロ） ──
+      const _MAX_CELLS = 210; // COLS(28) × ROWS(7) = 196
+      const _wBuf = new Float32Array(_MAX_CELLS * 3); // [x,y,s, ...]
+      const _bBuf = new Float32Array(_MAX_CELLS * 3);
+      // MOS3用（w,hが異なるため4要素）
+      const _w3Buf = new Float32Array(_MAX_CELLS * 4);
+      const _b3Buf = new Float32Array(_MAX_CELLS * 4);
+      // フォントサイズキャッシュ（テキスト・キャンバスサイズが変わった時だけ再計算）
+      let _fsCache = { text: '', scaleX: 0, scaleY: 0, fs: 0 };
+
+      function _getFontSize(ctx, s, scaleX, scaleY) {
+        if (_fsCache.text === s && _fsCache.scaleX === scaleX && _fsCache.scaleY === scaleY)
+          return _fsCache.fs;
+        let fs = scaleY * 0.85;
+        ctx.font = `bold ${fs}px 'Courier New',monospace`;
+        const mw = ctx.measureText(s).width;
+        if (mw > scaleX * 0.95) fs *= (scaleX * 0.95) / mw;
+        _fsCache = { text: s, scaleX, scaleY, fs };
+        return fs;
+      }
+
       // ── drawPixelText パッチ ──
       function _applyPatch() {
         const mm = window.mandalaMachine;
@@ -5553,7 +5994,7 @@
           if (_mosMode === 0) return _orig?.call(this, t, n, r);
 
           const s = (this.canvasText || '').toUpperCase();
-          if (!s) return _orig?.call(this, t, n, r);
+          if (!s) return;
 
           if (!_cache || _cache.text !== s || _cache.mode !== _mosMode)
             _cache = _buildCache(s, _mosMode);
@@ -5566,37 +6007,37 @@
           const ox = -scaleX / 2, oy = -scaleY / 2;
           const now = performance.now() / 1000;
 
+          // ── テキスト描画（save/restore不要・最小限の状態変更） ──
+          const dctx = t.drawingContext;
+          const [cr, cg, cb] = window._djTextColor || [255, 255, 255];
+          const fs = _getFontSize(dctx, s, scaleX, scaleY);
+          const prevFont      = dctx.font;
+          const prevAlign     = dctx.textAlign;
+          const prevBaseline  = dctx.textBaseline;
+          const prevFillStyle = dctx.fillStyle;
+          dctx.font         = `bold ${fs}px 'Courier New',monospace`;
+          dctx.textAlign    = 'center';
+          dctx.textBaseline = 'middle';
+          dctx.fillStyle    = `rgb(${cr},${cg},${cb})`;
+          dctx.fillText(s, 0, 0);
+          // 状態を手動で戻す（save/restoreよりも高速）
+          dctx.font         = prevFont;
+          dctx.textAlign    = prevAlign;
+          dctx.textBaseline = prevBaseline;
+          dctx.fillStyle    = prevFillStyle;
+
           t.noStroke();
 
           if (_mosMode === 2) {
-            // ── MOS2: CHAOS SQUARE MOSAIC (高速・軽量版) ──
-            // グリッド幅に合わせてフォントサイズをフィット（MOSと同等のサイズ感）
-            const [cr, cg, cb] = window._djTextColor || [255, 255, 255];
-            const ctx = t.drawingContext;
-            ctx.save();
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            // まず scaleY 基準でフォントサイズを設定
-            let fs = scaleY * 0.85;
-            ctx.font = `bold ${fs}px sans-serif`;
-            // テキスト幅がグリッド幅を超えるなら縮小
-            const mw = ctx.measureText(s).width;
-            if (mw > scaleX * 0.95) fs *= (scaleX * 0.95) / mw;
-            ctx.font = `bold ${fs}px sans-serif`;
-            ctx.fillStyle = `rgb(${cr},${cg},${cb})`;
-            ctx.fillText(s, 0, 0);
-            ctx.restore();
-
-            const whites = []; // [x, y, size]
-            const blacks = [];
+            // ── MOS2: CHAOS SQUARE MOSAIC ──
+            // Pre-allocated Float32Arrayで毎フレームGCゼロ
+            let wc = 0, bc = 0;
 
             for (let gy = 0; gy < ROWS; gy++) {
               for (let gx = 0; gx < COLS; gx++) {
                 if (!grid[gy * COLS + gx]) continue;
 
                 const ph = (gx * 2.718 + gy * 3.141) % (Math.PI * 2);
-
-                // 2周波合成（sin計算を4→2に削減）
                 const f1 = Math.sin(now * 16 + ph);
                 const f2 = Math.sin(now * 23 - ph * 1.4);
                 const f3 = Math.sin(now * 11 + ph * 0.8);
@@ -5607,89 +6048,59 @@
 
                 const dx = f1 * bw * 3.5 * edge;
                 const dy = f2 * bh * 4.0 * edge;
+                const sq = Math.max(3, Math.min(bw, bh) * (1.0 + ((f3 + 1) * 0.5) * 2.5));
 
-                // サイズ変動（1.0x 〜 3.5x）
-                const scale = 1.0 + ((f3 + 1) * 0.5) * 2.5;
-                const sq    = Math.max(3, Math.min(bw, bh) * scale);
-
-                // 高速フリッカー：sin > 0 なら白、< 0 なら黒
                 if (Math.sin(now * 28 + ph * 3) > 0) {
-                  whites.push(ox + gx * bw + dx, oy + gy * bh + dy, sq);
+                  _wBuf[wc++] = ox + gx * bw + dx;
+                  _wBuf[wc++] = oy + gy * bh + dy;
+                  _wBuf[wc++] = sq;
                 } else {
-                  blacks.push(ox + gx * bw + dx, oy + gy * bh + dy, sq);
+                  _bBuf[bc++] = ox + gx * bw + dx;
+                  _bBuf[bc++] = oy + gy * bh + dy;
+                  _bBuf[bc++] = sq;
                 }
               }
             }
 
-            // 白ブロック一括描画
             t.fill(255, 255, 255, 230);
-            for (let i = 0; i < whites.length; i += 3)
-              t.rect(whites[i], whites[i+1], whites[i+2], whites[i+2]);
-
-            // 黒ブロック一括描画
+            for (let i = 0; i < wc; i += 3) t.rect(_wBuf[i], _wBuf[i+1], _wBuf[i+2], _wBuf[i+2]);
             t.fill(0, 0, 0, 210);
-            for (let i = 0; i < blacks.length; i += 3)
-              t.rect(blacks[i], blacks[i+1], blacks[i+2], blacks[i+2]);
+            for (let i = 0; i < bc; i += 3) t.rect(_bBuf[i], _bBuf[i+1], _bBuf[i+2], _bBuf[i+2]);
 
           } else {
-            // ── MOS3: RANDOM CHAOS MOSAIC (MOS2ベース・高速ランダム版) ──
-            // 毎フレームランダムシードで動作し予測不能なパターンを生成
-
-            // グリッド幅に合わせてフォントサイズをフィット（MOS2と同じ）
-            const [cr3, cg3, cb3] = window._djTextColor || [255, 255, 255];
-            const ctx3 = t.drawingContext;
-            ctx3.save();
-            ctx3.textAlign = 'center';
-            ctx3.textBaseline = 'middle';
-            let fs3 = scaleY * 0.85;
-            ctx3.font = `bold ${fs3}px sans-serif`;
-            const mw3 = ctx3.measureText(s).width;
-            if (mw3 > scaleX * 0.95) fs3 *= (scaleX * 0.95) / mw3;
-            ctx3.font = `bold ${fs3}px sans-serif`;
-            ctx3.fillStyle = `rgb(${cr3},${cg3},${cb3})`;
-            ctx3.fillText(s, 0, 0);
-            ctx3.restore();
-
-            // 高速ランダムモザイク（Math.random()で毎フレーム完全ランダム）
-            const whites3 = [];
-            const blacks3 = [];
+            // ── MOS3: RANDOM CHAOS MOSAIC ──
+            // Pre-allocated Float32Array + 最小限の Math.random() 呼び出し
+            let wc3 = 0, bc3 = 0;
 
             for (let gy = 0; gy < ROWS; gy++) {
               for (let gx = 0; gx < COLS; gx++) {
                 if (!grid[gy * COLS + gx]) continue;
 
-                // 毎フレーム完全ランダムな変位
-                const dx = (Math.random() * 2 - 1) * bw * 5.5;
-                const dy = (Math.random() * 2 - 1) * bh * 6.0;
-
+                const r0 = Math.random(), r1 = Math.random(), r2 = Math.random(), r3 = Math.random();
+                const dx = (r0 * 2 - 1) * bw * 5.5;
+                const dy = (r1 * 2 - 1) * bh * 6.0;
                 let rw, rh;
-                // 50%は横長長方形、50%は正方形
-                if (Math.random() > 0.5) {
+                if (r2 > 0.5) {
                   rw = Math.max(4, bw * (2.5 + Math.random() * 4.0));
-                  rh = Math.max(3, bh * (0.3 + Math.random() * 0.7));
+                  rh = Math.max(3, bh * (0.3 + r2 * 0.7));
                 } else {
-                  const sq = Math.max(3, Math.min(bw, bh) * (1.0 + Math.random() * 3.5));
+                  const sq = Math.max(3, Math.min(bw, bh) * (1.0 + r2 * 3.5));
                   rw = sq; rh = sq;
                 }
-
                 const x = ox + gx * bw + dx;
                 const y = oy + gy * bh + dy;
-
-                if (Math.random() > 0.38) {
-                  whites3.push(x, y, rw, rh);
+                if (r3 > 0.38) {
+                  _w3Buf[wc3++] = x; _w3Buf[wc3++] = y; _w3Buf[wc3++] = rw; _w3Buf[wc3++] = rh;
                 } else {
-                  blacks3.push(x, y, rw, rh);
+                  _b3Buf[bc3++] = x; _b3Buf[bc3++] = y; _b3Buf[bc3++] = rw; _b3Buf[bc3++] = rh;
                 }
               }
             }
 
             t.fill(255, 255, 255, 225);
-            for (let i = 0; i < whites3.length; i += 4)
-              t.rect(whites3[i], whites3[i+1], whites3[i+2], whites3[i+3]);
-
+            for (let i = 0; i < wc3; i += 4) t.rect(_w3Buf[i], _w3Buf[i+1], _w3Buf[i+2], _w3Buf[i+3]);
             t.fill(0, 0, 0, 215);
-            for (let i = 0; i < blacks3.length; i += 4)
-              t.rect(blacks3[i], blacks3[i+1], blacks3[i+2], blacks3[i+3]);
+            for (let i = 0; i < bc3; i += 4) t.rect(_b3Buf[i], _b3Buf[i+1], _b3Buf[i+2], _b3Buf[i+3]);
           }
         };
 
@@ -5963,10 +6374,11 @@
         });
         function _sizeMosaicC() {
           const r = cw ? cw.getBoundingClientRect() : { width: innerWidth, height: innerHeight };
-          pixC.width = Math.round(r.width * 0.55);
-          pixC.height = Math.max(100, Math.round(r.height) - 140);
-          pixC.style.width = pixC.width + 'px';
-          pixC.style.height = pixC.height + 'px';
+          const w = Math.round(r.width * 0.55) || Math.round(innerWidth * 0.55) || 400;
+          const h = Math.max(100, Math.round(r.height) - 140) || Math.max(100, innerHeight - 140);
+          pixC.width = w; pixC.height = h;
+          pixC.style.width = w + 'px';
+          pixC.style.height = h + 'px';
         }
         _sizeMosaicC();
         overlay.appendChild(pixC);
@@ -6071,34 +6483,17 @@
       let _bocScanY = 0;
       let _bocGlitchBands = [];
       let _scanCleanup = null;
+      // ── SCAN: CRTスキャンラインテクスチャ（背景） ──
       if (cfg.scan) {
-        // 主スキャンライン（明るい）
-        const slMain = document.createElement('div');
-        slMain.style.cssText = 'position:absolute;left:0;width:100%;height:3px;pointer-events:none;z-index:2;' +
-          'background:linear-gradient(to right,transparent 5%,rgba(0,255,90,0.9) 40%,rgba(180,255,180,1) 50%,rgba(0,255,90,0.9) 60%,transparent 95%);top:0;' +
-          'box-shadow:0 0 12px 3px rgba(0,255,90,0.6);';
-        overlay.appendChild(slMain);
-        // 残像（遅れて追うfade帯）
-        const slTrail = document.createElement('div');
-        slTrail.style.cssText = 'position:absolute;left:0;width:100%;height:18px;pointer-events:none;z-index:2;' +
-          'background:linear-gradient(to bottom,rgba(0,255,90,0.18),transparent);top:0;';
-        overlay.appendChild(slTrail);
-
-        let sy = 0;
-        let _scanH = cw ? (cw.getBoundingClientRect().height | 0) : innerHeight;
-        window.addEventListener('resize', () => { _scanH = cw ? (cw.getBoundingClientRect().height | 0) : innerHeight; }, { passive: true });
-        function _animScan() {
-          sy = (sy + 2.2) % _scanH;
-          slMain.style.top = sy + 'px';
-          slTrail.style.top = sy + 'px';
-          _bocScanY = sy;
-        }
-        if (window.__vjSched) {
-          window.__vjSched.add('bootScan', _animScan, 30);
-          _scanCleanup = () => window.__vjSched.remove('bootScan');
-        } else {
-          (function loop() { _animScan(); _scanRaf = requestAnimationFrame(loop); })();
-        }
+        const crt = document.createElement('div');
+        crt.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:0;' +
+          'background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.12) 2px,rgba(0,0,0,0.12) 4px);';
+        overlay.appendChild(crt);
+        // ビネット（CRTエッジ暗化）
+        const vig = document.createElement('div');
+        vig.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:0;' +
+          'background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,0.55) 100%);';
+        overlay.appendChild(vig);
       }
 
       // ── GLITCH: ULTRA — RGB分離・ノイズCanvas・ゴーストコピー・テキスト爆破 ──
@@ -6174,11 +6569,12 @@
 
         // グリッチ帯（20本）
         const GL_COLS = [
-          'rgba(255,0,80,0.60)', 'rgba(0,220,255,0.55)',
-          'rgba(255,50,200,0.50)', 'rgba(255,255,0,0.40)',
-          'rgba(255,255,255,0.65)', 'rgba(0,255,100,0.45)',
+          'rgba(255,0,80,0.75)',   'rgba(0,220,255,0.70)',
+          'rgba(255,50,200,0.65)', 'rgba(255,255,0,0.55)',
+          'rgba(0,255,100,0.60)',  'rgba(255,100,0,0.65)',
+          'rgba(180,0,255,0.60)',  'rgba(0,255,200,0.55)',
         ];
-        const gls = Array.from({ length: 20 }, () => {
+        const gls = Array.from({ length: 30 }, () => {
           const g = document.createElement('div');
           g.style.cssText = 'position:absolute;left:0;width:100%;pointer-events:none;display:none;z-index:4;mix-blend-mode:screen;';
           overlay.appendChild(g); return g;
@@ -6186,8 +6582,8 @@
 
         function _doGlitch() {
           const h = cw ? (cw.getBoundingClientRect().height | 0) : innerHeight;
-          const isMega = Math.random() < 0.18; // 18%でメガグリッチ
-          const count = isMega ? 14 + Math.floor(Math.random() * 6) : 3 + Math.floor(Math.random() * 7);
+          const isMega = Math.random() < 0.28; // 28%でメガグリッチ
+          const count = isMega ? 20 + Math.floor(Math.random() * 10) : 5 + Math.floor(Math.random() * 10);
 
           const activeBands = [];
           gls.forEach((g, i) => {
@@ -6214,6 +6610,10 @@
 
           if (isMega) {
             noiseC.style.opacity = '1'; _drawNoise();
+            // テキスト全体をランダム横シフト（強いグリッチ感）
+            const shiftX = (Math.random() - 0.5) * 40;
+            rainEl.style.transform = `translateX(${shiftX}px)`;
+            setTimeout(() => { if (rainEl) rainEl.style.transform = ''; }, 60 + Math.random() * 80);
           }
 
           const dur = isMega ? 80 + Math.random() * 140 : 18 + Math.random() * 80;
@@ -6224,7 +6624,7 @@
             _bocGlitchBands = [];
           }, dur);
 
-          _glitchTO = setTimeout(_doGlitch, isMega ? 900 + Math.random() * 1400 : 80 + Math.random() * 350);
+          _glitchTO = setTimeout(_doGlitch, isMega ? 500 + Math.random() * 800 : 40 + Math.random() * 180);
         }
         _glitchTO = setTimeout(_doGlitch, 80);
 
@@ -7092,6 +7492,13 @@
           const op2 = document.getElementById('objColorPicker');
           if (op1) op1.value = hex;
           if (op2) op2.value = hex;
+          // RGB スライダーも同期
+          const slR = document.getElementById('colorR');
+          const slG = document.getElementById('colorG');
+          const slB = document.getElementById('colorB');
+          if (slR) slR.value = Math.round(p.objectColor.r);
+          if (slG) slG.value = Math.round(p.objectColor.g);
+          if (slB) slB.value = Math.round(p.objectColor.b);
         }
         if (p.wireframe !== undefined) {
           mm.setWireframeMode?.(p.wireframe);
@@ -7279,8 +7686,8 @@
           if (isActive) {
             // 2回目クリック → 全モードオフ、LIQUID fps復元
             clearAllModes();
-            window.__vjSched?.setFps('liquid', 30);
-            window.__vjSched?.setFps('neuro', 30);
+            window.__vjSched?.setFps('liquid', 20);
+            window.__vjSched?.setFps('neuro', 20);
             return;
           }
 
@@ -7295,13 +7702,13 @@
             Object.entries(cfg.modes).forEach(([id, on]) => setModeBtn(id, on));
             applyAll(cfg.params);
             btn.classList.add('active');
-            // KINETIC(SPIN+ORBIT同時)は最重負荷 → LIQUID/NEUROを20fpsに下げる
+            // KINETIC(SPIN+ORBIT同時)は最重負荷 → LIQUID/NEUROを15fpsに下げる
             if (btn.dataset.motion === 'kinetic') {
+              window.__vjSched?.setFps('liquid', 15);
+              window.__vjSched?.setFps('neuro', 15);
+            } else {
               window.__vjSched?.setFps('liquid', 20);
               window.__vjSched?.setFps('neuro', 20);
-            } else {
-              window.__vjSched?.setFps('liquid', 30);
-              window.__vjSched?.setFps('neuro', 30);
             }
           }, 80);
         });
@@ -8034,7 +8441,7 @@ void main() {
               }
               gl.bindFramebuffer(gl.FRAMEBUFFER, null);
             }
-            window.__vjSched.add('liquid', render, 30);
+            window.__vjSched.add('liquid', render, 20);
             console.log('[LIQUID/GL2] ON — sim scale:', getSimScale());
           } else {
             if (!active) return;
@@ -8528,7 +8935,7 @@ fn sfbm(pi:vec2f)->f32 {
             _prevRaf = performance.now();
             pingPong = 0;
             if (W > 0) { for (let i = 0; i < 2; i++) clearSimTex(simTex[i]); }
-            window.__vjSched.add('liquid', render, 30);
+            window.__vjSched.add('liquid', render, 20);
             console.log('[LIQUID/GPU] ON');
           } else {
             if (!active) return;
@@ -8630,22 +9037,57 @@ fn sfbm(pi:vec2f)->f32 {
        ║  ※ エンジンCSS（<link>）より後に配置して確実に上書き  ║
        ╚══════════════════════════════════════════════════════╝ -->
   <style>
-    #leftPanel .dj-name-toggle-container .mode-tag-btn:not(.active),
-    #leftPanel .dj-name-effects .mode-tag-btn:not(.active) {
-      border: 1px solid #2a2a2a !important;
+    /* lp-btn: エンジン非管理の左パネルカスタムボタン */
+    .lp-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      padding: 4px 8px;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: color 0.1s;
+    }
+    .lp-btn:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.2); }
+    .lp-btn.active {
+      border-color: #00e5ff !important;
+      outline: 1px solid #00e5ff !important;
+      box-shadow: 0 0 10px rgba(0,229,255,0.5) !important;
+      text-shadow: 0 0 7px rgba(0,229,255,0.85) !important;
+      color: #fff !important;
+      background: rgba(0,229,255,0.13) !important;
+      animation: cyanGlowPulse 2.2s ease-in-out infinite !important;
+    }
+
+    /* 左パネル: 非アクティブ — トップバーと同スタイル（白文字・ボーダーなし） */
+    #leftPanel .mode-tag-btn:not(.active):not(.dj-wht-btn):not(.dj-blk-btn) {
+      border: 1px solid transparent !important;
       box-shadow: none !important;
       animation: none !important;
       text-shadow: none !important;
-      color: #666 !important;
+      color: #bbb !important;
       background: transparent !important;
       outline: none !important;
     }
 
-    #leftPanel .dj-name-toggle-container .mode-tag-btn:not(.active):hover,
-    #leftPanel .dj-name-effects .mode-tag-btn:not(.active):hover {
-      border-color: #555 !important;
-      color: #ccc !important;
+    #leftPanel .mode-tag-btn:not(.active):not(.dj-wht-btn):not(.dj-blk-btn):hover {
+      color: #fff !important;
+      border-color: rgba(255,255,255,0.15) !important;
       box-shadow: none !important;
+      background: rgba(255,255,255,0.05) !important;
+    }
+
+    /* 左パネル: アクティブ — シアングロー */
+    #leftPanel .mode-tag-btn.active:not(.dj-wht-btn):not(.dj-blk-btn) {
+      border-color: #00e5ff !important;
+      outline: 1px solid #00e5ff !important;
+      box-shadow: 0 0 10px rgba(0,229,255,0.5) !important;
+      text-shadow: 0 0 6px rgba(0,229,255,0.8) !important;
+      color: #ffffff !important;
+      background: rgba(0,229,255,0.12) !important;
+      animation: cyanGlowPulse 2.2s ease-in-out infinite !important;
     }
 
     /* ── モバイル横画面: パネルを強制表示・サイズ縮小 ── */
@@ -8893,7 +9335,7 @@ fn sfbm(pi:vec2f)->f32 {
         sngSubBtn?.classList.toggle('active', on);
         if (on) {
           sngLastBass = 0; sngSize = 1.0; sngPhase = 'pull';
-          window.__vjSched.add('sng', sngLoop, 30);
+          window.__vjSched.add('sng', sngLoop, 20);
         } else {
           window.__vjSched.remove('sng');
           sngRaf = null;
@@ -9005,7 +9447,7 @@ fn sfbm(pi:vec2f)->f32 {
           sngSetActive(false);
           // エンジンを低速にしてBHが勝てるようにする
           getMM()?.setSpeedMultiplier?.(0.05);
-          window.__vjSched.add('bh', bhLoop, 30);
+          window.__vjSched.add('bh', bhLoop, 20);
         } else {
           window.__vjSched.remove('bh');
           bhRaf = null;
@@ -9077,6 +9519,8 @@ fn sfbm(pi:vec2f)->f32 {
       let threeVid = null, liqVid = null;
       let _recCleanups = []; // クリーンアップ関数リスト
       let _recPending = false; // 二重起動防止フラグ
+      let _recStartTime = 0;
+      let _timerInterval = null;
 
       function cleanup() {
         if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
@@ -9097,100 +9541,122 @@ fn sfbm(pi:vec2f)->f32 {
 
       const recordBtn2 = document.getElementById('recordBtn'); // 右パネルのRECボタン
 
+      function fmtTime(ms) {
+        const s = Math.floor(ms / 1000);
+        const m = Math.floor(s / 60);
+        return String(m).padStart(2,'0') + ':' + String(s % 60).padStart(2,'0');
+      }
+
       function setRecState(state) {
-        // state: 'idle' | 'recording' | 'converting'
+        // タイマークリア
+        if (_timerInterval) { clearInterval(_timerInterval); _timerInterval = null; }
+
         [btn, recordBtn2].forEach(b => {
           if (!b) return;
           b.classList.remove('rec-recording', 'rec-converting');
+
           if (state === 'recording') {
-            b.textContent = '● REC';
+            _recStartTime = Date.now();
             b.classList.add('rec-recording');
+            // 初期テキスト
+            b.innerHTML = '<span class="rec-dot"></span>00:00';
+            // タイマー更新
+            _timerInterval = setInterval(() => {
+              const elapsed = fmtTime(Date.now() - _recStartTime);
+              [btn, recordBtn2].forEach(x => {
+                if (x && x.classList.contains('rec-recording'))
+                  x.innerHTML = '<span class="rec-dot"></span>' + elapsed;
+              });
+            }, 500);
+
           } else if (state === 'converting') {
-            b.textContent = 'CONV…';
             b.classList.add('rec-converting');
+            b.textContent = 'SAVING...';
+
           } else {
-            b.textContent = 'REC';
+            b.textContent = '⏺ REC';
           }
         });
       }
 
       async function startRecording() {
-        // desktopCapturer はメインプロセス経由で取得（Electron 17+対応）
-        let screenStream = null;
-        try {
-          const { ipcRenderer } = require('electron');
-          const sources = await ipcRenderer.invoke('get-desktop-sources');
-          const win = sources.find(s => /mandala|MANDALA/i.test(s.name))
-            || sources.find(s => s.id.startsWith('screen:'))
-            || sources[0];
-          console.log('[REC] source:', win?.name, win?.id);
-          screenStream = await navigator.mediaDevices.getUserMedia({
-            audio: false,
-            video: {
-              mandatory: {
-                chromeMediaSource: 'desktop',
-                chromeMediaSourceId: win.id,
-                minWidth: 1280, maxWidth: 3840,
-                minHeight: 720, maxHeight: 2160
-              }
-            }
-          });
-          console.log('[REC] screenStream OK');
-        } catch (e) {
-          console.error('[REC] screenStream失敗:', e);
+        // ── V-OUTと同じキャンバスストリーム合成方式 ──
+        // Three.js / liquidCanvas を直接 captureStream して合成する
+
+        const threeCanvas = document.querySelector('#canvasContainer canvas');
+        const liqCanvas   = document.getElementById('liquidCanvas');
+        const p5Canvas    = document.querySelector('#p5-container canvas');
+
+        if (!threeCanvas) {
+          console.error('[REC] Three.jsキャンバスが見つかりません');
           setRecState('idle');
           _recPending = false;
           return;
         }
 
-        // ── 音声ミックス: マイク + トラックプレイヤー（AudioContextで合成） ──
+        // オフスクリーンキャンバスで合成
+        const W = threeCanvas.width  || window.innerWidth;
+        const H = threeCanvas.height || window.innerHeight;
+        const off = document.createElement('canvas');
+        off.width = W; off.height = H;
+        const ctx = off.getContext('2d');
+
+        // V-OUTと同じフレームループでキャンバスを合成
+        function composeFrame() {
+          ctx.clearRect(0, 0, W, H);
+
+          const liqVisible = liqCanvas &&
+            liqCanvas.style.display !== 'none' &&
+            liqCanvas.width > 300;
+
+          if (!liqVisible && threeCanvas.width > 0) {
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.drawImage(threeCanvas, 0, 0, W, H);
+          }
+          if (liqVisible && liqCanvas.width > 0) {
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.drawImage(liqCanvas, 0, 0, W, H);
+          }
+          // p5 オーバーレイ（screen合成）
+          if (p5Canvas && p5Canvas.width > 0) {
+            ctx.globalCompositeOperation = 'screen';
+            ctx.drawImage(p5Canvas, 0, 0, W, H);
+            ctx.globalCompositeOperation = 'source-over';
+          }
+
+          rafId = requestAnimationFrame(composeFrame);
+        }
+        composeFrame();
+
+        const videoStream = off.captureStream(30);
+        console.log('[REC] V-OUTキャンバスストリーム取得OK:', W + 'x' + H);
+
+        // ── 音声ミックス: トラックプレイヤー + マイク ──
         let audioTracks = [];
-        let mixCtx = null;
 
-        try {
-          mixCtx = new AudioContext();
-          const mixDest = mixCtx.createMediaStreamDestination();
-          let hasAudio = false;
+        // トラックプレイヤー音声（setupGraph で分岐済みのストリームを直接使用）
+        const tkStream = window._trackPlayerRecStream;
+        const tkEl = window._trackPlayerAudioEl;
+        if (tkStream && tkEl && !tkEl.paused) {
+          audioTracks = tkStream.getAudioTracks();
+          console.log('[REC] トラック音声OK tracks=' + audioTracks.length);
+        }
 
-          // マイク（常に取得を試みる）
+        // トラックが無い場合はマイクにフォールバック
+        if (audioTracks.length === 0) {
           try {
             const micStream = await navigator.mediaDevices.getUserMedia({
               audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
               video: false
             });
-            const micSrc = mixCtx.createMediaStreamSource(micStream);
-            micSrc.connect(mixDest);
+            audioTracks = micStream.getAudioTracks();
             _recCleanups.push(() => micStream.getTracks().forEach(t => t.stop()));
-            hasAudio = true;
-            console.log('[REC] マイク取得OK');
+            console.log('[REC] マイク音声OK');
           } catch (e) { console.warn('[REC] マイク取得失敗:', e); }
+        }
 
-          // トラックプレイヤー（再生中であれば追加ミックス）
-          const tkCtx = window._trackPlayerAudioCtx;
-          const tkEl  = window._trackPlayerAudioEl;
-          const tkAnl = window._trackPlayerAnalyser;
-          if (tkCtx && tkEl && !tkEl.paused && tkAnl) {
-            try {
-              const tDest = tkCtx.createMediaStreamDestination();
-              tkAnl.connect(tDest);
-              const tSrc = mixCtx.createMediaStreamSource(tDest.stream);
-              tSrc.connect(mixDest);
-              hasAudio = true;
-              console.log('[REC] トラック音声ミックスOK');
-            } catch (e) { console.warn('[REC] トラック音声ミックス失敗:', e); }
-          }
-
-          if (hasAudio) {
-            audioTracks = mixDest.stream.getAudioTracks();
-          }
-          _recCleanups.push(() => { try { mixCtx.close(); } catch (e) {} });
-        } catch (e) { console.warn('[REC] AudioContextミックス失敗:', e); }
-
-        const tracks = [...screenStream.getTracks(), ...audioTracks];
+        const tracks = [...videoStream.getTracks(), ...audioTracks];
         const combined = new MediaStream(tracks);
-
-        // screenStream のクリーンアップを登録
-        _recCleanups.push(() => screenStream.getTracks().forEach(t => t.stop()));
 
         const mimeType = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
           .find(m => MediaRecorder.isTypeSupported(m)) || '';
@@ -9200,20 +9666,16 @@ fn sfbm(pi:vec2f)->f32 {
         recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
         recorder.onstop = async () => {
           cleanup();
-          const blob = new Blob(chunks, { type: mimeType || 'video/webm' });
           const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-          console.log('[REC] stop: chunks=' + chunks.length + ' size=' + blob.size);
+          console.log('[REC] stop: chunks=' + chunks.length + ' size=' + chunks.reduce((s,c)=>s+c.size,0));
 
-          function downloadBlob(b, filename) {
-            const url = URL.createObjectURL(b);
-            const a = document.createElement('a');
-            a.href = url; a.download = filename;
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 10000);
-            console.log('[REC] download triggered:', filename);
+          if (chunks.length === 0) {
+            console.warn('[REC] データなし（録画時間が短すぎます）');
+            setRecState('idle');
+            return;
           }
+
+          const blob = new Blob(chunks, { type: mimeType || 'video/webm' });
 
           try {
             const fs = require('fs');
@@ -9221,12 +9683,13 @@ fn sfbm(pi:vec2f)->f32 {
             const path = require('path');
             const { spawn } = require('child_process');
             const ffmpegPath = require('ffmpeg-static');
-            console.log('[REC] ffmpeg path:', ffmpegPath);
+
+            // Downloads フォルダに直接保存
+            const downloadsDir = path.join(os.homedir(), 'Downloads');
+            const tmpWebm = path.join(os.tmpdir(), `mandala-${ts}.webm`);
+            const outMp4  = path.join(downloadsDir, `mandala-${ts}.mp4`);
 
             setRecState('converting');
-
-            const tmpWebm = path.join(os.tmpdir(), `mandala-${ts}.webm`);
-            const tmpMp4  = path.join(os.tmpdir(), `mandala-${ts}.mp4`);
 
             const arrayBuffer = await blob.arrayBuffer();
             fs.writeFileSync(tmpWebm, Buffer.from(arrayBuffer));
@@ -9238,25 +9701,37 @@ fn sfbm(pi:vec2f)->f32 {
                 '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
                 '-c:a', 'aac', '-b:a', '192k',
                 '-movflags', '+faststart',
-                '-y', tmpMp4
+                '-y', outMp4
               ]);
               let stderr = '';
               proc.stderr?.on('data', d => { stderr += d.toString(); });
               proc.on('close', code => {
                 console.log('[REC] ffmpeg exit:', code);
                 if (code === 0) resolve();
-                else reject(new Error('ffmpeg exit ' + code + '\n' + stderr.slice(-300)));
+                else reject(new Error('ffmpeg exit ' + code + '\n' + stderr.slice(-500)));
               });
               proc.on('error', e => reject(e));
             });
 
-            const mp4Data = fs.readFileSync(tmpMp4);
-            downloadBlob(new Blob([mp4Data], { type: 'video/mp4' }), `mandala-${ts}.mp4`);
-            try { fs.unlinkSync(tmpWebm); fs.unlinkSync(tmpMp4); } catch (e) { }
+            try { fs.unlinkSync(tmpWebm); } catch (e) {}
+            console.log('[REC] saved:', outMp4);
+            alert('録画を保存しました:\n' + outMp4);
 
           } catch (err) {
             console.warn('[REC] mp4変換失敗、webmでフォールバック:', err.message || err);
-            downloadBlob(blob, `mandala-${ts}.webm`);
+            // webm を Downloads に直接保存
+            try {
+              const fs = require('fs');
+              const os = require('os');
+              const path = require('path');
+              const outWebm = path.join(os.homedir(), 'Downloads', `mandala-${ts}.webm`);
+              const ab = await blob.arrayBuffer();
+              fs.writeFileSync(outWebm, Buffer.from(ab));
+              console.log('[REC] webm saved:', outWebm);
+              alert('録画を保存しました（webm形式）:\n' + outWebm);
+            } catch (e2) {
+              console.error('[REC] 保存失敗:', e2);
+            }
           }
 
           setRecState('idle');
@@ -9301,12 +9776,17 @@ fn sfbm(pi:vec2f)->f32 {
       let _objUrl = null;
 
       // ── 解析ループ（window._liquidBassIntensity 等に書き込む） ──
+      // 音声データは25fps(40ms)で十分 — 60fps RAFではなくsetIntervalで間引く
       function startAnalysis() {
         if (!analyserNode || !audioCtx) return;
         _buf = new Uint8Array(analyserNode.frequencyBinCount);
-        function loop() {
+        let _lastAudioT = 0;
+        const AUDIO_INTERVAL = 40; // 25fps相当
+        function loop(now) {
           if (!analyserNode) return;
           _raf = requestAnimationFrame(loop);
+          if (now - _lastAudioT < AUDIO_INTERVAL) return; // 間引き
+          _lastAudioT = now;
           analyserNode.getByteFrequencyData(_buf);
           const binHz = (audioCtx.sampleRate / 2) / analyserNode.frequencyBinCount;
           // Bass 20–250 Hz
@@ -9321,7 +9801,7 @@ fn sfbm(pi:vec2f)->f32 {
           window._liquidAudioSync = bass;
           window._liquidTrebleIntensity = treble;
         }
-        loop();
+        loop(0);
       }
 
       function stopAnalysis() {
@@ -9352,6 +9832,12 @@ fn sfbm(pi:vec2f)->f32 {
         sourceNode.connect(analyserNode);
         analyserNode.connect(gainNode);
         gainNode.connect(audioCtx.destination);
+
+        // REC用: gainNode から MediaStreamDestination を分岐
+        const recStreamDest = audioCtx.createMediaStreamDestination();
+        gainNode.connect(recStreamDest);
+        window._trackPlayerRecStream = recStreamDest.stream;
+
         if (audioCtx.state === 'suspended') audioCtx.resume();
 
         // REC からアクセスできるようグローバルに公開
@@ -9474,19 +9960,28 @@ fn sfbm(pi:vec2f)->f32 {
       let rafId = null;
       let speed = 8;   // Hz (フラッシュ/秒)
       const FLASH_MS = 60; // フラッシュの持続時間 (ms)
+      const STROBE_INTERVAL = 1000 / 30; // 30fps上限に制限
+      let _lastStrobeT = 0;
+      let _lastBg = '';
 
       function strobeFrame(ts) {
         if (!active) return;
+        rafId = requestAnimationFrame(strobeFrame);
+        // 30fps以上は処理しない
+        if (ts - _lastStrobeT < STROBE_INTERVAL) return;
+        _lastStrobeT = ts;
         const period = 1000 / speed;
         const phase = ts % period;
+        let newBg;
         if (phase < FLASH_MS) {
           // 正弦波で滑らかに明滅
           const b = Math.round(Math.sin((phase / FLASH_MS) * Math.PI) * 200);
-          overlay.style.background = `rgb(${b},${b},${b})`;
+          newBg = `rgb(${b},${b},${b})`;
         } else {
-          overlay.style.background = 'black';
+          newBg = 'black';
         }
-        rafId = requestAnimationFrame(strobeFrame);
+        // 変化があるときだけDOM更新
+        if (newBg !== _lastBg) { overlay.style.background = newBg; _lastBg = newBg; }
       }
 
       function start() {
@@ -9527,25 +10022,27 @@ fn sfbm(pi:vec2f)->f32 {
   <script>
     // --- SECTION: ENGINE_CSS_OVERRIDES ---
     (function () {
-      // ① 即時注入CSS: RA-CHANG グロー制御 + ヘッダーボタンサイズ統一
+      // ① 即時注入CSS: TEXT FX グロー制御 + ヘッダーボタンサイズ統一
       const cssImmediate = `
-      .dj-name-toggle-container .mode-tag-btn:not(.active),
-      .dj-name-effects .mode-tag-btn:not(.active),
+      /* エンジンCSS上書き: 左パネル全ボタン — 非アクティブはトップバースタイル */
+      #leftPanel .mode-tag-btn:not(.active):not(.dj-wht-btn):not(.dj-blk-btn),
       .dj-sub-btn:not(.active) {
-        border-color: #2a2a2a !important;
+        border: 1px solid transparent !important;
         box-shadow: none !important;
         animation: none !important;
         text-shadow: none !important;
-        color: #555 !important;
+        color: #bbb !important;
         background: transparent !important;
+        outline: none !important;
       }
-      .dj-name-toggle-container .mode-tag-btn.active,
-      .dj-name-effects .mode-tag-btn.active {
-        border-color: rgba(0,229,255,1.0) !important;
-        box-shadow: 0 0 15px rgba(0,229,255,0.7) !important;
-        text-shadow: 0 0 8px rgba(0,229,255,0.9) !important;
+      /* アクティブはシアングロー */
+      #leftPanel .mode-tag-btn.active:not(.dj-wht-btn):not(.dj-blk-btn) {
+        border-color: #00e5ff !important;
+        outline: 1px solid #00e5ff !important;
+        box-shadow: 0 0 10px rgba(0,229,255,0.5) !important;
+        text-shadow: 0 0 6px rgba(0,229,255,0.8) !important;
         color: #ffffff !important;
-        background: rgba(0,229,255,0.15) !important;
+        background: rgba(0,229,255,0.12) !important;
         animation: cyanGlowPulse 2.2s ease-in-out infinite !important;
       }
       .top-row .mode-btn,
@@ -10120,11 +10617,8 @@ fn sfbm(pi:vec2f)->f32 {
     })();
   </script>
 
-  <!-- NEURO LINK overlay canvas — canvasWrapper外 (body直下相当) に配置。
-       canvasWrapper に filter が当たっても position:fixed がビューポート基準になる。
-       スクリプトより前に置くことで getElementById が確実に見つかる。 -->
-  <canvas id="neuroLinkCanvas"
-    style="position:fixed;pointer-events:none;z-index:200;display:none;background:transparent !important;"></canvas>
+  <!-- neuroLinkCanvas は canvasWrapper内に配置（曼荼羅背景レイヤー）-->
+  <!-- canvasContainer(z:2)の手前に移動、position:absolute で追従 -->
 
   <!-- ===== CODE MODE: mix-blend-mode:screen でオブジェクト上にコードレイン ===== -->
   <script>
@@ -10292,7 +10786,7 @@ fn sfbm(pi:vec2f)->f32 {
         updateBlendMode();
         overlay.style.display = 'block';
         _lastT = performance.now();
-        window.__vjSched.add('coderain', draw, 30);
+        window.__vjSched.add('coderain', draw, 20);
       }
 
       function stop() {
@@ -10400,7 +10894,8 @@ fn sfbm(pi:vec2f)->f32 {
       'use strict';
 
       var canvas = document.getElementById('neuroLinkCanvas');
-      if (!canvas) return;
+      var wrapper = document.getElementById('neuroLinkWrapper');
+      if (!canvas || !wrapper) return;
 
       // ── 共有状態 ────────────────────────────────────────────────────
       var _active = false;
@@ -10431,33 +10926,47 @@ fn sfbm(pi:vec2f)->f32 {
       }
 
       function resize() {
+        // canvasWrapperの実寸をBCRで取得
         var cw = document.getElementById('canvasWrapper');
         if (!cw) return;
-        var rw = cw.getBoundingClientRect();
-        // 上端: modeSeekbars が表示中なら seekbar の下端を使う
-        var sb = document.getElementById('modeSeekbars');
-        var actualTop = rw.top;
-        if (sb && sb.offsetParent !== null) {
-          var rs = sb.getBoundingClientRect();
-          if (rs.bottom > rw.top && rs.bottom < rw.bottom) actualTop = rs.bottom;
-        }
-        // 下端: 上端のオフセット量を対称的に下端にも適用する
-        var topOffset = actualTop - rw.top;
-        var actualBottom = rw.bottom - topOffset;
-        // フォールバック: musicPanel.top が範囲内にあればそちらを優先
+        var cwR = cw.getBoundingClientRect();
+        var vh  = window.innerHeight;
+        // musicPanel の上端を下限にする
         var mp = document.getElementById('musicPanel');
-        if (mp) {
-          var rm = mp.getBoundingClientRect();
-          if (rm.top > actualTop && rm.top < actualBottom) actualBottom = rm.top;
-        }
-        W = Math.max(1, rw.width | 0);
-        H = Math.max(1, actualBottom - actualTop | 0);
-        canvas.width = W;
-        canvas.height = H;
-        canvas.style.left = rw.left + 'px';
-        canvas.style.top = actualTop + 'px';
-        canvas.style.width = W + 'px';
-        canvas.style.height = H + 'px';
+        var mpTop = mp ? Math.round(mp.getBoundingClientRect().top) : vh;
+        // サイドパネルで水平クリップ
+        var lp = document.getElementById('leftPanel');
+        var rp = document.getElementById('rightPanel');
+        var lpRight = lp ? Math.round(lp.getBoundingClientRect().right) : Math.round(cwR.left);
+        var rpLeft  = rp ? Math.round(rp.getBoundingClientRect().left)  : Math.round(cwR.right);
+        var leftInset  = Math.max(0, lpRight  - Math.round(cwR.left));
+        var rightInset = Math.max(0, Math.round(cwR.right) - rpLeft);
+        // 表示領域
+        // topBarの下端を上限に（AUTOモード等でtopBarが拡張した場合も対応）
+        var tb = document.getElementById('topBar');
+        var tbBottom = tb ? Math.round(tb.getBoundingClientRect().bottom) : Math.round(cwR.top);
+        var fixedLeft = Math.round(cwR.left) + leftInset;
+        var fixedTop  = Math.max(Math.round(cwR.top), tbBottom);  // topBar下端以降
+        var fixedW    = Math.max(Math.round(cwR.width) - leftInset - rightInset, 100);
+        // キャンバスはcanvasWrapperと同サイズ（端の不連続ラインを消すため）
+        // パーティクルのバウンドを内側に設定してはみ出しを防ぐ
+        var availH = Math.max(mpTop - fixedTop, 0);
+        var fixedH = Math.max(Math.min(Math.round(cwR.height), availH), 100);
+        W = fixedW;
+        H = fixedH;
+        // ラッパーdivをposition:fixedで正確に配置、overflow:hiddenで完全クリップ
+        wrapper.style.left   = fixedLeft + 'px';
+        wrapper.style.top    = fixedTop  + 'px';
+        wrapper.style.width  = fixedW    + 'px';
+        wrapper.style.height = fixedH    + 'px';
+        // canvas はラッパー内で 0,0 から同サイズ
+        canvas.style.width  = fixedW + 'px';
+        canvas.style.height = fixedH + 'px';
+        canvas.width  = fixedW;
+        canvas.height = fixedH;
+        window._neuroTopH  = fixedTop;
+        window._neuroLeftH = fixedLeft;
+        // デバッグ: タイトルに値を出力
       }
 
       // ── WGSL: compute (パーティクル物理) ────────────────────────────
@@ -10492,8 +11001,8 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
   p.y += p.vy * u.bassBoost * u.dt;
   if (p.x < 0.0)  { p.x = 0.0; p.vx =  abs(p.vx); }
   if (p.x > u.W)  { p.x = u.W; p.vx = -abs(p.vx); }
-  if (p.y < 0.0)  { p.y = 0.0; p.vy =  abs(p.vy); }
-  if (p.y > u.H)  { p.y = u.H; p.vy = -abs(p.vy); }
+  if (p.y < 8.0)         { p.y = 8.0;         p.vy =  abs(p.vy); }
+  if (p.y > u.H - 20.0) { p.y = u.H - 20.0; p.vy = -abs(p.vy); }  // 上下端マージン内で折り返し
   particles[i] = p;
 }`;
 
@@ -10720,26 +11229,34 @@ struct VOut { @builtin(position) pos: vec4<f32>, @location(0) lp: vec2<f32>, @lo
       // ── start / stop (GPU) ───────────────────────────────────────────
       function startGPU() {
         if (_active) return;
-        canvas.style.display = 'block';
+        wrapper.style.display = 'block';
         resize();
         _active = true; _lastT = performance.now();
         if (gpuReady) {
           initNodesGPU();
-          window.__vjSched.add('neuro', drawGPU, 30);
+          window.__vjSched.add('neuro', drawGPU, 20);
         } else {
           var tid = setInterval(function () {
-            if (gpuReady) { clearInterval(tid); initNodesGPU(); window.__vjSched.add('neuro', drawGPU, 30); }
+            if (gpuReady) { clearInterval(tid); initNodesGPU(); window.__vjSched.add('neuro', drawGPU, 20); }
           }, 100);
         }
       }
 
       function stopGPU() {
         _active = false;
-        canvas.style.display = 'none';
+        wrapper.style.display = 'none';
         window.__vjSched.remove('neuro');
       }
 
-      window.addEventListener('resize', function () { if (_active) resize(); });
+      window.addEventListener('resize', function () {
+        if (_active) requestAnimationFrame(function() { resize(); });
+      });
+      // topBar高さ変化（シークバー開閉）に追従
+      (function() {
+        var tb = document.getElementById('topBar');
+        if (!tb || typeof ResizeObserver === 'undefined') return;
+        new ResizeObserver(function() { if (_active) resize(); }).observe(tb);
+      })();
 
       // ── ボタンバインド（GPU版） ──────────────────────────────────────
       function bindButtonsGPU() {
@@ -10820,7 +11337,7 @@ struct VOut { @builtin(position) pos: vec4<f32>, @location(0) lp: vec2<f32>, @lo
             var ni = nodes[i];
             ni.x += ni.vx * bassBoost * dt; ni.y += ni.vy * bassBoost * dt;
             if (ni.x < 0) { ni.x = 0; ni.vx *= -1; } if (ni.x > W) { ni.x = W; ni.vx *= -1; }
-            if (ni.y < 0) { ni.y = 0; ni.vy *= -1; } if (ni.y > H) { ni.y = H; ni.vy *= -1; }
+            if (ni.y < 8) { ni.y = 8; ni.vy *= -1; } if (ni.y > H - 20) { ni.y = H - 20; ni.vy *= -1; }
             var jit = _glitch ? (6 + bass * 20) : 0;
             ctx2.beginPath(); ctx2.arc(ni.x + (Math.random() - 0.5) * jit, ni.y + (Math.random() - 0.5) * jit, pr, 0, Math.PI * 2);
             ctx2.fillStyle = 'rgba(' + cr + ',' + cg + ',' + cb + ',0.9)'; ctx2.fill();
@@ -10841,12 +11358,12 @@ struct VOut { @builtin(position) pos: vec4<f32>, @location(0) lp: vec2<f32>, @lo
         }
         function start2D() {
           if (_active) return;
-          canvas.style.display = 'block'; resize(); initNodes2D();
+          wrapper.style.display = 'block'; resize(); initNodes2D();
           _active = true; _lastT = performance.now();
-          window.__vjSched.add('neuro', draw2D, 30);
+          window.__vjSched.add('neuro', draw2D, 20);
         }
         function stop2D() {
-          _active = false; canvas.style.display = 'none';
+          _active = false; wrapper.style.display = 'none';
           window.__vjSched.remove('neuro'); ctx2.clearRect(0, 0, W, H);
         }
         var toggleBtn = document.getElementById('neuroLinkToggle'); if (!toggleBtn) return;
@@ -11529,6 +12046,114 @@ struct VOut { @builtin(position) pos: vec4<f32>, @location(0) lp: vec2<f32>, @lo
       _bind();
 
       window._bigTextOverlay = { open: _open, close: _close, toggle: _toggle };
+    })();
+  </script>
+
+  <!-- ===== 左パネルボタン強制スタイル ===== -->
+  <script>
+    (function () {
+      // ユーザーが明示的に選択したエフェクトボタンを追跡
+      var _userFx = null;         // 選択中のエフェクトボタン
+      var _userOnOff = null;      // 選択中のON/OFFボタン
+      var _userColor = null;      // 選択中のWHT/BLKボタン
+
+      function styleBtn(btn) {
+        if (btn.classList.contains('dj-wht-btn') || btn.classList.contains('dj-blk-btn')) return;
+
+        var isActive;
+        if (btn.hasAttribute('data-effect')) {
+          // エフェクトボタン: ユーザーが押したものだけ光る
+          isActive = (_userFx === btn);
+        } else if (btn.id === 'djNameOnBtn' || btn.id === 'djNameOffBtn') {
+          // ON/OFF: ユーザーが押したものだけ光る
+          isActive = (_userOnOff === btn);
+        } else {
+          isActive = btn.classList.contains('active');
+        }
+        var s = btn.style;
+        if (isActive) {
+          s.setProperty('border',      '1px solid #00e5ff',                        'important');
+          s.setProperty('outline',     '1px solid #00e5ff',                        'important');
+          s.setProperty('box-shadow',  '0 0 10px rgba(0,229,255,0.5)',             'important');
+          s.setProperty('text-shadow', '0 0 7px rgba(0,229,255,0.85)',             'important');
+          s.setProperty('color',       '#ffffff',                                   'important');
+          s.setProperty('background',  'rgba(0,229,255,0.13)',                     'important');
+          s.setProperty('animation',   'cyanGlowPulse 2.2s ease-in-out infinite', 'important');
+        } else {
+          s.setProperty('border',      '1px solid transparent', 'important');
+          s.setProperty('outline',     'none',                  'important');
+          s.setProperty('box-shadow',  'none',                  'important');
+          s.setProperty('text-shadow', 'none',                  'important');
+          s.setProperty('color',       '#ffffff',               'important');
+          s.setProperty('background',  'transparent',           'important');
+          s.setProperty('animation',   'none',                  'important');
+        }
+      }
+
+      function applyAll() {
+        var panel = document.getElementById('leftPanel');
+        if (!panel) return;
+        // mode-tag-btn（ON/OFF/WHT/BLK・エフェクト）とlp-btn（BOOT/TT）両方を対象
+        panel.querySelectorAll('.mode-tag-btn, .lp-btn').forEach(styleBtn);
+      }
+
+      function blockBrainHack(btn) {
+        var orig = btn.classList.toggle.bind(btn.classList);
+        btn.classList.toggle = function(cls, force) {
+          if (cls === 'active') return;
+          return orig(cls, force);
+        };
+      }
+
+      function start() {
+        var panel = document.getElementById('leftPanel');
+        if (!panel) { setTimeout(start, 100); return; }
+
+        panel.querySelectorAll('.mode-tag-btn').forEach(blockBrainHack);
+
+        // エフェクトボタンのユーザー選択を追跡（キャプチャでエンジンより先に取得）
+        panel.querySelectorAll('.mode-tag-btn[data-effect]').forEach(function(btn) {
+          btn.addEventListener('click', function() { _userFx = btn; }, true);
+        });
+
+        // ON/OFFボタンのユーザー選択を追跡
+        var onBtn  = document.getElementById('djNameOnBtn');
+        var offBtn = document.getElementById('djNameOffBtn');
+        onBtn  && onBtn.addEventListener('click',  function() {
+          _userOnOff = onBtn;
+          // ON押下時に現在の入力テキストをキャンバスへ即時送信
+          setTimeout(function() {
+            var input = document.getElementById('canvasText');
+            var mm = window.mandalaMachine;
+            if (input && mm && typeof mm.setCanvasText === 'function') {
+              mm.setCanvasText(input.value);
+            }
+          }, 50);
+        }, true);
+        offBtn && offBtn.addEventListener('click', function() {
+          _userOnOff = offBtn;
+          // OFFにしたらエフェクトボタンの選択をリセット
+          _userFx = null;
+          panel.querySelectorAll('.mode-tag-btn[data-effect]').forEach(styleBtn);
+        }, true);
+
+        applyAll();
+
+        // class 変化のみ監視してスタイル更新
+        new MutationObserver(function(muts) {
+          for (var m of muts) {
+            if (m.attributeName === 'class') {
+              styleBtn(m.target);
+            }
+          }
+        }).observe(panel, { subtree: true, attributes: true, attributeFilter: ['class'] });
+
+        // 起動後5秒間は200msごとに強制適用
+        var t = 0;
+        var iv = setInterval(function() { applyAll(); if (++t >= 25) clearInterval(iv); }, 200);
+      }
+
+      window.addEventListener('load', function() { setTimeout(start, 300); });
     })();
   </script>
 
