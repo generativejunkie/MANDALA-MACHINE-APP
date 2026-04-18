@@ -1,12 +1,18 @@
 const { app, BrowserWindow, ipcMain, screen, desktopCapturer } = require('electron');
 const path = require('path');
 
-// GPU パフォーマンス最適化（高解像度 V-OUT 用）
+// GPU パフォーマンス最適化
 app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('enable-zero-copy');
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
-app.commandLine.appendSwitch('enable-accelerated-video-decode');
 app.commandLine.appendSwitch('disable-frame-rate-limit');
+app.commandLine.appendSwitch('enable-features', 'VaapiVideoDecoder');
+app.commandLine.appendSwitch('enable-accelerated-2d-canvas');
+app.commandLine.appendSwitch('num-raster-threads', '4');
+// スクロール・入力のジャンク軽減
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
+app.commandLine.appendSwitch('renderer-process-limit', '100');
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=512');
 // WebGPU はGPUプロセスクラッシュの原因になるため無効化
 // app.commandLine.appendSwitch('enable-features', 'WebGPU,WebGPUDeveloperFeatures');
 
@@ -20,9 +26,11 @@ function createWindow() {
     height: 1080,
     fullscreen: false,
     autoHideMenuBar: true,
+    backgroundColor: '#000000',
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+      hardwareAcceleration: true
     }
   });
 
@@ -37,7 +45,15 @@ function createWindow() {
   });
 
   mainWindow.loadFile('mandaramachine.html');
-  mainWindow.webContents.openDevTools({ mode: 'detach' });
+  // DevToolsは開発時のみ: npm run app -- --devtools で有効化
+  if (process.argv.includes('--devtools')) {
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
+  }
+  // Cmd+Option+I でいつでもDevToolsを開閉
+  const { globalShortcut } = require('electron');
+  globalShortcut.register('CommandOrControl+Alt+I', () => {
+    mainWindow.webContents.toggleDevTools();
+  });
   mainWindow.webContents.on('console-message', (e, level, msg) => {
     if (msg.includes('[STAR]') || msg.includes('[REC]')) console.log('[R]', msg);
   });

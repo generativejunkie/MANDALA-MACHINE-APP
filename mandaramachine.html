@@ -62,6 +62,24 @@
     })();
   </script>
 
+  <!-- wheel/scroll/pointer を passive化してメインスレッドをブロックしない -->
+  <script>
+    (function passiveEventPatch() {
+      const _addEL = EventTarget.prototype.addEventListener;
+      const PASSIVE_EVENTS = new Set(['wheel', 'mousewheel', 'touchstart', 'touchmove', 'pointermove', 'pointerdown']);
+      EventTarget.prototype.addEventListener = function (type, fn, opts) {
+        if (PASSIVE_EVENTS.has(type)) {
+          if (typeof opts === 'object' && opts !== null) {
+            if (opts.passive === undefined) opts = { ...opts, passive: true };
+          } else if (opts === undefined || opts === false) {
+            opts = { passive: true, capture: !!opts };
+          }
+        }
+        return _addEL.call(this, type, fn, opts);
+      };
+    })();
+  </script>
+
   <!-- ═══════════════════════════════════════════════════════
        UNIFIED RAF SCHEDULER — 全オーバーレイのRAFを1本化
        マンダラエンジン(60fps)に影響せず、オーバーレイを30fps上限で管理
@@ -130,7 +148,7 @@
         const spinActive   = document.getElementById('topSpinBtn')?.classList.contains('active');
         const targetFps = (orbitActive || spinActive) ? HEAVY_FPS : NORMAL_FPS;
         // 主要オーバーレイ全てに適用
-        ['liquid','neuro','sng','bh','coderain','star','bootScan','bootMosaic','bootGhost','bootVout'].forEach(function(n) {
+        ['liquid','neuro','sng','bh','coderain','star','bootScan','bootMosaic','bootGhost','bootVout','sound','mandalaEngine'].forEach(function(n) {
           window.__vjSched.setFps(n, targetFps);
         });
       }
@@ -261,14 +279,21 @@
       background: #0a0a0a !important
     }
 
+    /* 全ボタン: タップ遅延ゼロ化 */
+    button { touch-action: manipulation; }
+
     .panel-side {
       background: rgba(10, 10, 10, 0.95) !important;
-      border-color: #222 !important
+      border-color: #222 !important;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     #topBar {
       background: rgba(10, 10, 10, 0.95) !important;
       border-bottom: 1px solid #222 !important;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     /* ╔══════════════════════════════════════════════════════╗
@@ -494,11 +519,11 @@
 
     .panel-header h3,
     .menu-section h3 {
-      color: #888 !important;
+      color: #00e5ff !important;
       font-size: 10px !important;
       letter-spacing: 0.2em !important;
       text-transform: uppercase !important;
-      border-bottom: 1px solid #222 !important;
+      border-bottom: 1px solid #00e5ff22 !important;
       padding-bottom: 4px !important;
       margin-bottom: 8px !important;
     }
@@ -516,6 +541,7 @@
       color: #bbb !important;
       font-size: 10px !important;
       font-weight: 600 !important;
+      touch-action: manipulation; /* タップ遅延300ms排除 */
     }
 
     /* ── Hover: immediate bright feedback ── */
@@ -1445,6 +1471,14 @@
       background: #000000 !important;
     }
 
+    /* GPU レイヤー昇格: compositorがcanvasを独立レイヤーで管理 */
+    #canvasWrapper canvas,
+    #liquidCanvas,
+    #neuroLinkCanvas {
+      will-change: transform;
+      transform: translateZ(0);
+    }
+
     /* エンジンcanvasの黒背景（初期化時の白いアーティファクトを防止） */
     #canvasWrapper canvas {
       background: #000000 !important;
@@ -1705,12 +1739,13 @@
     /* =====================================================
        menu-section h3 (全パネルセクションヘッダー統一)
        ===================================================== */
+    .panel-header h3,
     .menu-section h3 {
-      color: #888 !important;
+      color: #00e5ff !important;
       font-size: 10px !important;
       letter-spacing: 0.2em !important;
       text-transform: uppercase !important;
-      border-bottom: 1px solid #222 !important;
+      border-bottom: 1px solid #00e5ff22 !important;
       padding-bottom: 4px !important;
       margin-bottom: 8px !important;
     }
@@ -1768,35 +1803,63 @@
         const ctx = comp.getContext('2d');
         let _busy = false;
         let _lastSent = 0;
-        const _VOUT_INTERVAL = 1000 / 24; // 24fps上限
+        const _VOUT_INTERVAL = 1000 / 15; // 15fps上限（toDataURLのCPUブロックを削減）
 
         const img = new Image();
+        // DOM要素キャッシュ（毎フレームgetElementByIdを避ける）
+        let _cachedLiq, _cachedP5c, _cachedBoc, _cachedNeuro, _cachedNeuroWrap, _cachedCode, _cachedCwEl;
+        let _cachedCwR = { left: 0, top: 0, width: 0, height: 0 };
+        function _refreshDomCache() {
+          _cachedLiq       = document.getElementById('liquidCanvas');
+          _cachedP5c       = document.querySelector('#p5-container canvas');
+          _cachedBoc       = document.getElementById('bootVoutCanvas');
+          _cachedNeuro     = document.getElementById('neuroLinkCanvas');
+          _cachedNeuroWrap = document.getElementById('neuroLinkWrapper');
+          _cachedCode      = document.getElementById('codeModeCanvas');
+          _cachedCwEl      = document.getElementById('canvasWrapper');
+          if (_cachedCwEl) _cachedCwR = _cachedCwEl.getBoundingClientRect();
+        }
+        // 初回キャッシュ＆リサイズ時に再取得
+        window.addEventListener('DOMContentLoaded', _refreshDomCache);
+        window.addEventListener('resize', _refreshDomCache);
+        setTimeout(_refreshDomCache, 500);
+
         ipc.send = function (channel, ...args) {
           if (channel !== 'canvas-frame') return _orig(channel, ...args);
           window._latestEngineDataURL = args[0]; // CODE mode 用フレームキャッシュ
           const now = performance.now();
-          const liq   = document.getElementById('liquidCanvas');
-          const p5c   = document.querySelector('#p5-container canvas');
-          const boc   = document.getElementById('bootVoutCanvas');   // BOOT OVERLAY Canvas2Dミラー
-          const neuro = document.getElementById('neuroLinkCanvas');  // NEURO LINK
-          const code  = document.getElementById('codeModeCanvas');   // CODE mode
+          const liq       = _cachedLiq;
+          const p5c       = _cachedP5c;
+          const boc       = _cachedBoc;
+          const neuro     = _cachedNeuro;
+          const neuroWrap = _cachedNeuroWrap;
+          const code      = _cachedCode;
           const hasLiq   = liq   && liq.style.display   !== 'none' && liq.width   > 0;
           const hasP5    = p5c   && p5c.width   > 0;
           const hasBoc   = boc   && boc.width   > 0;
-          const neuroWrap = document.getElementById('neuroLinkWrapper');
           const hasNeuro = neuro && neuroWrap && neuroWrap.style.display !== 'none' && neuro.width  > 0;
           const hasCode  = code  && code.style.display  !== 'none' && code.width   > 0;
+          // BLACKOUT: 最優先で黒フレームを送信（オーバーレイ有無・レート制限より先）
+          if (window._vjBlackout) {
+            if (_busy || now - _lastSent < _VOUT_INTERVAL) return;
+            _busy = true; _lastSent = now;
+            if (comp.width < 16) { comp.width = 1280; comp.height = 720; }
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, comp.width, comp.height);
+            _orig('canvas-frame', comp.toDataURL('image/jpeg', 0.78));
+            _busy = false;
+            return;
+          }
           // オーバーレイなし → そのまま送信
           if (!hasLiq && !hasP5 && !hasBoc && !hasNeuro && !hasCode) return _orig(channel, args[0]);
-          // 24fps 超は間引く
+          // fps 超は間引く
           if (_busy || now - _lastSent < _VOUT_INTERVAL) return;
           _busy = true;
           _lastSent = now;
           const engineDataURL = args[0];
 
-          // canvasWrapper の左オフセット（CODE modeのクリップに使用）
-          const cwEl  = document.getElementById('canvasWrapper');
-          const cwR   = cwEl ? cwEl.getBoundingClientRect() : { left: 0, top: 0, width: 0, height: 0 };
+          // canvasWrapper の左オフセット（キャッシュ済み）
+          const cwR = _cachedCwR;
 
           // createImageBitmap で LIQUID を非同期読み取り（メインスレッドをブロックしない）
           const bitmapPromise = hasLiq
@@ -1807,19 +1870,29 @@
             if (comp.width !== img.width) comp.width = img.width;
             if (comp.height !== img.height) comp.height = img.height;
             bitmapPromise.then(bmp => {
-              // 0. NEURO LINK（背景レイヤー: エンジン出力の下に描画）
+              ctx.clearRect(0, 0, comp.width, comp.height);
               ctx.globalCompositeOperation = 'source-over';
+
+              // BLACKOUT: 有効なら黒フレームを即送信
+              if (window._vjBlackout) {
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, comp.width, comp.height);
+                _orig('canvas-frame', comp.toDataURL('image/jpeg', 0.78));
+                _busy = false;
+                return;
+              }
+
+              // 1. エンジン（マンダラWebGL）
+              ctx.drawImage(img, 0, 0);
+              // 2. NEURO LINK（エンジンの上に重ねる: 画面上のz-index:3と同じ）
               if (hasNeuro) {
-                // canvasWrapper の viewport 位置にオフセットして描画
                 var _nTop  = window._neuroTopH  || 0;
                 var _nLeft = window._neuroLeftH || 0;
                 ctx.drawImage(neuro, _nLeft, _nTop);
               }
-              // 1. エンジン（マンダラWebGL）
-              ctx.drawImage(img, 0, 0);
-              // 2. LIQUID シェーダー
+              // 3. LIQUID シェーダー
               if (bmp) { ctx.drawImage(bmp, 0, 0, comp.width, comp.height); bmp.close(); }
-              // 3. p5.js
+              // 4. p5.js
               if (hasP5)    ctx.drawImage(p5c,   0, 0, comp.width, comp.height);
               // 5. CODE mode（multiply blend + 左パネル分をクリップ）
               if (hasCode) {
@@ -1846,6 +1919,8 @@
   <link rel="stylesheet" crossorigin href="./assets/index-_3glWkjg.css">
   <!-- Babylon.js (ローカル npm パッケージ) -->
   <script src="node_modules/babylonjs/babylon.js"></script>
+  <!-- Lottie Web -->
+  <script src="https://unpkg.com/lottie-web@5.12.2/build/player/lottie.min.js"></script>
 </head>
 
 <body tabindex="0">
@@ -1923,6 +1998,32 @@
           <button id="leftBootMosaicBtn" class="lp-btn" style="font-size:9px;letter-spacing:1px;">MOSAIC</button>
           <button id="leftBootScanBtn" class="lp-btn" style="font-size:9px;letter-spacing:1px;">SCAN</button>
           <button id="leftBootGlitchBtn" class="lp-btn" style="font-size:9px;letter-spacing:1px;">GLITCH</button>
+        </div>
+      </div>
+
+      <!-- ── PARTICLE (Lottie) ──────────────────────────────────────── -->
+      <div class="panel-header" style="margin-top: 20px;">
+        <h3>PARTICLE</h3>
+      </div>
+      <div style="padding: 0 10px 16px;">
+        <!-- モード選択行: OFF / CENTER / CORNER / REPLACE -->
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;">
+          <button id="lotModeOffBtn"     class="mode-tag-btn active" style="font-size:9px;letter-spacing:1px;">OFF</button>
+          <button id="lotModeCenterBtn"  class="mode-tag-btn"        style="font-size:9px;letter-spacing:1px;">CENTER</button>
+          <button id="lotModeCornerBtn"  class="mode-tag-btn"        style="font-size:9px;letter-spacing:1px;">CORNER</button>
+          <button id="lotModeReplaceBtn" class="mode-tag-btn"        style="font-size:9px;letter-spacing:1px;">REPLACE</button>
+        </div>
+        <!-- ファイル選択行: LOT1 / LOT2 / LOT3 / LOT4 -->
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;">
+          <button id="lotFile1Btn" class="mode-tag-btn active" style="font-size:9px;letter-spacing:1px;">LOT1</button>
+          <button id="lotFile2Btn" class="mode-tag-btn"        style="font-size:9px;letter-spacing:1px;">LOT2</button>
+          <button id="lotFile3Btn" class="mode-tag-btn"        style="font-size:9px;letter-spacing:1px;">LOT3</button>
+          <button id="lotFile4Btn" class="mode-tag-btn"        style="font-size:9px;letter-spacing:1px;">LOT4</button>
+        </div>
+        <!-- サブトグル: BASS連動 / AUTO連動 -->
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <button id="lotBassBtn" class="mode-tag-btn active" style="font-size:9px;letter-spacing:1px;">BASS</button>
+          <button id="lotAutoBtn" class="mode-tag-btn"        style="font-size:9px;letter-spacing:1px;">AUTO</button>
         </div>
       </div>
 
@@ -2307,6 +2408,19 @@
 
       </div>
 
+      <!-- Lottie パーティクル用コンテナ -->
+      <div id="lottieContainer" style="
+        position: fixed;
+        pointer-events: none;
+        z-index: 6;
+        display: none;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 50vmin;
+        height: 50vmin;
+      "></div>
+
       <!-- NEURO LINK: overflow:hiddenラッパーで完全クリップ保証 -->
       <div id="neuroLinkWrapper"
         style="position:fixed;overflow:hidden;pointer-events:none;z-index:3;display:none;">
@@ -2513,17 +2627,43 @@
 
       <!-- SPACE mode container -->
       <div class="menu-section" id="rightSpaceSection">
-        <h3 style="display:flex;align-items:center;justify-content:space-between;">
+        <h3 style="display:flex;align-items:center;justify-content:space-between;color:#00e5ff !important;font-size:10px;letter-spacing:0.2em;">
           SPACE PERSPECTIVE
           <button id="rightSpaceBtn" class="sub-toggle-btn">OFF</button>
         </h3>
-        <div class="slider-wrapper" style="margin-top:6px;margin-bottom:6px;">
-          <label style="font-size:9px;color:#555;width:64px;">STARS</label>
-          <input type="range" id="rightStarsSlider" min="100" max="4000" step="100" value="2500" style="flex:1;">
+        <div class="slider-wrapper" style="margin-top:6px;margin-bottom:4px;">
+          <label style="font-size:9px;color:#555;width:72px;flex-shrink:0;">STARS</label>
+          <input type="range" id="rightStarsSlider" min="100" max="3000" step="100" value="3000" style="flex:1;">
+          <span id="rightStarsValue" style="width:32px;text-align:right;font-size:10px;">3000</span>
         </div>
-        <div class="slider-wrapper">
-          <label style="font-size:9px;color:#555;width:64px;">DRIFT</label>
-          <input type="range" id="rightDriftSlider" min="0" max="10" step="0.5" value="2.0" style="flex:1;">
+        <div class="slider-wrapper" style="margin-bottom:4px;">
+          <label style="font-size:9px;color:#555;width:72px;flex-shrink:0;">STAR SIZE</label>
+          <input type="range" id="rightStarSizeSlider" min="0.5" max="10" step="0.5" value="2" style="flex:1;">
+          <span id="rightStarSizeValue" style="width:32px;text-align:right;font-size:10px;">2.0</span>
+        </div>
+        <div class="slider-wrapper" style="margin-bottom:4px;">
+          <label style="font-size:9px;color:#555;width:72px;flex-shrink:0;">DISTANCE</label>
+          <input type="range" id="rightSpaceDistSlider" min="50" max="600" step="10" value="450" style="flex:1;">
+          <span id="rightSpaceDistValue" style="width:32px;text-align:right;font-size:10px;">450</span>
+        </div>
+        <div class="slider-wrapper" style="margin-bottom:4px;">
+          <label style="font-size:9px;color:#555;width:72px;flex-shrink:0;">AUTO SHAPE</label>
+          <input type="range" id="rightAutoShapeSlider" min="0" max="10" step="1" value="3" style="flex:1;">
+          <span id="rightAutoShapeValue" style="width:32px;text-align:right;font-size:10px;">3</span>
+        </div>
+        <div class="slider-wrapper" style="margin-bottom:4px;">
+          <label style="font-size:9px;color:#555;width:72px;flex-shrink:0;">DRIFT</label>
+          <input type="range" id="rightDriftSlider" min="0" max="10" step="1" value="0" style="flex:1;">
+          <span id="rightDriftValue" style="width:32px;text-align:right;font-size:10px;">OFF</span>
+        </div>
+        <div class="slider-wrapper" style="margin-bottom:4px;">
+          <label style="font-size:9px;color:#555;width:72px;flex-shrink:0;">SHAPE</label>
+          <input type="range" id="rightShapeSlider" min="1" max="48" step="1" value="1" style="flex:1;">
+          <span id="rightShapeValue" style="width:22px;text-align:right;font-size:10px;">1</span>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:2px;">
+          <button id="rightSpaceRandBtn" class="mode-tag-btn" style="flex:1;">RANDOM</button>
+          <button id="rightSpaceMixBtn" class="mode-tag-btn" style="flex:1;">MIX</button>
         </div>
       </div>
 
@@ -2689,26 +2829,6 @@
             <button id="objColorAutoBtn" class="mode-tag-btn"
               style="font-size:8px;padding:1px 6px;letter-spacing:0.5px;flex-shrink:0;">AUTO</button>
           </div>
-        </div>
-      </div>
-
-      <!-- SPACE コントロール（SPACE モードアクティブ時に表示） -->
-      <div class="menu-section" id="rightSpaceSection" style="display:none;">
-        <h3>SPACE</h3>
-        <div class="slider-wrapper" style="margin-bottom:6px;">
-          <label style="font-size:9px;letter-spacing:1px;color:#555;width:80px;flex-shrink:0;">AUTO SHAPE</label>
-          <input type="range" id="rightAutoShapeSlider" min="0" max="10" step="1" value="0" style="flex:1;">
-          <span id="rightAutoShapeValue" style="width:28px;text-align:right;">OFF</span>
-        </div>
-        <div class="slider-wrapper" style="margin-bottom:6px;">
-          <label style="font-size:9px;letter-spacing:1px;color:#555;width:80px;flex-shrink:0;">DRIFT</label>
-          <input type="range" id="rightDriftSlider" min="0" max="10" step="1" value="0" style="flex:1;">
-          <span id="rightDriftValue" style="width:28px;text-align:right;">OFF</span>
-        </div>
-        <div class="slider-wrapper">
-          <label style="font-size:9px;letter-spacing:1px;color:#555;width:80px;flex-shrink:0;">STARS</label>
-          <input type="range" id="rightStarsSlider" min="100" max="3000" step="100" value="3000" style="flex:1;">
-          <span id="rightStarsValue" style="width:28px;text-align:right;">3000</span>
         </div>
       </div>
 
@@ -3354,7 +3474,7 @@
           // Chromium autoplay policy: always resume on user interaction
           if (_ctx.state === 'suspended') await _ctx.resume();
           _analyser = _ctx.createAnalyser();
-          _analyser.fftSize = 2048;  // higher resolution for better freq separation
+          _analyser.fftSize = 1024;  // 2048→1024: 解析コスト半減、視覚的差異なし
           _analyser.smoothingTimeConstant = 0.80;
           _analyser.minDecibels = -90;
           _analyser.maxDecibels = -10;
@@ -3391,9 +3511,13 @@
         window._liquidTrebleIntensity = 0;
       }
 
-      function loop() {
+      let _loopLastT = 0;
+      function loop(now) {
         if (!_active || !_analyser) return;
         _raf = requestAnimationFrame(loop);
+        // 20fps上限（音声解析は20fpsで十分）
+        if (now - _loopLastT < 50) return;
+        _loopLastT = now;
         _analyser.getByteFrequencyData(_buf);
 
         const nyq = _ctx.sampleRate / 2;
@@ -3450,6 +3574,7 @@
           const col = hsvToRgb(_objHue, sat, Math.min(1, val));
           window.mandalaMachine.setDefaultObjectColor(col);
         }
+
       }
 
       // COLOR GAIN slider label sync
@@ -3522,6 +3647,7 @@
         }
       });
 
+
       // Expose for RESET
       window.resetColorMatrix = function () {
         _bgAuto = false; _objAuto = false; _bgHue = 0; _objHue = 180;
@@ -3553,7 +3679,7 @@
         }
 
         document.getElementById('topRavenBtn')?.addEventListener('click', function () {
-          requestAnimationFrame(() => setFill(this.classList.contains('active')));
+          setFill(this.classList.contains('active')); // 即座に反映（RAF遅延なし）
         });
 
         window._ravenZoomOff = () => setFill(false);
@@ -4226,19 +4352,51 @@
 
         // ── 4. toggleSpaceMode を完全置き換え（他モードに一切干渉しない）────────
 
-        // 右パネルDRIFTスライダー連動
-        document.getElementById('rightDriftSlider')?.addEventListener('input', function () {
-          _starDriftAmp = parseInt(this.value);
-          document.getElementById('rightDriftValue').textContent = _starDriftAmp === 0 ? 'OFF' : _starDriftAmp;
-          const topSlider = document.getElementById('spaceDriftSlider');
-          if (topSlider) { topSlider.value = _starDriftAmp; document.getElementById('spaceDriftValue').textContent = _starDriftAmp === 0 ? 'OFF' : _starDriftAmp; }
-        });
+        // 右パネル SPACE スライダー連動
         document.getElementById('rightStarsSlider')?.addEventListener('input', function () {
           _starCount = parseInt(this.value);
-          document.getElementById('rightStarsValue').textContent = _starCount;
-          const topSlider = document.getElementById('spaceCountSlider');
-          if (topSlider) { topSlider.value = _starCount; document.getElementById('spaceCountValue').textContent = _starCount; }
+          const v = document.getElementById('rightStarsValue'); if (v) v.textContent = _starCount;
+          const s = document.getElementById('spaceCountSlider');
+          if (s) { s.value = _starCount; const sv = document.getElementById('spaceCountValue'); if (sv) sv.textContent = _starCount; }
           if (_starIMesh) { removeStarField(); createStarField(); }
+        });
+        document.getElementById('rightStarSizeSlider')?.addEventListener('input', function () {
+          _starSize = parseFloat(this.value);
+          const v = document.getElementById('rightStarSizeValue'); if (v) v.textContent = _starSize.toFixed(1);
+          const s = document.getElementById('spaceSizeSlider');
+          if (s) { s.value = _starSize; s.dispatchEvent(new Event('input')); }
+        });
+        document.getElementById('rightSpaceDistSlider')?.addEventListener('input', function () {
+          _starSpread = parseInt(this.value);
+          const v = document.getElementById('rightSpaceDistValue'); if (v) v.textContent = _starSpread;
+          const s = document.getElementById('spaceDistSlider');
+          if (s) { s.value = _starSpread; s.dispatchEvent(new Event('input')); }
+        });
+        document.getElementById('rightAutoShapeSlider')?.addEventListener('input', function () {
+          const val = parseInt(this.value);
+          const v = document.getElementById('rightAutoShapeValue'); if (v) v.textContent = val === 0 ? 'OFF' : val;
+          const s = document.getElementById('spaceAutoShapeSlider');
+          if (s) { s.value = val; s.dispatchEvent(new Event('input')); }
+        });
+        document.getElementById('rightDriftSlider')?.addEventListener('input', function () {
+          _starDriftAmp = parseInt(this.value);
+          const v = document.getElementById('rightDriftValue'); if (v) v.textContent = _starDriftAmp === 0 ? 'OFF' : _starDriftAmp;
+          const s = document.getElementById('spaceDriftSlider');
+          if (s) { s.value = _starDriftAmp; const sv = document.getElementById('spaceDriftValue'); if (sv) sv.textContent = _starDriftAmp === 0 ? 'OFF' : _starDriftAmp; }
+        });
+        document.getElementById('rightShapeSlider')?.addEventListener('input', function () {
+          const val = parseInt(this.value);
+          const v = document.getElementById('rightShapeValue'); if (v) v.textContent = val;
+          const s = document.getElementById('spaceShapeSlider');
+          if (s) { s.value = val; s.dispatchEvent(new Event('input')); }
+        });
+        document.getElementById('rightSpaceRandBtn')?.addEventListener('click', function () {
+          document.getElementById('spaceRandomBtn')?.click();
+          const s = document.getElementById('spaceShapeSlider');
+          if (s) { document.getElementById('rightShapeSlider').value = s.value; document.getElementById('rightShapeValue').textContent = s.value; }
+        });
+        document.getElementById('rightSpaceMixBtn')?.addEventListener('click', function () {
+          document.getElementById('spaceMixBtn')?.click();
         });
 
         function applySpaceToggle(enabling) {
@@ -4281,6 +4439,11 @@
             });
             // 星空生成
             createStarField();
+            // 右パネルAUTO SHAPEデフォルト値を適用
+            const rightAS = document.getElementById('rightAutoShapeSlider');
+            if (rightAS && parseInt(rightAS.value) > 0) {
+              rightAS.dispatchEvent(new Event('input'));
+            }
           }, 150);
         }
 
@@ -5068,8 +5231,12 @@
         let processor = null;
         let rafId = null;
 
+        // 低音エネルギーをEMAで追跡してリアルタイムに発散へ反映
+        let _bassEMA = 0;
+        const BASS_EMA_ALPHA = 0.35; // 高いほど素早く反応
+
         // ビート検出用バッファ
-        const HISTORY = 43;   // ~1秒分のサンプル (43 @ 60fps)
+        const HISTORY = 43;
         const energyHistory = new Float32Array(HISTORY);
         let histIdx = 0;
 
@@ -5098,53 +5265,45 @@
           }
         }
 
-        // ビート検出ループ（20fps throttle + Uint8Array使い回し）
+        // ビート検出ループ
         let _detectData = null;
-        let _detectMaxBin = 0;
-        let _detectLastMs = 0;
+        let _bassLowBin = 0, _bassHighBin = 0;
+        let _lastGlow = -1;
         function detectLoop() {
           if (!isActive) return;
-          rafId = requestAnimationFrame(detectLoop);
-
           const now = performance.now();
-          if (now - _detectLastMs < 50) return; // ~20fps
-          _detectLastMs = now;
 
           const bufLen = analyser.frequencyBinCount;
           if (!_detectData || _detectData.length !== bufLen) {
             _detectData = new Uint8Array(bufLen);
-            const binHz = audioCtx.sampleRate / analyser.fftSize;
-            _detectMaxBin = Math.min(Math.floor(200 / binHz), bufLen);
+            const binHz = (audioCtx.sampleRate / 2) / bufLen;
+            _bassLowBin  = Math.max(0, Math.floor(50 / binHz));
+            _bassHighBin = Math.min(bufLen - 1, Math.floor(500 / binHz));
           }
           analyser.getByteFrequencyData(_detectData);
-          const data = _detectData;
-          const maxBin = _detectMaxBin;
 
-          // 低音域 (0〜200Hz) のエネルギーを算出
-          let energy = 0;
-          for (let i = 0; i < maxBin; i++) energy += data[i] * data[i];
-          energy /= maxBin;
+          // bass帯域の平均振幅（0〜255）
+          let sum = 0;
+          const cnt = _bassHighBin - _bassLowBin + 1;
+          for (let i = _bassLowBin; i <= _bassHighBin; i++) sum += _detectData[i];
+          const energy = cnt > 0 ? sum / cnt : 0;
 
           // 履歴更新
           energyHistory[histIdx % HISTORY] = energy;
           histIdx++;
 
-          // 平均エネルギーを算出
+          // 直近HISTORY件の平均
           let avg = 0;
           for (let i = 0; i < HISTORY; i++) avg += energyHistory[i];
           avg /= HISTORY;
 
-          // 閾値 = 平均 × 1.3（感度調整）
-          const threshold = avg * 1.3;
-
-
-
-          if (energy > threshold && energy > 20 && (now - lastBeat) > MIN_INTERVAL) {
+          // ビート検出（閾値 = 平均 × 1.15）
+          const threshold = avg * 1.15;
+          if (energy > threshold && energy > 5 && (now - lastBeat) > MIN_INTERVAL) {
             lastBeat = now;
             beatTimes.push(now);
             if (beatTimes.length > BEAT_LOG + 1) beatTimes.shift();
 
-            // 直近ビート間隔からBPMを算出
             if (beatTimes.length >= 3) {
               const intervals = [];
               for (let i = 1; i < beatTimes.length; i++) {
@@ -5154,7 +5313,6 @@
               if (intervals.length >= 2) {
                 const avgIv = intervals.reduce((a, b) => a + b, 0) / intervals.length;
                 let bpm = Math.round(60000 / avgIv);
-                // ハーフタイム補正
                 if (bpm < 60) bpm *= 2;
                 if (bpm > 200) bpm = Math.round(bpm / 2);
                 bpm = Math.max(60, Math.min(200, bpm));
@@ -5162,44 +5320,120 @@
               }
             }
           }
+
+          // 低音エネルギーを平均比率で正規化してspreadに反映
+          const ratio = avg > 2 ? Math.max(0, (energy / avg) - 1.0) : 0;
+          _bassEMA = _bassEMA * (1 - BASS_EMA_ALPHA) + ratio * BASS_EMA_ALPHA;
+
+          // ボタンの輝度（値が変わった時だけDOMを更新）
+          const glow = _bassEMA > 0.05 ? Math.round(_bassEMA * 40) : 0;
+          if (glow !== _lastGlow) {
+            _lastGlow = glow;
+            btn.style.boxShadow = glow > 0 ? `0 0 ${glow}px #0ff, 0 0 ${glow * 2}px #0ff` : '';
+          }
+
+          // spread更新: bass強度に合わせて毎tick反映
+          if (energy > 2 && window.mandalaMachine?.setSpreadMultiplier) {
+            const base = parseFloat(document.getElementById('spread')?.value || 1);
+            const boost = Math.min(1.5, _bassEMA * 2.5);
+            window.mandalaMachine.setSpreadMultiplier(Math.min(3.0, base + boost));
+          } else if (energy <= 2 && window.mandalaMachine?.setSpreadMultiplier) {
+            const base = parseFloat(document.getElementById('spread')?.value || 1);
+            window.mandalaMachine.setSpreadMultiplier(base);
+          }
+        }
+
+        // デバイスを300msテストして実際に信号がある入力を返す
+        async function testDeviceEnergy(deviceId) {
+          try {
+            const s = await navigator.mediaDevices.getUserMedia({
+              audio: deviceId === 'default' ? true : { deviceId: { exact: deviceId }, echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+              video: false
+            });
+            const ctx = new AudioContext();
+            const src = ctx.createMediaStreamSource(s);
+            const an  = ctx.createAnalyser();
+            an.fftSize = 512;
+            src.connect(an);
+            await new Promise(r => setTimeout(r, 120));
+            const buf = new Uint8Array(an.frequencyBinCount);
+            an.getByteFrequencyData(buf);
+            const avg = buf.reduce((a, b) => a + b, 0) / buf.length;
+            s.getTracks().forEach(t => t.stop());
+            ctx.close();
+            return avg;
+          } catch (e) { return 0; }
+        }
+
+        async function findBestInputDevice() {
+          try {
+            await navigator.mediaDevices.getUserMedia({ audio: true }).then(s => s.getTracks().forEach(t => t.stop()));
+          } catch (e) {}
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const inputs = devices.filter(d => d.kind === 'audioinput');
+          console.log('[BPM AUTO] 入力デバイス:', inputs.map(d => `${d.label}(${d.deviceId.slice(0,6)})`).join(' / '));
+
+          // Step1: 優先キーワードで候補を絞る
+          const priority = ['blackhole', 'ddj', 'aggregate', 'rekordbox'];
+          const candidates = [];
+          for (const kw of priority) {
+            const found = inputs.find(d => d.label.toLowerCase().includes(kw));
+            if (found) candidates.push(found);
+          }
+          // Step2: 残りも追加（デフォルト含む）
+          for (const d of inputs) {
+            if (!candidates.find(c => c.deviceId === d.deviceId)) candidates.push(d);
+          }
+
+          // Step3: 上位3デバイスのみテスト（120ms×3=最大360ms）
+          btn.textContent = 'SCAN';
+          let bestId = 'default', bestEnergy = -1;
+          const testTargets = candidates.slice(0, 3);
+          for (const d of testTargets) {
+            const e = await testDeviceEnergy(d.deviceId);
+            console.log(`[BPM AUTO] テスト: ${d.label} → energy=${e.toFixed(2)}`);
+            if (e > bestEnergy) { bestEnergy = e; bestId = d.deviceId; }
+            if (e > 5) break; // 十分な信号があればそこで確定
+          }
+          btn.textContent = 'BPM AUTO';
+
+          const sel = inputs.find(d => d.deviceId === bestId);
+          console.log(`[BPM AUTO] 選択: ${sel?.label || 'default'} (energy=${bestEnergy.toFixed(2)})`);
+          return bestId;
         }
 
         // マイク入力を取得してスタート
         async function start() {
           try {
-            // topMicBtnをONにして既存のオーディオリアクティビティを維持
-            const micBtn = document.getElementById('topMicBtn');
-            if (micBtn && !micBtn.classList.contains('active')) {
-              micBtn.click();
-              // コンパイル済みコードがgetUserMediaを呼ぶまで少し待つ
-              await new Promise(r => setTimeout(r, 300));
-            }
-
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             if (audioCtx.state === 'suspended') await audioCtx.resume();
 
-            // 既存のMIC INPUTストリームがあればそれを使う（競合防止）
-            let stream = window.__sharedMicStream;
-            const isShared = stream && stream.getAudioTracks().some(t => t.readyState === 'live');
-            if (!isShared) {
-              console.log('[BPM AUTO] 新規getUserMedia');
-              stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-            } else {
-              console.log('[BPM AUTO] 既存MICストリームを共有');
-            }
+            const deviceId = await findBestInputDevice();
+            const constraints = {
+              audio: deviceId === 'default'
+                ? true
+                : { deviceId: { exact: deviceId }, echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+              video: false
+            };
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            const track = stream.getAudioTracks()[0];
+            const settings = track ? track.getSettings() : {};
+            console.log('[BPM AUTO] ストリーム取得OK:', track?.label, 'sampleRate:', settings.sampleRate, 'deviceId:', settings.deviceId?.slice(0,8));
 
             source = audioCtx.createMediaStreamSource(stream);
             analyser = audioCtx.createAnalyser();
-            analyser.fftSize = 1024;
-            analyser.smoothingTimeConstant = 0.8;
+            analyser.fftSize = 2048;          // binHz≈21.5Hz → 50-500Hz帯で十分なbin数
+            analyser.smoothingTimeConstant = 0.75;
+            analyser.minDecibels = -90;
+            analyser.maxDecibels = -10;
 
-            // Web Audio APIはpull型: destinationまで繋がっているノードしか処理されない。
-            // source → analyser → processor → destination の直列チェーンにする
-            processor = audioCtx.createScriptProcessor(4096, 1, 1);
-            processor.onaudioprocess = function () { };
+            // GainNode(gain=0) でグラフを活性化（音を出さずにanalysing）
+            const silentGain = audioCtx.createGain();
+            silentGain.gain.value = 0;
             source.connect(analyser);
-            analyser.connect(processor);
-            processor.connect(audioCtx.destination);
+            analyser.connect(silentGain);
+            silentGain.connect(audioCtx.destination);
+            processor = silentGain;
 
             // 履歴リセット
             energyHistory.fill(0);
@@ -5209,10 +5443,18 @@
 
             isActive = true;
             btn.classList.add('active');
-            detectLoop();
-            console.log('[BPM AUTO] 開始 shared:', isShared, ' ctx:', audioCtx.state);
+            console.log('[BPM AUTO] 開始 ctx:', audioCtx.state);
+            // __vjSchedに登録（独自RAFを持たない）
+            if (window.__vjSched) {
+              window.__vjSched.add('bpmAutoDetect', detectLoop, 10);
+            } else {
+              const _loop = () => { detectLoop(); rafId = requestAnimationFrame(_loop); };
+              rafId = requestAnimationFrame(_loop);
+            }
           } catch (e) {
             console.error('BPM AUTO: 失敗', e.name, e.message);
+            btn.textContent = 'ERR';
+            setTimeout(() => { btn.textContent = 'BPM AUTO'; }, 2000);
             isActive = false;
             btn.classList.remove('active');
           }
@@ -5220,15 +5462,17 @@
 
         function stop() {
           isActive = false;
+          _bassEMA = 0;
+          if (window.__vjSched) window.__vjSched.remove('bpmAutoDetect');
           if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+          const base = parseFloat(document.getElementById('spread')?.value || 1);
+          window.mandalaMachine?.setSpreadMultiplier(base);
+          if (source)    { try { source.disconnect(); }    catch (e) { } source = null; }
           if (processor) { try { processor.disconnect(); } catch (e) { } processor = null; }
-          if (source) { try { source.disconnect(); } catch (e) { } source = null; }
-          if (audioCtx) { try { audioCtx.close(); } catch (e) { } audioCtx = null; }
-          analyser = null;
+          if (analyser)  { try { analyser.disconnect(); }  catch (e) { } analyser = null; }
+          if (audioCtx)  { try { audioCtx.close(); }       catch (e) { } audioCtx = null; }
           btn.classList.remove('active');
-          // topMicBtnもOFFにする
-          const micBtn = document.getElementById('topMicBtn');
-          if (micBtn && micBtn.classList.contains('active')) micBtn.click();
+          btn.style.boxShadow = '';
         }
 
         btn.addEventListener('click', () => {
@@ -5259,11 +5503,41 @@
         let frozenSpeed = 1;
 
         // ---- BLACKOUT ----
+        function _applyVoutBlackout(on) {
+          try {
+            const pw = window.mandalaMachine?.projectorManager?.projectorWindow;
+            if (!pw || pw.closed) return;
+            const doc = pw.document;
+            const existing = doc.getElementById('__vout_blackout__');
+            if (on && !existing) {
+              const el = doc.createElement('div');
+              el.id = '__vout_blackout__';
+              el.style.cssText = 'position:fixed;inset:0;background:#000;z-index:99999;pointer-events:none;';
+              doc.body.appendChild(el);
+            } else if (!on && existing) {
+              existing.remove();
+            }
+          } catch (e) {}
+        }
+
         function toggleBlackout() {
           isBlackout = !isBlackout;
           overlay.classList.toggle('active', isBlackout);
           blackoutBtn.classList.toggle('active', isBlackout);
+          window._vjBlackout = isBlackout;
+          _applyVoutBlackout(isBlackout);
         }
+
+        // V-OUTが後から開かれた場合も対応: projectorWindowが出来たらBLACKOUT状態を反映
+        setInterval(() => {
+          if (!isBlackout) return;
+          try {
+            const pw = window.mandalaMachine?.projectorManager?.projectorWindow;
+            if (pw && !pw.closed && !pw.document.getElementById('__vout_blackout__')) {
+              _applyVoutBlackout(true);
+            }
+          } catch (e) {}
+        }, 500);
 
         // ---- FREEZE ----
         function toggleFreeze() {
@@ -5299,6 +5573,84 @@
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', apply);
       } else { apply(); }
+    })();
+  </script>
+
+  <!-- ===== THUMBNAIL GLOW (active-in-scene + bass reactive) ===== -->
+  <script>
+    (function setupThumbnailGlow() {
+      const BASE_SHADOW = '0 0 14px rgba(255,26,0,0.9), 0 0 28px rgba(255,26,0,0.45), inset 0 0 6px rgba(255,26,0,0.15)';
+      const BASE_BORDER = 'rgba(255,26,0,1)';
+      const BASE_BG     = 'rgba(255,26,0,0.15)';
+
+      function applyGlow(item, bass) {
+        const b = bass || 0;
+        const g = Math.round(14 + b * 26);
+        const a = Math.min(1, 0.85 + b * 0.15).toFixed(2);
+        const shadow = `0 0 ${g}px rgba(255,26,0,${a}), 0 0 ${g*2}px rgba(255,26,0,0.4), inset 0 0 6px rgba(255,26,0,0.15)`;
+        item.style.setProperty('box-shadow',   shadow,             'important');
+        item.style.setProperty('border-color', `rgba(255,26,0,${a})`, 'important');
+        item.style.setProperty('background',   BASE_BG,            'important');
+        item.style.setProperty('border-width', '2px',              'important');
+      }
+      function removeGlow(item) {
+        item.style.removeProperty('box-shadow');
+        item.style.removeProperty('border-color');
+        item.style.removeProperty('background');
+        item.style.removeProperty('border-width');
+      }
+
+      function init() {
+        const grid = document.getElementById('presetGridLeft');
+        if (!grid) return;
+
+        // ① MutationObserver: エンジンが active-in-scene を付けた瞬間にグローを付与
+        new MutationObserver(muts => {
+          muts.forEach(m => {
+            if (m.attributeName !== 'class') return;
+            const el = m.target;
+            if (!el.classList.contains('preset-item')) return;
+            if (el.classList.contains('active-in-scene')) {
+              applyGlow(el, window._liquidBassIntensity || 0);
+            } else {
+              removeGlow(el);
+            }
+          });
+        }).observe(grid, { subtree: true, attributes: true, attributeFilter: ['class'] });
+
+        // ② bass連動グロー更新（active-in-scene が付いているアイテムのみ）
+        let _lastBass = -1;
+        function bassUpdate() {
+          const bass = Math.min(1, (window._liquidBassIntensity || 0) * 1.3);
+          if (Math.abs(bass - _lastBass) < 0.02) return;
+          _lastBass = bass;
+          grid.querySelectorAll('.preset-item.active-in-scene').forEach(el => applyGlow(el, bass));
+        }
+
+        // ③ 初期同期: エンジンが既にセットしている active-in-scene にグローを付与
+        function syncExisting() {
+          grid.querySelectorAll('.preset-item.active-in-scene').forEach(el => applyGlow(el, 0));
+        }
+        syncExisting();
+        // エンジン初期化後に再同期
+        const waitEngine = setInterval(() => {
+          if (window.mandalaMachine) {
+            clearInterval(waitEngine);
+            setTimeout(syncExisting, 300);
+          }
+        }, 200);
+
+        if (window.__vjSched) {
+          window.__vjSched.add('thumbGlowBass', bassUpdate, 10);
+        } else {
+          setInterval(bassUpdate, 100);
+        }
+      }
+
+      // DOMContentLoaded後 or 即時実行
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else { init(); }
     })();
   </script>
 
@@ -6669,9 +7021,10 @@
 
       // ── プログレスアニメ ──
       let elapsed = 0;
+      let _piPaused = false;
       const _pi = setInterval(() => {
+        if (_piPaused) return;
         elapsed += 0.1;
-        if (elapsed > 100 / 4.8) elapsed = 0;
         const p = Math.min(100, Math.round(elapsed * 4.8));
         bar.label.textContent = 'processing  |  ' + elapsed.toFixed(1) + 's';
         if (cfg.blockBar) {
@@ -6680,6 +7033,10 @@
         } else {
           bar.barFill.style.width = p + '%';
           bar.pct.textContent = p + '%';
+        }
+        if (elapsed > 100 / 4.8) {
+          _piPaused = true;
+          setTimeout(() => { elapsed = 0; _piPaused = false; }, 3000);
         }
       }, 100);
 
@@ -10455,9 +10812,15 @@ fn sfbm(pi:vec2f)->f32 {
             }
           }
 
-          requestAnimationFrame(draw);
+          // __vjSched登録: 次フレームは__vjSchedに委ねる
         }
-        draw();
+        // getImageData はGPU→CPU転送が重いため4fps上限に制限
+        if (window.__vjSched) {
+          window.__vjSched.add('radarGuard', draw, 4);
+        } else {
+          const _drawLoop = () => { draw(); requestAnimationFrame(_drawLoop); };
+          requestAnimationFrame(_drawLoop);
+        }
       });
     })();
   </script>
@@ -10948,10 +11311,9 @@ fn sfbm(pi:vec2f)->f32 {
         var fixedLeft = Math.round(cwR.left) + leftInset;
         var fixedTop  = Math.max(Math.round(cwR.top), tbBottom);  // topBar下端以降
         var fixedW    = Math.max(Math.round(cwR.width) - leftInset - rightInset, 100);
-        // キャンバスはcanvasWrapperと同サイズ（端の不連続ラインを消すため）
-        // パーティクルのバウンドを内側に設定してはみ出しを防ぐ
+        // キャンバス高さ: canvasWrapper高さ - 8px（musicPanelと接触しないよう確実にマージン確保）
         var availH = Math.max(mpTop - fixedTop, 0);
-        var fixedH = Math.max(Math.min(Math.round(cwR.height), availH), 100);
+        var fixedH = Math.max(Math.min(Math.round(cwR.height) - 8, availH - 8), 100);
         W = fixedW;
         H = fixedH;
         // ラッパーdivをposition:fixedで正確に配置、overflow:hiddenで完全クリップ
@@ -10966,7 +11328,13 @@ fn sfbm(pi:vec2f)->f32 {
         canvas.height = fixedH;
         window._neuroTopH  = fixedTop;
         window._neuroLeftH = fixedLeft;
-        // デバッグ: タイトルに値を出力
+        // wrapperの実際のBCRを確認（設定値と一致するか）
+        requestAnimationFrame(function() {
+          var wr = wrapper.getBoundingClientRect();
+          var mp2 = document.getElementById('musicPanel');
+          var mp2T = mp2 ? Math.round(mp2.getBoundingClientRect().top) : 0;
+          document.title = 'SET bot:'+(fixedTop+fixedH)+' ACT wBot:'+Math.round(wr.bottom)+' mpT:'+mp2T+' overflow:'+(Math.round(wr.bottom)-mp2T);
+        });
       }
 
       // ── WGSL: compute (パーティクル物理) ────────────────────────────
@@ -11001,8 +11369,8 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
   p.y += p.vy * u.bassBoost * u.dt;
   if (p.x < 0.0)  { p.x = 0.0; p.vx =  abs(p.vx); }
   if (p.x > u.W)  { p.x = u.W; p.vx = -abs(p.vx); }
-  if (p.y < 8.0)         { p.y = 8.0;         p.vy =  abs(p.vy); }
-  if (p.y > u.H - 20.0) { p.y = u.H - 20.0; p.vy = -abs(p.vy); }  // 上下端マージン内で折り返し
+  if (p.y < 4.0)         { p.y = 4.0;         p.vy =  abs(p.vy); }
+  if (p.y > u.H - 12.0) { p.y = u.H - 12.0; p.vy = -abs(p.vy); }  // 上下端マージン内で折り返し
   particles[i] = p;
 }`;
 
@@ -11337,7 +11705,7 @@ struct VOut { @builtin(position) pos: vec4<f32>, @location(0) lp: vec2<f32>, @lo
             var ni = nodes[i];
             ni.x += ni.vx * bassBoost * dt; ni.y += ni.vy * bassBoost * dt;
             if (ni.x < 0) { ni.x = 0; ni.vx *= -1; } if (ni.x > W) { ni.x = W; ni.vx *= -1; }
-            if (ni.y < 8) { ni.y = 8; ni.vy *= -1; } if (ni.y > H - 20) { ni.y = H - 20; ni.vy *= -1; }
+            if (ni.y < 4) { ni.y = 4; ni.vy *= -1; } if (ni.y > H - 12) { ni.y = H - 12; ni.vy *= -1; }
             var jit = _glitch ? (6 + bass * 20) : 0;
             ctx2.beginPath(); ctx2.arc(ni.x + (Math.random() - 0.5) * jit, ni.y + (Math.random() - 0.5) * jit, pr, 0, Math.PI * 2);
             ctx2.fillStyle = 'rgba(' + cr + ',' + cg + ',' + cb + ',0.9)'; ctx2.fill();
@@ -11759,8 +12127,7 @@ struct VOut { @builtin(position) pos: vec4<f32>, @location(0) lp: vec2<f32>, @lo
         const ov = document.createElement('div');
         ov.id = ID;
         ov.style.cssText = 'position:fixed;pointer-events:none;z-index:8999;overflow:hidden;' +
-          'background:rgba(255,255,255,0.06);' +
-          'backdrop-filter:blur(22px) saturate(160%);-webkit-backdrop-filter:blur(22px) saturate(160%);' +
+          'background:rgba(40,40,50,0.85);' +
           'border:1px solid rgba(255,255,255,0.10);box-sizing:border-box;' +
           'transition:opacity ' + FADE + 'ms ease;opacity:0;';
 
@@ -12155,6 +12522,190 @@ struct VOut { @builtin(position) pos: vec4<f32>, @location(0) lp: vec2<f32>, @lo
 
       window.addEventListener('load', function() { setTimeout(start, 300); });
     })();
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       PARTICLE (Lottie) SYSTEM
+       ═══════════════════════════════════════════════════════════════ -->
+  <script>
+  (() => {
+    // ── Lottie スロット登録 ────────────────────────────────────
+    const LOTTIE_SLOTS = [
+      { name: 'LOT1', url: 'https://lottie.host/PLACEHOLDER_1.json' },
+      { name: 'LOT2', url: 'https://lottie.host/PLACEHOLDER_2.json' },
+      { name: 'LOT3', url: 'https://lottie.host/PLACEHOLDER_3.json' },
+      { name: 'LOT4', url: 'https://lottie.host/PLACEHOLDER_4.json' },
+    ];
+
+    const container = document.getElementById('lottieContainer');
+    if (!container) return;
+
+    let currentAnim = null;
+    let currentSlot = 0;
+    let currentMode = 'OFF';
+    let bassReactive = true;
+    let autoCycle = false;
+
+    // ── モード別スタイル適用 ──────────────────────────────────
+    const applyMode = (mode) => {
+      currentMode = mode;
+      const cc = document.getElementById('canvasContainer');
+      if (mode === 'OFF') {
+        container.style.display = 'none';
+        if (cc) cc.style.opacity = '1';
+        return;
+      }
+      container.style.display = 'block';
+      if (mode === 'CENTER') {
+        container.style.left = '50%';
+        container.style.top = '50%';
+        container.style.right = 'auto';
+        container.style.bottom = 'auto';
+        container.style.transform = 'translate(-50%, -50%)';
+        container.style.width = '50vmin';
+        container.style.height = '50vmin';
+        if (cc) cc.style.opacity = '1';
+      } else if (mode === 'CORNER') {
+        container.style.left = 'auto';
+        container.style.right = '20px';
+        container.style.bottom = '60px';
+        container.style.top = 'auto';
+        container.style.transform = 'none';
+        container.style.width = '20vmin';
+        container.style.height = '20vmin';
+        if (cc) cc.style.opacity = '1';
+      } else if (mode === 'REPLACE') {
+        container.style.left = '50%';
+        container.style.top = '50%';
+        container.style.right = 'auto';
+        container.style.bottom = 'auto';
+        container.style.transform = 'translate(-50%, -50%)';
+        container.style.width = '100vmin';
+        container.style.height = '100vmin';
+        if (cc) cc.style.opacity = '0.1';
+      }
+    };
+
+    // ── Lottieファイル読み込み ────────────────────────────────
+    const loadSlot = (idx) => {
+      currentSlot = idx;
+      if (currentAnim) {
+        currentAnim.destroy();
+        currentAnim = null;
+        container.innerHTML = '';
+      }
+      const slot = LOTTIE_SLOTS[idx];
+      if (!slot || !slot.url || slot.url.includes('PLACEHOLDER')) return;
+      if (typeof lottie === 'undefined') {
+        console.warn('[PARTICLE] lottie-web not loaded');
+        return;
+      }
+      currentAnim = lottie.loadAnimation({
+        container: container,
+        renderer: 'svg',
+        loop: true,
+        autoplay: true,
+        path: slot.url,
+      });
+    };
+
+    // ── BASS連動ループ（__vjSched 20fps管理）─────────────────
+    const bassLoopFn = () => {
+      if (currentAnim && bassReactive && currentMode !== 'OFF') {
+        const bass = window._liquidBassIntensity || 0;
+        currentAnim.setSpeed(1.0 + bass * 2.0);
+        container.style.opacity = (0.7 + bass * 0.3).toFixed(3);
+        if (currentMode === 'CENTER') {
+          const scale = 1.0 + bass * 0.25;
+          container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        }
+      }
+    };
+    if (window.__vjSched) {
+      window.__vjSched.add('lotieBass', bassLoopFn, 20);
+    } else {
+      const bassLoop = () => { bassLoopFn(); requestAnimationFrame(bassLoop); };
+      requestAnimationFrame(bassLoop);
+    }
+
+    // ── AUTO連動: モード & スロットを自動巡回 ─────────────────
+    const CYCLE_MODES = ['CENTER', 'CORNER', 'REPLACE'];
+    setInterval(() => {
+      if (!autoCycle) return;
+      const nextMode = CYCLE_MODES[Math.floor(Math.random() * CYCLE_MODES.length)];
+      applyMode(nextMode);
+      syncModeButtons(nextMode);
+      const nextSlot = Math.floor(Math.random() * LOTTIE_SLOTS.length);
+      loadSlot(nextSlot);
+      syncSlotButtons(nextSlot);
+    }, 8000);
+
+    // ── ボタンUI同期 ──────────────────────────────────────────
+    const modeBtns = {
+      OFF:     document.getElementById('lotModeOffBtn'),
+      CENTER:  document.getElementById('lotModeCenterBtn'),
+      CORNER:  document.getElementById('lotModeCornerBtn'),
+      REPLACE: document.getElementById('lotModeReplaceBtn'),
+    };
+    const slotBtns = [
+      document.getElementById('lotFile1Btn'),
+      document.getElementById('lotFile2Btn'),
+      document.getElementById('lotFile3Btn'),
+      document.getElementById('lotFile4Btn'),
+    ];
+
+    const syncModeButtons = (mode) => {
+      Object.entries(modeBtns).forEach(([k, b]) => b && b.classList.toggle('active', k === mode));
+    };
+    const syncSlotButtons = (idx) => {
+      slotBtns.forEach((b, i) => b && b.classList.toggle('active', i === idx));
+    };
+
+    // ── イベントバインド ──────────────────────────────────────
+    Object.entries(modeBtns).forEach(([k, b]) => {
+      if (!b) return;
+      b.addEventListener('click', () => {
+        applyMode(k);
+        syncModeButtons(k);
+        if (k !== 'OFF' && !currentAnim) loadSlot(currentSlot);
+      });
+    });
+    slotBtns.forEach((b, i) => {
+      if (!b) return;
+      b.addEventListener('click', () => {
+        loadSlot(i);
+        syncSlotButtons(i);
+        if (currentMode === 'OFF') {
+          applyMode('CENTER');
+          syncModeButtons('CENTER');
+        }
+      });
+    });
+
+    const lotBassBtn = document.getElementById('lotBassBtn');
+    if (lotBassBtn) lotBassBtn.addEventListener('click', () => {
+      bassReactive = !bassReactive;
+      lotBassBtn.classList.toggle('active', bassReactive);
+    });
+
+    const lotAutoBtn = document.getElementById('lotAutoBtn');
+    if (lotAutoBtn) lotAutoBtn.addEventListener('click', () => {
+      autoCycle = !autoCycle;
+      lotAutoBtn.classList.toggle('active', autoCycle);
+    });
+
+    // ── 公開API ───────────────────────────────────────────────
+    window.lottieParticle = {
+      setSlot: (idx) => { loadSlot(idx); syncSlotButtons(idx); },
+      setMode: (m)   => { applyMode(m); syncModeButtons(m); },
+      registerSlot: (idx, url, name) => {
+        if (LOTTIE_SLOTS[idx]) {
+          LOTTIE_SLOTS[idx].url = url;
+          if (name) LOTTIE_SLOTS[idx].name = name;
+        }
+      },
+    };
+  })();
   </script>
 
 </html>

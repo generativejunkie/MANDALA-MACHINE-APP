@@ -88,7 +88,8 @@ export class ResonanceController {
             window.broadcastEvent('resonance-pulse', { resonance: pulse });
         }
 
-        requestAnimationFrame(() => this.orchestrate());
+        // 10fps で十分（60fps RAFは過剰）
+        setTimeout(() => this.orchestrate(), 100);
     }
 
     /**

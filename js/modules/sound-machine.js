@@ -4,6 +4,7 @@ import { CONFIG } from '../config/config.js';
 import { VisualController } from './visual-controller.js';
 
 let audioContext, analyser;
+let _freqDataArray = null; // 毎フレームallocationを避けるためモジュールレベルでキャッシュ
 let scene, camera, renderer, pillGroups = [];
 let frequencyData = { low: 0, mid: 0, high: 0 };
 let pillCount = CONFIG.SOUND_MACHINE.DEFAULT_PARAMS.PILL_COUNT;
@@ -109,7 +110,8 @@ export function initSoundMachine() {
     scene.add(mainLight);
 
     createPills();
-    animateSound();
+    isAnimating = true;
+    startSoundAnimation();
 
     window.addEventListener('resize', () => {
         camera.aspect = container.offsetWidth / container.offsetHeight;
@@ -125,10 +127,11 @@ export function initSoundMachine() {
             if (entry.isIntersecting) {
                 if (!isAnimating) {
                     isAnimating = true;
-                    animateSound();
+                    startSoundAnimation();
                 }
             } else {
                 isAnimating = false;
+                stopSoundAnimation();
             }
         });
     }, { threshold: 0 });
@@ -150,7 +153,7 @@ export function initSoundMachine() {
         }
         if (!isAnimating) {
             isAnimating = true;
-            animateSound();
+            startSoundAnimation();
         }
     };
 
@@ -165,14 +168,26 @@ export function initSoundMachine() {
         if (autoToggle) autoToggle.checked = true;
         console.log("SOUND MACHINE: AUTO MODE TRIGGERED VIA URL");
 
-        // On iPad, we still need a tap, but we can try to start visuals
         isAnimating = true;
-        animateSound();
+        startSoundAnimation();
     }
 }
 
 let isAnimating = false;
 let animationId = null;
+let _cachedFreqBars = null; // querySelectorAllキャッシュ
+
+function startSoundAnimation() {
+    if (window.__vjSched) {
+        window.__vjSched.add('sound', animateSound, 30);
+    } else if (!animationId) {
+        animationId = requestAnimationFrame(animateSound);
+    }
+}
+function stopSoundAnimation() {
+    if (window.__vjSched) window.__vjSched.remove('sound');
+    if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+}
 
 // ==================== VISUAL CONTROLLER (RADAR) ====================
 let visualController = null;
@@ -689,14 +704,15 @@ function createPills() {
 
 function animateSound() {
     if (!isAnimating) {
-        if (animationId) cancelAnimationFrame(animationId);
-        animationId = null;
+        stopSoundAnimation();
         return;
     }
 
-    // Prevent double loops
-    if (animationId) cancelAnimationFrame(animationId);
-    animationId = requestAnimationFrame(animateSound);
+    // __vjSched未使用時のフォールバック
+    if (!window.__vjSched) {
+        if (animationId) cancelAnimationFrame(animationId);
+        animationId = requestAnimationFrame(animateSound);
+    }
 
     // Auto Mode Modulation (GOD SPEED - Full Random)
     if (autoMode && visualController) {
@@ -731,7 +747,10 @@ function animateSound() {
     }
 
     if (analyser && playerState.isPlaying) {
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        if (!_freqDataArray || _freqDataArray.length !== analyser.frequencyBinCount) {
+            _freqDataArray = new Uint8Array(analyser.frequencyBinCount);
+        }
+        const dataArray = _freqDataArray;
         analyser.getByteFrequencyData(dataArray);
 
         const bufferLength = dataArray.length;
@@ -783,10 +802,18 @@ function animateSound() {
 }
 
 function updateFrequencyBars() {
+    if (!_cachedFreqBars) {
+        _cachedFreqBars = {
+            low: [...document.querySelectorAll('#lowFreq .freq-bar')],
+            mid: [...document.querySelectorAll('#midFreq .freq-bar')],
+            high: [...document.querySelectorAll('#highFreq .freq-bar')]
+        };
+    }
     const freqTypes = ['low', 'mid', 'high'];
     freqTypes.forEach(type => {
-        const bars = document.querySelectorAll(`#${type}Freq .freq-bar`);
-        const value = frequencyData[type.replace('Freq', '')];
+        const bars = _cachedFreqBars[type];
+        if (!bars) return;
+        const value = frequencyData[type];
         bars.forEach((bar, index) => {
             if (value > index / 10) {
                 bar.classList.add('active');

@@ -24,8 +24,8 @@ export function initInformationMachine() {
         const ms = Math.floor((diff % 1000) / 10).toString().padStart(2, '0');
 
         uptimeEl.textContent = `${hours}:${minutes}:${seconds}:${ms}`;
-        requestAnimationFrame(updateUptime);
     }
+    setInterval(updateUptime, 100); // 10fps で十分
     updateUptime();
 
     // --- SYNC RATE JITTER ---

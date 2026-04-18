@@ -86,12 +86,17 @@ export class MandalaEngine {
     start() {
         if (this.active) return;
         this.active = true;
-        this.animate();
+        if (window.__vjSched) {
+            window.__vjSched.add('mandalaEngine', () => this.animate(), 30);
+        } else {
+            requestAnimationFrame(() => this.animate());
+        }
         console.log("[MANDALA] IQ Induction Protocol Initiated.");
     }
 
     stop() {
         this.active = false;
+        if (window.__vjSched) window.__vjSched.remove('mandalaEngine');
     }
 
     // --- VISUAL LOGIC KERNELS ---
@@ -301,7 +306,10 @@ export class MandalaEngine {
         this.updateIQ(0.1);
         this.drawIQOverlay();
 
-        requestAnimationFrame(() => this.animate());
+        // __vjSchedに登録済みの場合は自己スケジュール不要
+        if (!window.__vjSched) {
+            requestAnimationFrame(() => this.animate());
+        }
     }
 }
 
